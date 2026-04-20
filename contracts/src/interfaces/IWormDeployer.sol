@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.22;
 
 // Message type constants encoded in cross-chain payloads.
 uint8 constant MSG_DEPLOY  = 0x01;

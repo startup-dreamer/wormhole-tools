@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use wormhole_cli::commands::{
-    aptos, completion, evm, generate, info, latency, near, parse, redeem, solana, status, submit,
-    sui, tokens, transfer,
+    aptos, completion, deploy, evm, generate, info, latency, near, parse, redeem, solana, status,
+    submit, sui, tokens, transfer,
 };
 use wormhole_cli::config;
 
@@ -24,6 +24,8 @@ enum Commands {
     Submit(submit::SubmitArgs),
     /// Query chain and contract metadata.
     Info(info::InfoArgs),
+    /// Deploy contracts to multiple chains via Wormhole.
+    Deploy(deploy::DeployArgs),
     /// Interact with Wormhole contracts on EVM chains.
     Evm(evm::EvmArgs),
     /// Interact with Wormhole contracts on Aptos.
@@ -56,6 +58,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Generate(args) => generate::run(&args),
         Commands::Submit(args) => submit::run(&args).await,
         Commands::Info(args) => info::run(&args),
+        Commands::Deploy(args) => deploy::run(&args).await,
         Commands::Evm(args) => evm::run(&args).await,
         Commands::Aptos(args) => aptos::run(&args).await,
         Commands::Near(args) => near::run(&args).await,

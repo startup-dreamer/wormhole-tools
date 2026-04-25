@@ -2,7 +2,6 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {WormDeployer} from "../src/WormDeployer.sol";
 
 contract MockRelayer {
@@ -34,11 +33,8 @@ contract WormDeployerTest is Test {
 
     function setUp() public {
         relayer = new MockRelayer();
-        WormDeployer impl = new WormDeployer();
-        bytes memory initData = abi.encodeCall(WormDeployer.initialize, (address(relayer)));
         vm.prank(owner);
-        ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
-        deployer = WormDeployer(payable(address(proxy)));
+        deployer = new WormDeployer(address(relayer));
     }
 
     function test_deployAcrossChains_sends_correct_payload() public {

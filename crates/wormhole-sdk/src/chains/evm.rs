@@ -315,7 +315,11 @@ fn abi_encode_no_args(function_name: &str) -> Vec<u8> {
 }
 
 /// Execute an `eth_call` and return the raw hex result string.
-pub(crate) async fn eth_call(rpc_url: &str, to: &str, data: &[u8]) -> Result<String, WormholeError> {
+pub(crate) async fn eth_call(
+    rpc_url: &str,
+    to: &str,
+    data: &[u8],
+) -> Result<String, WormholeError> {
     let data_hex = format!("0x{}", hex::encode(data));
     let body = serde_json::json!({
         "jsonrpc": "2.0",
@@ -477,10 +481,7 @@ pub fn evm_address_from_key(key_hex: &str) -> Result<String, WormholeError> {
 // ── private JSON-RPC helpers ──────────────────────────────────────────────────
 
 /// Query the pending transaction count (nonce) for `address`.
-async fn eth_get_transaction_count(
-    rpc_url: &str,
-    address: &str,
-) -> Result<u64, WormholeError> {
+async fn eth_get_transaction_count(rpc_url: &str, address: &str) -> Result<u64, WormholeError> {
     let body = serde_json::json!({
         "jsonrpc": "2.0", "method": "eth_getTransactionCount",
         "params": [address, "pending"], "id": 1
@@ -540,11 +541,10 @@ async fn eth_estimate_gas(
 /// Parse a `0x`-prefixed hex Ethereum address into a 20-byte array.
 fn parse_address_bytes(addr: &str) -> Result<[u8; 20], WormholeError> {
     let s = addr.strip_prefix("0x").unwrap_or(addr);
-    let bytes =
-        hex::decode(s).map_err(|e| WormholeError::InvalidEncoding(e.to_string()))?;
-    bytes.try_into().map_err(|_| {
-        WormholeError::InvalidEncoding(format!("address must be 20 bytes: {addr}"))
-    })
+    let bytes = hex::decode(s).map_err(|e| WormholeError::InvalidEncoding(e.to_string()))?;
+    bytes
+        .try_into()
+        .map_err(|_| WormholeError::InvalidEncoding(format!("address must be 20 bytes: {addr}")))
 }
 
 // ── tests ─────────────────────────────────────────────────────────────────────

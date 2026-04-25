@@ -1,7 +1,7 @@
 //! Per-chain deployment status polling.
 
+use crate::chains::evm::{extract_result_string, json_rpc_call};
 use crate::WormholeError;
-use crate::chains::evm::{json_rpc_call, extract_result_string};
 
 /// Deployment status for a single chain.
 #[derive(Debug, Clone, PartialEq, Eq)]

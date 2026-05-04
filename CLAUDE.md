@@ -1,4 +1,4 @@
-# Wormhole CLI — Claude Code Rules
+# worm-tool — Claude Code Rules
 
 Auto-loaded by Claude Code sessions in this repo. Contains the hard facts needed to build correctly.
 These rules apply to every task in this project unless explicitly overridden. Bias: caution over speed on non-trivial work. Use judgment on trivial tasks.
@@ -47,40 +47,43 @@ Transform tasks into verifiable goals:
 "Refactor X" → "Ensure tests pass before and after"
 
 ## What this project is about
-Rust CLI tool for interacting with the Wormhole cross-chain protocol.
+TypeScript CLI and SDK for interacting with the Wormhole cross-chain protocol. The project was previously named `wormhole-cli` (Rust); this is the TypeScript rewrite.
+Binary name: `worm-tool`. SDK package: `@worm-tool/sdk`.
 Reference implementation: `reference/ccip-tools-ts` (TypeScript, study structure only)
 Wormhole protocol reference: `reference/wormhole/clients/js/src/`
 
 ## Stack
-- Language: Rust (stable)
-- CLI framework: clap v4 (with derive macros)
-- Async runtime: tokio
-- HTTP/RPC: ethers-rs (EVM), solana-client (Solana)
-- VAA parsing: custom (see src/vaa/)
-- Config: dotenvy, loading from ~/.wormhole/.env
-- Shell completion: clap_complete
-- UI: Next.js 16.2.3 (App Router) + TypeScript, Tailwind CSS v4, Framer Motion, Lucide icons
+- Language: TypeScript 5.4 (strict mode, `"noUncheckedIndexedAccess": true`)
+- CLI framework: Commander.js v12
+- Runtime: Node.js native async/await
+- EVM: viem v2
+- Solana: @solana/web3.js v1
+- VAA parsing/encoding: custom (see packages/sdk/src/vaa/)
+- Config: dotenv, loading from ~/.worm-tool/.env, env var prefix `WORM_TOOL_`
+- Build: tsup (esbuild)
+- Tests: vitest
+- Package structure: `packages/cli` (binary `worm-tool`) and `packages/sdk` (`@worm-tool/sdk`)
 
 ## Architecture Rules
-- Commands go in src/commands/ — one file per command group
-- Chain-specific logic goes in src/chains/ — one module per chain family
-- VAA encoding/decoding is isolated in src/vaa/
-- No business logic in main.rs — it is entrypoint only
-- Errors use thiserror crate, propagated with anyhow in CLI layer
+- Commands go in packages/cli/src/commands/ — one file per command group
+- Chain-specific logic goes in packages/sdk/src/chains/ — one module per chain family
+- VAA encoding/decoding is isolated in packages/sdk/src/vaa/
+- No business logic in packages/cli/src/index.ts — it is the entrypoint only
+- Errors use WormToolError class hierarchy (see packages/sdk/src/error.ts), propagated in CLI layer
 
 ## Code Rules
-- All public functions must have doc comments
-- No unwrap() in non-test code — use ? or explicit error handling
+- All exported functions and classes must have JSDoc comments
+- No non-null assertions (`!`) in non-test code — use explicit checks or optional chaining
 - Private keys never logged, never in error messages
 - Build this project modularly, with each component having a clear purpose and interface.
 - Build the cli in the pattern where it can be used as a library and as a standalone executable.
-- Tests go in the same file as the code they test (Rust convention)
+- Tests go in the same file as the code they test (vitest `*.test.ts` co-located)
 - Integration tests go in tests/
 
 ## Reference Usage
 - Study ccip-tools-ts for: command structure, multi-RPC patterns, chain module separation
 - Study reference/wormhole/clients/js/src/cmds/ for: exact VAA logic to port
-- Do not copy TypeScript code verbatim — translate the logic to idiomatic Rust
+- Translate logic to idiomatic TypeScript — do not copy verbatim
 
 ## Git
 - Branch naming: feat/command-name, fix/issue-description

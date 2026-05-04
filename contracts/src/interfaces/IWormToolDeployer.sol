@@ -6,9 +6,9 @@ uint8 constant MSG_DEPLOY  = 0x01;
 uint8 constant MSG_CALL    = 0x02;
 uint8 constant MSG_UPGRADE = 0x03;
 
-/// @title IWormDeployer
-/// @notice Interface for the WormDeployer cross-chain deployment and call hub.
-interface IWormDeployer {
+/// @title IWormToolDeployer
+/// @notice Interface for the WormToolDeployer cross-chain deployment and call hub.
+interface IWormToolDeployer {
 
     // ── Events ────────────────────────────────────────────────────────────────
 
@@ -47,7 +47,7 @@ interface IWormDeployer {
         bool deployOnCurrentChain
     ) external payable;
 
-    /// @notice Send an arbitrary cross-chain function call through the WormDeployer hub.
+    /// @notice Send an arbitrary cross-chain function call through the WormToolDeployer hub.
     /// @param targetChains  Wormhole chain IDs to deliver to.
     /// @param target        Contract address on each target chain (must be same address; use deterministic deployment).
     /// @param callData      ABI-encoded function call.
@@ -87,6 +87,6 @@ interface IWormDeployer {
 
     // ── Admin ─────────────────────────────────────────────────────────────────
 
-    /// @notice Register the WormDeployer address on a peer chain.
+    /// @notice Register the WormToolDeployer address on a peer chain.
     function setTrustedSender(uint16 chainId, bytes32 senderAddress) external;
 }

@@ -2,14 +2,14 @@
 pragma solidity ^0.8.22;
 
 import {Script, console} from "forge-std/Script.sol";
-import {WormDeployer} from "../src/WormDeployer.sol";
+import {WormToolDeployer} from "../src/WormToolDeployer.sol";
 
 interface ICreate2Deployer {
     function deploy(uint256 value, bytes32 salt, bytes memory code) external;
     function computeAddress(bytes32 salt, bytes32 codeHash) external view returns (address);
 }
 
-/// @notice Deploys WormDeployer at a deterministic address on any EVM chain
+/// @notice Deploys WormToolDeployer at a deterministic address on any EVM chain
 ///         that has the canonical Create2Deployer factory.
 ///
 /// Usage:
@@ -31,25 +31,25 @@ contract Bootstrap is Script {
         ICreate2Deployer factory = ICreate2Deployer(WORM_CREATE2_FACTORY);
 
         bytes memory bytecode = abi.encodePacked(
-            type(WormDeployer).creationCode,
+            type(WormToolDeployer).creationCode,
             abi.encode(wormholeRelayer)
         );
-        address wormDeployerAddr = factory.computeAddress(DEPLOY_SALT, keccak256(bytecode));
-        console.log("Expected WormDeployer address:", wormDeployerAddr);
+        address wormToolDeployerAddr = factory.computeAddress(DEPLOY_SALT, keccak256(bytecode));
+        console.log("Expected WormToolDeployer address:", wormToolDeployerAddr);
 
         vm.startBroadcast(deployerKey);
 
-        if (wormDeployerAddr.code.length == 0) {
+        if (wormToolDeployerAddr.code.length == 0) {
             factory.deploy(0, DEPLOY_SALT, bytecode);
-            console.log("WormDeployer deployed at:", wormDeployerAddr);
+            console.log("WormToolDeployer deployed at:", wormToolDeployerAddr);
         } else {
-            console.log("WormDeployer already deployed at:", wormDeployerAddr);
+            console.log("WormToolDeployer already deployed at:", wormToolDeployerAddr);
         }
 
         vm.stopBroadcast();
 
         console.log("=== Bootstrap complete ===");
-        console.log("WormDeployer canonical address:", wormDeployerAddr);
-        console.log("Add to registry: chain name =>", wormDeployerAddr);
+        console.log("WormToolDeployer canonical address:", wormToolDeployerAddr);
+        console.log("Add to registry: chain name =>", wormToolDeployerAddr);
     }
 }

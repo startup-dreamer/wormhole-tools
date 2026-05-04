@@ -3,40 +3,40 @@ pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {WormOwnableProxy} from "../src/WormOwnableProxy.sol";
+import {WormToolProxy} from "../src/WormToolProxy.sol";
 
-contract MyUpgradeableToken is WormOwnableProxy {
+contract MyUpgradeableToken is WormToolProxy {
     uint256 public value;
 
-    function initialize(address _owner, address _wormDeployer) external initializer {
-        __WormOwnableProxy_init(_owner, _wormDeployer);
+    function initialize(address _owner, address _wormToolDeployer) external initializer {
+        __WormToolProxy_init(_owner, _wormToolDeployer);
         value = 42;
     }
 
     function setValue(uint256 v) external { value = v; }
 }
 
-contract MyUpgradeableTokenV2 is WormOwnableProxy {
+contract MyUpgradeableTokenV2 is WormToolProxy {
     uint256 public value;
     string public version;
 
-    function initialize(address _owner, address _wormDeployer) external initializer {
-        __WormOwnableProxy_init(_owner, _wormDeployer);
+    function initialize(address _owner, address _wormToolDeployer) external initializer {
+        __WormToolProxy_init(_owner, _wormToolDeployer);
     }
 
     function initV2() external { version = "v2"; }
 }
 
-contract WormOwnableProxyTest is Test {
+contract WormToolProxyTest is Test {
     MyUpgradeableToken token;
     address owner = address(0xABCD);
-    address wormDeployer = address(0xD3F);
+    address wormToolDeployer = address(0xD3F);
     address attacker = address(0xBAD);
 
     function setUp() public {
         MyUpgradeableToken impl = new MyUpgradeableToken();
         bytes memory initData = abi.encodeCall(
-            MyUpgradeableToken.initialize, (owner, wormDeployer)
+            MyUpgradeableToken.initialize, (owner, wormToolDeployer)
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         token = MyUpgradeableToken(address(proxy));
@@ -50,7 +50,7 @@ contract WormOwnableProxyTest is Test {
 
     function test_worm_deployer_can_upgrade() public {
         MyUpgradeableTokenV2 newImpl = new MyUpgradeableTokenV2();
-        vm.prank(wormDeployer);
+        vm.prank(wormToolDeployer);
         token.upgradeToAndCall(address(newImpl), "");
     }
 

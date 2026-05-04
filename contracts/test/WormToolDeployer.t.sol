@@ -2,7 +2,7 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
-import {WormDeployer} from "../src/WormDeployer.sol";
+import {WormToolDeployer} from "../src/WormToolDeployer.sol";
 
 contract MockRelayer {
     struct Call { uint16 chain; address target; bytes payload; uint256 gas; }
@@ -26,15 +26,15 @@ contract MockRelayer {
     }
 }
 
-contract WormDeployerTest is Test {
-    WormDeployer deployer;
+contract WormToolDeployerTest is Test {
+    WormToolDeployer deployer;
     MockRelayer relayer;
     address owner = address(0xBEEF);
 
     function setUp() public {
         relayer = new MockRelayer();
         vm.prank(owner);
-        deployer = new WormDeployer(address(relayer));
+        deployer = new WormToolDeployer(address(relayer));
     }
 
     function test_deployAcrossChains_sends_correct_payload() public {

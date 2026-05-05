@@ -22,7 +22,7 @@ beforeEach(() => {
     throw new Error(`exit:${_code}`);
   });
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => { vi.restoreAllMocks(); });
 
 describe('info command', () => {
   it('is registered with name "info"', () => {

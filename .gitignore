@@ -3,3 +3,10 @@ reference/
 CLAUDE.local.md
 .env
 **/.env
+
+# Node.js / TypeScript
+node_modules/
+**/node_modules/
+packages/*/dist/
+*.tsbuildinfo
+**/*.tsbuildinfo

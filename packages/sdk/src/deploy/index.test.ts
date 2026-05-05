@@ -26,7 +26,7 @@ const DEPLOYER = `0x${'de'.repeat(20)}`;
 const SALT = `0x${'00'.repeat(32)}` as `0x${string}`;
 
 describe('deployAcrossChains', () => {
-  it('dispatches a sendTransaction on each chain', async () => {
+  it('sends exactly one tx from the source chain, encoding target chains in calldata', async () => {
     const eth = makeMockChain(2n, 'ethereum');
     const bsc = makeMockChain(4n, 'bsc');
     const results = await deployAcrossChains({
@@ -35,9 +35,11 @@ describe('deployAcrossChains', () => {
       salt: SALT,
       wormToolDeployerAddress: DEPLOYER,
     });
-    expect(results).toHaveLength(2);
+    // Only one result — the source chain receipt
+    expect(results).toHaveLength(1);
+    // Source chain sent the tx; target chain did NOT send a separate tx
     expect(eth.sendTransaction).toHaveBeenCalledOnce();
-    expect(bsc.sendTransaction).toHaveBeenCalledOnce();
+    expect(bsc.sendTransaction).not.toHaveBeenCalled();
   });
 
   it('result entries carry chain name and id', async () => {

@@ -113,7 +113,8 @@ export function registerDeployCommand(program: Command): void {
     .requiredOption('--calldata <hex>', 'ABI-encoded calldata (0x-prefixed)')
     .requiredOption('--chains <chains>', 'Comma-separated chain names')
     .option('--deployer <address>', 'Override WormToolDeployer address')
-    .action(async (opts: { target: string; calldata: string; chains: string; deployer?: string }) => {
+    .option('--value <wei>', 'ETH (in wei) to send for Wormhole relayer fees when using cross-chain targets')
+    .action(async (opts: { target: string; calldata: string; chains: string; deployer?: string; value?: string }) => {
       try {
         const config = loadConfig();
         const chainNames = opts.chains.split(',').map(s => s.trim());
@@ -124,6 +125,7 @@ export function registerDeployCommand(program: Command): void {
           target: opts.target as `0x${string}`,
           calldata: opts.calldata as `0x${string}`,
           wormToolDeployerAddress: deployer,
+          ...(opts.value !== undefined && { value: BigInt(opts.value) }),
         });
         printJson(results.map((r: { chain: string; receipt: { txHash: string; success: boolean } }) => ({ chain: r.chain, txHash: r.receipt.txHash, success: r.receipt.success })));
       } catch (err) { printError('deploy call failed', err); process.exit(1); }
@@ -137,7 +139,8 @@ export function registerDeployCommand(program: Command): void {
     .requiredOption('--new-impl <address>', 'New implementation address')
     .requiredOption('--chains <chains>', 'Comma-separated chain names')
     .option('--deployer <address>', 'Override WormToolDeployer address')
-    .action(async (opts: { proxy: string; newImpl: string; chains: string; deployer?: string }) => {
+    .option('--value <wei>', 'ETH (in wei) to send for Wormhole relayer fees when using cross-chain targets')
+    .action(async (opts: { proxy: string; newImpl: string; chains: string; deployer?: string; value?: string }) => {
       try {
         const config = loadConfig();
         const chainNames = opts.chains.split(',').map(s => s.trim());
@@ -148,6 +151,7 @@ export function registerDeployCommand(program: Command): void {
           proxy: opts.proxy as `0x${string}`,
           newImpl: opts.newImpl as `0x${string}`,
           wormToolDeployerAddress: deployer,
+          ...(opts.value !== undefined && { value: BigInt(opts.value) }),
         });
         printJson(results.map((r: { chain: string; receipt: { txHash: string; success: boolean } }) => ({ chain: r.chain, txHash: r.receipt.txHash, success: r.receipt.success })));
       } catch (err) { printError('deploy upgrade failed', err); process.exit(1); }

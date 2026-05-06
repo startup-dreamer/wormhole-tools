@@ -32,19 +32,19 @@ export const CHAIN_REGISTRY: ChainEntry[] = [
     wormholeChainId: 10002, name: 'sepolia', evmChainId: 11155111, isTestnet: true,
     defaultRpc: 'https://ethereum-sepolia.publicnode.com',
     wormholeCore: '0x4a8bc80Ed5a4067f1CCf107057b8270E0cC11A78',
-    wormToolDeployer: '0xC8059e943CD42BfC6273C5A8E6F01fdB80Fa7748',
+    wormToolDeployer: '0x0aA4B5899bAF7326397b1041db9c854056126F57',
   },
   {
     wormholeChainId: 10003, name: 'arbitrum-sepolia', evmChainId: 421614, isTestnet: true,
     defaultRpc: 'https://sepolia-rollup.arbitrum.io/rpc',
     wormholeCore: '0x6b9C8671cdDC8dEab9c719bB87cBd3e782bA6a35',
-    wormToolDeployer: '0xC8059e943CD42BfC6273C5A8E6F01fdB80Fa7748',
+    wormToolDeployer: '0x0aA4B5899bAF7326397b1041db9c854056126F57',
   },
   {
     wormholeChainId: 10004, name: 'base-sepolia', evmChainId: 84532, isTestnet: true,
     defaultRpc: 'https://sepolia.base.org',
     wormholeCore: '0x79A1027a6A159502049F10906D333EC57E95F083',
-    wormToolDeployer: '0xC8059e943CD42BfC6273C5A8E6F01fdB80Fa7748',
+    wormToolDeployer: '0x0aA4B5899bAF7326397b1041db9c854056126F57',
   },
   { wormholeChainId: 4, name: 'bsc-testnet', evmChainId: 97, isTestnet: true },
 ];

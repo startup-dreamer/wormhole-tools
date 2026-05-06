@@ -15,19 +15,28 @@ contract WormToolDeployer is IWormToolDeployer, IWormholeReceiver, Ownable {
 
     // ── Storage ───────────────────────────────────────────────────────────────
 
-    IWormholeRelayer public immutable relayer;
+    /// @notice Wormhole standard relayer for this chain (set once after deployment via setRelayer).
+    IWormholeRelayer public relayer;
 
     /// @dev chainId => WormToolDeployer address on that chain (Wormhole bytes32 format).
     mapping(uint16 => bytes32) public trustedSenders;
 
     // ── Constructor ───────────────────────────────────────────────────────────
 
-    /// @notice Deploy WormToolDeployer with the Wormhole relayer address for this chain.
-    constructor(address _relayer) Ownable(msg.sender) {
-        relayer = IWormholeRelayer(_relayer);
-    }
+    /// @notice Deploy WormToolDeployer.
+    /// @dev    `owner` is passed explicitly (not msg.sender) so that the same owner
+    ///         address can be encoded in the constructor args on every chain — keeping
+    ///         the init-bytecode hash identical and therefore the CREATE2 address the
+    ///         same everywhere.  Call `setRelayer` immediately after deployment.
+    constructor(address owner) Ownable(owner) {}
 
     // ── Admin ─────────────────────────────────────────────────────────────────
+
+    /// @notice Set the Wormhole relayer for this chain. Must be called once after CREATE2 deploy.
+    /// @dev    Not restricted to one-time to allow upgrading relayer if Wormhole deploys a new one.
+    function setRelayer(address _relayer) external onlyOwner {
+        relayer = IWormholeRelayer(_relayer);
+    }
 
     /// @inheritdoc IWormToolDeployer
     function setTrustedSender(uint16 chainId, bytes32 senderAddress) external onlyOwner {

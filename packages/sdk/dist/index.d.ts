@@ -226,35 +226,48 @@ interface ChainDeployResult {
     receipt: TransactionReceipt;
 }
 interface DeployAcrossChainsParams {
+    /** chains[0] is the source (where the tx is sent). Remaining are cross-chain targets. */
     chains: WormToolChain[];
     bytecode: `0x${string}`;
     constructorArgs?: `0x${string}`;
     salt: `0x${string}`;
     wormToolDeployerAddress: string;
+    /**
+     * ETH value to send for Wormhole relayer fees (required when chains.length > 1).
+     * Omit or pass 0n for local-only deployments (chains.length === 1).
+     */
+    value?: bigint;
 }
-/** Deploy bytecode to multiple chains in parallel via WormToolDeployer. */
+/**
+ * Deploy bytecode via WormToolDeployer.
+ *
+ * Sends one transaction from chains[0]. The contract deploys locally on chains[0]
+ * (deployOnCurrentChain=true) and sends Wormhole messages to any additional chains.
+ * If chains has only one entry, no relayer fees are needed.
+ */
 declare function deployAcrossChains(params: DeployAcrossChainsParams): Promise<ChainDeployResult[]>;
 interface CallAcrossChainsParams {
     chains: WormToolChain[];
     target: `0x${string}`;
     calldata: `0x${string}`;
     wormToolDeployerAddress: string;
+    value?: bigint;
 }
-/** Call a function on a deployed contract across multiple chains in parallel. */
+/** Call a function on a deployed contract across multiple chains. */
 declare function callAcrossChains(params: CallAcrossChainsParams): Promise<ChainDeployResult[]>;
 interface UpgradeAcrossChainsParams {
     chains: WormToolChain[];
     proxy: `0x${string}`;
     newImpl: `0x${string}`;
     wormToolDeployerAddress: string;
+    value?: bigint;
 }
-/** Upgrade a proxy contract to a new implementation across multiple chains in parallel. */
+/** Upgrade a proxy contract to a new implementation. */
 declare function upgradeAcrossChains(params: UpgradeAcrossChainsParams): Promise<ChainDeployResult[]>;
 
 declare enum MessageStatus {
     Pending = "pending",
-    Signed = "signed",
-    Relayed = "relayed"
+    Signed = "signed"
 }
 interface MessageStatusParams {
     emitterChain: number;

@@ -87,6 +87,9 @@ interface IWormToolDeployer {
 
     // ── Admin ─────────────────────────────────────────────────────────────────
 
+    /// @notice Set the Wormhole standard relayer address for this chain (call once after CREATE2 deploy).
+    function setRelayer(address _relayer) external;
+
     /// @notice Register the WormToolDeployer address on a peer chain.
     function setTrustedSender(uint16 chainId, bytes32 senderAddress) external;
 }

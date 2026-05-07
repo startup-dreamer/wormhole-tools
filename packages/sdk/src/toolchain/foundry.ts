@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'fs/promises';
 import { join, basename } from 'path';
-import type { AbiParameter } from 'viem';
 import type { ContractMeta, StorageLayout } from './types.js';
+import { extractConstructorInputs } from './utils.js';
 
 interface FoundryArtifact {
   abi?: unknown[];
@@ -11,14 +11,6 @@ interface FoundryArtifact {
     settings?: { compilationTarget?: Record<string, string> };
   };
   storageLayout?: StorageLayout;
-}
-
-function extractConstructorInputs(abi: unknown[]): readonly AbiParameter[] {
-  const ctor = abi.find(
-    (e): e is { type: string; inputs: AbiParameter[] } =>
-      typeof e === 'object' && e !== null && (e as { type: string }).type === 'constructor',
-  );
-  return ctor?.inputs ?? [];
 }
 
 /**
@@ -48,13 +40,14 @@ export async function readFoundryArtifacts(artifactDir: string): Promise<Contrac
       let raw: FoundryArtifact;
       try {
         raw = JSON.parse(await readFile(artifactPath, 'utf8')) as FoundryArtifact;
-      } catch {
+      } catch (err) {
+        process.stderr.write(`Warning: failed to parse artifact ${artifactPath}: ${err instanceof Error ? err.message : String(err)}\n`);
         continue;
       }
 
       const bytecodeObj = raw.bytecode?.object ?? '';
       const bytecodeHex = (bytecodeObj.startsWith('0x') ? bytecodeObj : '0x' + bytecodeObj) as `0x${string}`;
-      const isEmpty = bytecodeHex === '0x' || bytecodeHex.length <= 2;
+      const isEmpty = bytecodeHex === '0x';
 
       const compilationTarget = raw.metadata?.settings?.compilationTarget ?? {};
       const sourcePath = Object.keys(compilationTarget)[0] ?? `${contractName}.sol`;

@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'fs/promises';
 import { join, basename } from 'path';
-import type { AbiParameter } from 'viem';
 import type { ContractMeta } from './types.js';
+import { extractConstructorInputs } from './utils.js';
 
 interface HardhatArtifact {
   _format?: string;
@@ -10,14 +10,6 @@ interface HardhatArtifact {
   abi?: unknown[];
   bytecode?: string;
   deployedBytecode?: string;
-}
-
-function extractConstructorInputs(abi: unknown[]): readonly AbiParameter[] {
-  const ctor = abi.find(
-    (e): e is { type: string; inputs: AbiParameter[] } =>
-      typeof e === 'object' && e !== null && (e as { type: string }).type === 'constructor',
-  );
-  return ctor?.inputs ?? [];
 }
 
 async function walkArtifactDir(dir: string): Promise<string[]> {
@@ -50,7 +42,8 @@ export async function readHardhatArtifacts(artifactDir: string): Promise<Contrac
     let raw: HardhatArtifact;
     try {
       raw = JSON.parse(await readFile(artifactPath, 'utf8')) as HardhatArtifact;
-    } catch {
+    } catch (err) {
+      process.stderr.write(`Warning: failed to parse artifact ${artifactPath}: ${err instanceof Error ? err.message : String(err)}\n`);
       continue;
     }
 
@@ -60,10 +53,14 @@ export async function readHardhatArtifacts(artifactDir: string): Promise<Contrac
     const sourcePath = raw.sourceName ?? `contracts/${contractName}.sol`;
     const bytecodeRaw = raw.bytecode ?? '0x';
     const bytecode = (bytecodeRaw.startsWith('0x') ? bytecodeRaw : '0x' + bytecodeRaw) as `0x${string}`;
-    const isEmpty = bytecode === '0x' || bytecode.length <= 2;
+    const isEmpty = bytecode === '0x';
 
     const abi: unknown[] = raw.abi ?? [];
-    const isInterface = isEmpty && abi.length > 0;
+    const allEntries = abi.filter((e): e is { type: string } => typeof e === 'object' && e !== null);
+    const isInterface =
+      isEmpty &&
+      allEntries.length > 0 &&
+      allEntries.every(e => e.type === 'function' || e.type === 'event' || e.type === 'error');
 
     results.push({
       name: contractName,

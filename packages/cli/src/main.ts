@@ -15,6 +15,7 @@ import { registerAptosCommand } from './commands/aptos.js';
 import { registerNearCommand } from './commands/near.js';
 import { registerSuiCommand } from './commands/sui.js';
 import { registerCompletionCommand } from './commands/completion.js';
+import { registerContractsCommand } from './commands/contracts.js';
 import { printError } from './output.js';
 
 const program = new Command();
@@ -40,6 +41,7 @@ registerAptosCommand(program);
 registerNearCommand(program);
 registerSuiCommand(program);
 registerCompletionCommand(program);
+registerContractsCommand(program);
 
 program.parseAsync(process.argv).catch((err: unknown) => {
   printError('Unexpected error', err);

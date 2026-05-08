@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { detectToolchain, listArtifacts } from '@worm-tool/sdk';
+import { detectToolchain, listArtifacts, ToolchainNotFoundError } from '@worm-tool/sdk';
 import type { ContractMeta } from '@worm-tool/sdk';
 import { printJson, printError } from '../output.js';
 
@@ -38,7 +38,8 @@ function renderTable(contracts: ContractMeta[]): string {
   const col1 = Math.max(headers[1].length, ...rows.map((r) => r[1].length));
 
   const pad = (s: string, n: number): string => s.padEnd(n);
-  const sep = `${'─'.repeat(col0 + 2)}${'─'.repeat(col1 + 2)}${'─'.repeat(headers[2].length + 2)}`;
+  const col2 = Math.max(headers[2]!.length, ...rows.map((r) => r[2]!.length));
+  const sep = `${'─'.repeat(col0 + 2)}${'─'.repeat(col1 + 2)}${'─'.repeat(col2 + 2)}`;
 
   const lines: string[] = [
     `${pad(headers[0], col0)}  ${pad(headers[1], col1)}  ${headers[2]}`,
@@ -143,7 +144,7 @@ export function registerContractsCommand(program: Command): void {
           }
         }
       } catch (err) {
-        if (err instanceof Error && err.name === 'ToolchainNotFoundError') {
+        if (err instanceof ToolchainNotFoundError) {
           printError(err.message);
         } else {
           printError('contracts list failed', err);
@@ -157,8 +158,7 @@ export function registerContractsCommand(program: Command): void {
     .command('info <name>')
     .description('Show full metadata for a named contract')
     .option('--project <dir>', 'Project root directory (default: cwd)')
-    .option('--json', 'Output as JSON (default behavior; flag is cosmetic)')
-    .action(async (name: string, opts: { project?: string; json?: boolean }) => {
+    .action(async (name: string, opts: { project?: string }) => {
       try {
         const root = resolveRoot(opts);
         const all = await loadContracts(root);
@@ -167,21 +167,20 @@ export function registerContractsCommand(program: Command): void {
         if (contract === undefined) {
           printError(`Contract not found: ${name}`);
           process.exit(1);
-          return;
+        } else {
+          printJson({
+            name: contract.name,
+            sourcePath: contract.sourcePath,
+            compilerVersion: contract.compilerVersion,
+            constructorInputs: contract.constructorInputs,
+            isAbstract: contract.isAbstract,
+            isInterface: contract.isInterface,
+            abi: contract.abi,
+            storageLayout: contract.storageLayout ?? null,
+          });
         }
-
-        printJson({
-          name: contract.name,
-          sourcePath: contract.sourcePath,
-          compilerVersion: contract.compilerVersion,
-          constructorInputs: contract.constructorInputs,
-          isAbstract: contract.isAbstract,
-          isInterface: contract.isInterface,
-          abi: contract.abi,
-          storageLayout: contract.storageLayout ?? null,
-        });
       } catch (err) {
-        if (err instanceof Error && err.name === 'ToolchainNotFoundError') {
+        if (err instanceof ToolchainNotFoundError) {
           printError(err.message);
         } else {
           printError('contracts info failed', err);
@@ -204,12 +203,11 @@ export function registerContractsCommand(program: Command): void {
         if (contract === undefined) {
           printError(`Contract not found: ${name}`);
           process.exit(1);
-          return;
+        } else {
+          printJson(analyzeContract(contract));
         }
-
-        printJson(analyzeContract(contract));
       } catch (err) {
-        if (err instanceof Error && err.name === 'ToolchainNotFoundError') {
+        if (err instanceof ToolchainNotFoundError) {
           printError(err.message);
         } else {
           printError('contracts check failed', err);

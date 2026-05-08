@@ -82,6 +82,11 @@ function makeTmpFoundryProject(): string {
   return root;
 }
 
+/** Create an empty temp directory (no toolchain files). */
+function makeTmpDir(): string {
+  return mkdtempSync(join(tmpdir(), 'worm-tool-empty-'));
+}
+
 function makeProgram(): Command {
   const p = new Command();
   p.exitOverride();
@@ -243,5 +248,41 @@ describe('contracts command', () => {
         runContracts(['contracts', 'check', 'NonExistent', '--project', root]),
       ).rejects.toThrow('exit:1');
     });
+  });
+
+  it('contracts list exits with error for non-project directory', async () => {
+    const empty = makeTmpDir();
+    let exitCode: number | undefined;
+    const origExit = process.exit.bind(process);
+    process.exit = ((code?: number) => {
+      exitCode = code;
+      throw new Error(`exit:${code}`);
+    }) as never;
+    try {
+      const program = new Command();
+      program.exitOverride();
+      registerContractsCommand(program);
+      await program.parseAsync(['contracts', 'list', '--project', empty], { from: 'user' });
+    } catch {
+      // expected
+    } finally {
+      process.exit = origExit;
+      rmSync(empty, { recursive: true });
+    }
+    expect(exitCode).toBe(1);
+  });
+
+  it('contracts list renders table when --json not given', async () => {
+    const output: string[] = [];
+    const program = new Command();
+    program.exitOverride();
+    program.configureOutput({ writeOut: (s) => output.push(s) });
+    // capture console.log output (renderTable uses console.log)
+    vi.spyOn(console, 'log').mockImplementation((s: string) => { output.push(s); });
+    registerContractsCommand(program);
+    await program.parseAsync(['contracts', 'list', '--project', root], { from: 'user' });
+    const combined = output.join('');
+    expect(combined).toContain('MyToken');
+    expect(combined).toContain('─');
   });
 });

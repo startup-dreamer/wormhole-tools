@@ -4,7 +4,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import {
   loadAddressBook, saveAddressBook, getAddress, setAddress, isDeployed,
-  importFromFoundryBroadcast, importFromHardhatDeploy, type AddressBook,
+  importFromFoundryBroadcast, importFromHardhatDeploy, mergePartialBook,
 } from './address-book.js';
 
 let root: string;
@@ -76,5 +76,19 @@ describe('importFromHardhatDeploy', () => {
     }));
     const partial = await importFromHardhatDeploy(root);
     expect(partial['Vault']?.['sepolia']?.address).toBe('0xc0ffee');
+  });
+});
+
+describe('mergePartialBook', () => {
+  it('merges partial into book without overwriting existing entries', async () => {
+    let book = await loadAddressBook(root);
+    book = setAddress(book, 'Token', 'sepolia', { address: '0xold' as `0x${string}`, deployedAt: '2026-01-01T00:00:00Z' });
+    const partial: Record<string, Record<string, { address: string; deployedAt: string }>> = {
+      Token: { sepolia: { address: '0xnew', deployedAt: '2026-05-18T00:00:00Z' } },
+      Vault: { sepolia: { address: '0xvault', deployedAt: '2026-05-18T00:00:00Z' } },
+    };
+    const merged = mergePartialBook(book, partial as Parameters<typeof mergePartialBook>[1]);
+    expect(getAddress(merged, 'Token', 'sepolia')).toBe('0xold'); // not overwritten
+    expect(getAddress(merged, 'Vault', 'sepolia')).toBe('0xvault'); // new entry added
   });
 });

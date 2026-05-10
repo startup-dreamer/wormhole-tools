@@ -83,6 +83,10 @@ function validateManifest(raw: unknown): DeployManifest {
   if (!obj['deployer'] || typeof obj['deployer'] !== 'object') {
     throw new ManifestParseError('"deployer" is required');
   }
+  const deployer = obj['deployer'] as Record<string, unknown>;
+  if (typeof deployer['salt'] !== 'string' || deployer['salt'].length === 0) {
+    throw new ManifestParseError('"deployer.salt" must be a non-empty string');
+  }
   if (!Array.isArray(obj['contracts'])) {
     throw new ManifestParseError('"contracts" must be an array');
   }
@@ -92,6 +96,9 @@ function validateManifest(raw: unknown): DeployManifest {
 
   for (const target of obj['deploy_targets'] as unknown[]) {
     const t = target as Record<string, unknown>;
+    if (!Array.isArray(t['contracts']) || !Array.isArray(t['chains'])) {
+      throw new ManifestParseError('deploy_targets[] entries must have "contracts" and "chains" arrays');
+    }
     if (!VALID_STRATEGIES.includes(t['strategy'] as DeployStrategy)) {
       throw new ManifestParseError(
         `Invalid strategy "${String(t['strategy'])}" — must be one of: ${VALID_STRATEGIES.join(', ')}`,

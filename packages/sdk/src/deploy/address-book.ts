@@ -27,8 +27,6 @@ export type PartialBook = Record<string, Record<string, AddressBookEntry>>;
 
 const BOOK_PATH = (root: string) => join(root, 'deployments', 'worm-tool.json');
 
-const EMPTY_BOOK: AddressBook = { version: '1', salt: '', contracts: {} };
-
 /**
  * Load the address book from `<root>/deployments/worm-tool.json`.
  * Returns an empty book when the file does not exist.
@@ -37,10 +35,15 @@ export async function loadAddressBook(root: string): Promise<AddressBook> {
   const path = BOOK_PATH(root);
   try {
     const raw = await readFile(path, 'utf8');
-    return JSON.parse(raw) as AddressBook;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (typeof parsed['contracts'] !== 'object' || parsed['contracts'] === null) {
+      process.stderr.write(`Warning: ${path} has unexpected format, starting fresh\n`);
+      return { version: '1', salt: '', contracts: {} };
+    }
+    return parsed as unknown as AddressBook;
   } catch (err) {
     if (isNodeError(err) && err.code === 'ENOENT') {
-      return { ...EMPTY_BOOK, contracts: {} };
+      return { version: '1', salt: '', contracts: {} };
     }
     throw err;
   }
@@ -98,6 +101,23 @@ export function setAddress(
 }
 
 /**
+ * Merge a {@link PartialBook} (from {@link importFromFoundryBroadcast} or
+ * {@link importFromHardhatDeploy}) into an {@link AddressBook}.
+ * Existing entries are NOT overwritten — only new contract/chain pairs are added.
+ */
+export function mergePartialBook(book: AddressBook, partial: PartialBook): AddressBook {
+  let result = book;
+  for (const [contractName, chains] of Object.entries(partial)) {
+    for (const [chain, entry] of Object.entries(chains)) {
+      if (!isDeployed(result, contractName, chain)) {
+        result = setAddress(result, contractName, chain, entry);
+      }
+    }
+  }
+  return result;
+}
+
+/**
  * Walk `<root>/broadcast/` recursively, find every `run-latest.json`, and
  * extract CREATE transactions. Uses `CHAIN_REGISTRY` to map EVM chain ID →
  * chain name. Returns a `PartialBook` ready to merge into an `AddressBook`.
@@ -121,8 +141,8 @@ export async function importFromFoundryBroadcast(root: string): Promise<PartialB
         const addr = tx.contractAddress as `0x${string}`;
         if (!name || !addr) continue;
 
-        if (!result[name]) result[name] = {};
-        result[name]![chainName] = {
+        const nameEntry = result[name] ?? (result[name] = {});
+        nameEntry[chainName] = {
           address: addr,
           ...(tx.hash !== undefined ? { txHash: tx.hash } : {}),
           deployedAt: new Date().toISOString(),
@@ -173,8 +193,8 @@ export async function importFromHardhatDeploy(root: string): Promise<PartialBook
         const data = JSON.parse(raw) as HardhatDeployArtifact;
         if (!data.address) continue;
 
-        if (!result[contractName]) result[contractName] = {};
-        result[contractName]![network] = {
+        const contractEntry = result[contractName] ?? (result[contractName] = {});
+        contractEntry[network] = {
           address: data.address as `0x${string}`,
           ...(data.transactionHash !== undefined ? { txHash: data.transactionHash } : {}),
           deployedAt: new Date().toISOString(),

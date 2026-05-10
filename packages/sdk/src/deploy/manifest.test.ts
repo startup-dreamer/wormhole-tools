@@ -45,6 +45,11 @@ describe('parseManifest', () => {
     expect(() => parseManifest(bad)).toThrow('strategy');
   });
 
+  it('throws on missing deployer.salt', () => {
+    const bad = MINIMAL_YAML.replace('salt: "test-v1"', 'salt: ""');
+    expect(() => parseManifest(bad)).toThrow('deployer.salt');
+  });
+
   it('leaves unresolved env vars as literal when env not set', () => {
     delete process.env['SEPOLIA_RPC'];
     const manifest = parseManifest(MINIMAL_YAML);

@@ -215,7 +215,6 @@ export function registerDeployCommand(program: Command): void {
           detectToolchain, listArtifacts, runDeployment,
           deployAcrossChains, getChainByName,
         } = await import('@worm-tool/sdk');
-        const { keccak_256 } = await import('@noble/hashes/sha3');
 
         const manifestYaml = await readFile(join(root, 'worm-tool.deploy.yaml'), 'utf8');
         let manifest = parseManifest(manifestYaml);
@@ -251,7 +250,7 @@ export function registerDeployCommand(program: Command): void {
           artifacts,
           saltFn,
           onProgress: (msg) => process.stderr.write(msg + '\n'),
-          deployFn: async ({ bytecode, constructorArgs, salt, chains, strategy }) => {
+          deployFn: async ({ bytecode, constructorArgs, salt, chains }) => {
             const firstChain = chains[0] ?? '';
             const networkEntry = manifest.networks[firstChain];
             const resolvedChainName = networkEntry?.chain ?? firstChain;
@@ -270,10 +269,22 @@ export function registerDeployCommand(program: Command): void {
               wormToolDeployerAddress: chainEntry.wormToolDeployer,
               ...(constructorArgs !== '0x' && { constructorArgs }),
             });
-            void strategy;
+
+            // Compute deterministic CREATE2 address from init code
+            const initCode = (constructorArgs !== '0x' && constructorArgs.length > 2)
+              ? (bytecode + constructorArgs.slice(2)) as `0x${string}`
+              : bytecode;
+            const initHex = initCode.startsWith('0x') ? initCode.slice(2) : initCode;
+            const initBytes = new Uint8Array(initHex.length / 2);
+            for (let i = 0; i < initBytes.length; i++) {
+              initBytes[i] = parseInt(initHex.slice(i * 2, i * 2 + 2), 16);
+            }
+            const initCodeHash = ('0x' + Array.from(keccak_256(initBytes), b => b.toString(16).padStart(2, '0')).join('')) as `0x${string}`;
+            const deployedAddress = computeCreate2Address(chainEntry.wormToolDeployer, salt, initCodeHash);
+
             return txResults.map((r: { chain: string; receipt: { txHash: string } }) => ({
               chain: r.chain,
-              address: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+              address: deployedAddress,
               txHash: r.receipt.txHash,
             }));
           },

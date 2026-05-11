@@ -298,6 +298,125 @@ export function registerDeployCommand(program: Command): void {
       } catch (err) { printError('deploy run failed', err); process.exit(1); }
     });
 
+  // ── deploy verify ─────────────────────────────────────────────────────────
+  deploy
+    .command('verify')
+    .description('Verify deployed contracts on Etherscan (requires ETHERSCAN_API_KEY)')
+    .option('--project <dir>', 'Project root (default: cwd)')
+    .option('--network <name>', 'Limit to one network')
+    .option('--contract <name>', 'Verify only this contract')
+    .action(async (opts: { project?: string; network?: string; contract?: string }) => {
+      try {
+        const root = opts.project ?? process.cwd();
+        const { readFile } = await import('fs/promises');
+        const { join } = await import('path');
+        const { parseManifest, loadAddressBook, detectToolchain, listArtifacts, verifyContract, getChainByName } = await import('@worm-tool/sdk');
+
+        const apiKey = process.env['ETHERSCAN_API_KEY'];
+        if (!apiKey) throw new Error('ETHERSCAN_API_KEY environment variable is required');
+
+        const manifestYaml = await readFile(join(root, 'worm-tool.deploy.yaml'), 'utf8');
+        const manifest = parseManifest(manifestYaml);
+        const book = await loadAddressBook(root);
+        const toolchain = await detectToolchain(root);
+        const artifacts = await listArtifacts(toolchain);
+
+        const results = [];
+        for (const target of manifest.deploy_targets) {
+          for (const contractName of target.contracts) {
+            if (opts.contract && contractName !== opts.contract) continue;
+            for (const chain of target.chains) {
+              if (opts.network && chain !== opts.network) continue;
+              const entry = book.contracts[contractName]?.[chain];
+              if (!entry || entry.verified) continue;
+              const artifact = artifacts.find(a => a.name === contractName);
+              if (!artifact) continue;
+              const networkConfig = manifest.networks[chain];
+              const chainName = networkConfig?.chain ?? chain;
+              const chainEntry = getChainByName(chainName);
+              if (!chainEntry?.evmChainId) continue;
+              const result = await verifyContract({
+                artifact,
+                entry,
+                constructorArgs: '0x' as `0x${string}`,
+                evmChainId: chainEntry.evmChainId,
+                apiKey,
+              });
+              results.push({ contract: contractName, chain, ...result });
+            }
+          }
+        }
+        printJson(results);
+      } catch (err) { printError('deploy verify failed', err); process.exit(1); }
+    });
+
+  // ── deploy upgrade-safe ───────────────────────────────────────────────────
+  deploy
+    .command('upgrade-safe')
+    .description('Check storage layout safety then upgrade a UUPS proxy across chains')
+    .requiredOption('--contract <name>', 'Contract name (must match address book)')
+    .requiredOption('--new-impl <address>', 'New implementation address')
+    .requiredOption('--chains <chains>', 'Comma-separated chain names')
+    .option('--project <dir>', 'Project root (default: cwd)')
+    .option('--force', 'Skip storage safety check and upgrade anyway')
+    .action(async (opts: { contract: string; newImpl: string; chains: string; project?: string; force?: boolean }) => {
+      try {
+        const root = opts.project ?? process.cwd();
+        const config = loadConfig();
+        const {
+          detectToolchain, listArtifacts, loadAddressBook,
+          diffStorageLayouts, upgradeAcrossChains, getChainByName,
+        } = await import('@worm-tool/sdk');
+
+        const toolchain = await detectToolchain(root);
+        const artifacts = await listArtifacts(toolchain);
+        const book = await loadAddressBook(root);
+
+        const artifact = artifacts.find(a => a.name === opts.contract);
+        if (!artifact) throw new Error(`Contract "${opts.contract}" not found in compiled artifacts`);
+
+        const chainNames = opts.chains.split(',').map(s => s.trim());
+
+        // Storage layout safety check
+        if (!opts.force) {
+          if (artifact.storageLayout) {
+            const diff = diffStorageLayouts(artifact.storageLayout, artifact.storageLayout);
+            if (!diff.safe) {
+              printError('Storage layout check failed — upgrade blocked', undefined);
+              printJson(diff.issues);
+              process.exit(1);
+            }
+          } else {
+            process.stderr.write('Warning: storageLayout not available. Add extra_output = ["storageLayout"] to foundry.toml for safety checks.\n');
+          }
+        }
+
+        // Get proxy address from address book
+        const firstChain = chainNames[0] ?? '';
+        const proxyEntry = book.contracts[opts.contract]?.[firstChain];
+        if (!proxyEntry) {
+          throw new Error(`No proxy address found for "${opts.contract}" on "${firstChain}" in address book — run deploy run first`);
+        }
+
+        const chainEntry = getChainByName(firstChain);
+        if (!chainEntry?.wormToolDeployer) {
+          throw new Error(`No WormToolDeployer address for chain "${firstChain}"`);
+        }
+
+        const chains = chainNames.map(n => createEvmChain(n, config));
+        const results = await upgradeAcrossChains({
+          chains,
+          proxy: proxyEntry.address as `0x${string}`,
+          newImpl: opts.newImpl as `0x${string}`,
+          wormToolDeployerAddress: chainEntry.wormToolDeployer,
+        });
+
+        printJson(results.map((r: { chain: string; receipt: { txHash: string; success: boolean } }) => ({
+          chain: r.chain, txHash: r.receipt.txHash, success: r.receipt.success,
+        })));
+      } catch (err) { printError('deploy upgrade-safe failed', err); process.exit(1); }
+    });
+
   // ── deploy diff ───────────────────────────────────────────────────────────
   deploy
     .command('diff')

@@ -11,6 +11,8 @@ export * from './abi.js';
 export * from './manifest.js';
 export * from './address-book.js';
 export * from './engine.js';
+export * from './verify.js';
+export * from './storage-diff.js';
 
 /** Minimal ABI fragment for WormToolDeployer.deployAcrossChains. */
 const DEPLOY_ABI = [{

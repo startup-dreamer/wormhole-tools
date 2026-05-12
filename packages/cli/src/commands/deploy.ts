@@ -301,19 +301,20 @@ export function registerDeployCommand(program: Command): void {
   // ── deploy verify ─────────────────────────────────────────────────────────
   deploy
     .command('verify')
-    .description('Verify deployed contracts on Etherscan (requires ETHERSCAN_API_KEY)')
+    .description('Verify deployed contracts on block explorers (requires WORM_TOOL_ETHERSCAN_API_KEY)')
     .option('--project <dir>', 'Project root (default: cwd)')
     .option('--network <name>', 'Limit to one network')
     .option('--contract <name>', 'Verify only this contract')
-    .action(async (opts: { project?: string; network?: string; contract?: string }) => {
+    .option('--constructor-args <hex>', 'ABI-encoded constructor arguments (0x-prefixed) for contracts that require them')
+    .action(async (opts: { project?: string; network?: string; contract?: string; constructorArgs?: string }) => {
       try {
         const root = opts.project ?? process.cwd();
         const { readFile } = await import('fs/promises');
         const { join } = await import('path');
         const { parseManifest, loadAddressBook, detectToolchain, listArtifacts, verifyContract, getChainByName } = await import('@worm-tool/sdk');
 
-        const apiKey = process.env['ETHERSCAN_API_KEY'];
-        if (!apiKey) throw new Error('ETHERSCAN_API_KEY environment variable is required');
+        const apiKey = process.env['WORM_TOOL_ETHERSCAN_API_KEY'];
+        if (!apiKey) throw new Error('WORM_TOOL_ETHERSCAN_API_KEY environment variable is required');
 
         const manifestYaml = await readFile(join(root, 'worm-tool.deploy.yaml'), 'utf8');
         const manifest = parseManifest(manifestYaml);
@@ -338,7 +339,7 @@ export function registerDeployCommand(program: Command): void {
               const result = await verifyContract({
                 artifact,
                 entry,
-                constructorArgs: '0x' as `0x${string}`,
+                constructorArgs: (opts.constructorArgs ?? '0x') as `0x${string}`,
                 evmChainId: chainEntry.evmChainId,
                 apiKey,
               });
@@ -365,7 +366,7 @@ export function registerDeployCommand(program: Command): void {
         const config = loadConfig();
         const {
           detectToolchain, listArtifacts, loadAddressBook,
-          diffStorageLayouts, upgradeAcrossChains, getChainByName,
+          upgradeAcrossChains, getChainByName,
         } = await import('@worm-tool/sdk');
 
         const toolchain = await detectToolchain(root);
@@ -379,16 +380,7 @@ export function registerDeployCommand(program: Command): void {
 
         // Storage layout safety check
         if (!opts.force) {
-          if (artifact.storageLayout) {
-            const diff = diffStorageLayouts(artifact.storageLayout, artifact.storageLayout);
-            if (!diff.safe) {
-              printError('Storage layout check failed — upgrade blocked', undefined);
-              printJson(diff.issues);
-              process.exit(1);
-            }
-          } else {
-            process.stderr.write('Warning: storageLayout not available. Add extra_output = ["storageLayout"] to foundry.toml for safety checks.\n');
-          }
+          process.stderr.write('Note: storage layout comparison requires the old implementation artifact. Use --force to skip, or provide the old artifact manually. Proceeding with upgrade.\n');
         }
 
         // Get proxy address from address book

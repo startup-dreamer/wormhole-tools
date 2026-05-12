@@ -29,6 +29,10 @@ export interface BuildVerificationPayloadOptions {
   constructorArgs: `0x${string}` | string;
   evmChainId: number;
   apiKey: string;
+  /** Whether the compiler optimizer was enabled. Defaults to `true`. */
+  optimizationUsed?: boolean;
+  /** Number of optimizer runs. Defaults to 200. */
+  optimizerRuns?: number;
 }
 
 /** Options passed to {@link verifyContract}. */
@@ -90,7 +94,8 @@ export function buildVerificationPayload(opts: BuildVerificationPayloadOptions):
     codeformat: 'solidity-standard-json-input',
     contractname: artifact.name,
     compilerversion,
-    optimizationUsed: '1',
+    optimizationUsed: (opts.optimizationUsed ?? true) ? '1' : '0',
+    ...(opts.optimizerRuns !== undefined && { runs: String(opts.optimizerRuns) }),
     constructorArguements,
     chainId: String(evmChainId),
   };
@@ -112,14 +117,25 @@ export async function verifyContract(
 
   // Attempt to read Foundry metadata JSON (replace trailing .json with .metadata.json)
   let sourceCode = '{}';
+  let optimizationUsed: boolean | undefined;
+  let optimizerRuns: number | undefined;
   const metadataPath = artifact.artifactPath.replace(/\.json$/, '.metadata.json');
   try {
     sourceCode = await readFile(metadataPath, 'utf8');
+    const metaRaw = JSON.parse(sourceCode) as {
+      settings?: { optimizer?: { enabled?: boolean; runs?: number } }
+    };
+    optimizationUsed = metaRaw.settings?.optimizer?.enabled;
+    optimizerRuns = metaRaw.settings?.optimizer?.runs;
   } catch {
     // Metadata not found — use empty JSON object as fallback
   }
 
-  const payload = buildVerificationPayload({ artifact, entry, constructorArgs, evmChainId, apiKey });
+  const payload = buildVerificationPayload({
+    artifact, entry, constructorArgs, evmChainId, apiKey,
+    ...(optimizationUsed !== undefined && { optimizationUsed }),
+    ...(optimizerRuns !== undefined && { optimizerRuns }),
+  });
   payload.sourceCode = sourceCode;
 
   const body = new URLSearchParams();

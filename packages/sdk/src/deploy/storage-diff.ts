@@ -1,12 +1,4 @@
 import type { StorageLayout } from '../toolchain/types.js';
-import { WormToolError } from '../error.js';
-
-/** Error thrown when a storage diff operation fails. */
-export class StorageDiffError extends WormToolError {
-  constructor(message: string) {
-    super(`Storage diff error: ${message}`);
-  }
-}
 
 /** A single issue found when comparing two storage layouts. */
 export interface StorageDiffIssue {

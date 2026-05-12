@@ -58,6 +58,20 @@ describe('diffStorageLayouts', () => {
     expect(result.safe).toBe(false);
   });
 
+  it('detects offset change as critical', () => {
+    const newLayout: StorageLayout = {
+      storage: [
+        { label: 'owner', type: 't_address', slot: '0', offset: 4 },  // offset changed from 0 to 4
+        { label: 'balance', type: 't_uint256', slot: '1', offset: 0 },
+      ],
+      types: baseLayout.types,
+    };
+    const result = diffStorageLayouts(baseLayout, newLayout);
+    const offsetChange = result.issues.find(i => i.variable === 'owner' && i.severity === 'critical');
+    expect(offsetChange).toBeDefined();
+    expect(result.safe).toBe(false);
+  });
+
   it('detects new variables appended as warning only', () => {
     const newLayout: StorageLayout = {
       storage: [

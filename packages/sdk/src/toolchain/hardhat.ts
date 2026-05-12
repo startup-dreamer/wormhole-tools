@@ -1,6 +1,6 @@
 import { readdir, readFile } from 'fs/promises';
 import { join, basename } from 'path';
-import type { ContractMeta } from './types.js';
+import type { ContractMeta, StorageLayout } from './types.js';
 import { extractConstructorInputs } from './utils.js';
 
 interface HardhatArtifact {
@@ -10,6 +10,7 @@ interface HardhatArtifact {
   abi?: unknown[];
   bytecode?: string;
   deployedBytecode?: string;
+  storageLayout?: StorageLayout;
 }
 
 async function walkArtifactDir(dir: string): Promise<string[]> {
@@ -72,6 +73,7 @@ export async function readHardhatArtifacts(artifactDir: string): Promise<Contrac
       isAbstract: isEmpty,
       isInterface,
       compilerVersion: 'unknown',
+      ...(raw.storageLayout !== undefined && { storageLayout: raw.storageLayout }),
     });
   }
 

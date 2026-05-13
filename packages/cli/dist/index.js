@@ -3,8 +3,11 @@ import { config as loadDotenv } from "dotenv";
 import { resolve } from "path";
 import { homedir } from "os";
 function loadConfig() {
-  loadDotenv({ path: resolve(homedir(), ".worm-tool", ".env"), override: false });
-  const pk = process.env["WORM_TOOL_PRIVATE_KEY"];
+  loadDotenv({
+    path: resolve(homedir(), ".worm-tool", ".env"),
+    override: false
+  });
+  const pk = process.env["WORM_TOOL_EVM_PRIVATE_KEY"];
   const rpcUrls = {};
   for (const [key, value] of Object.entries(process.env)) {
     const match = /^WORM_TOOL_RPC_(.+)$/.exec(key);

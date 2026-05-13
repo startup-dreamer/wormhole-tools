@@ -52,6 +52,15 @@ describe('buildDependencyOrder', () => {
     ];
     expect(() => buildDependencyOrder(contracts)).toThrow('circular');
   });
+
+  it('resolves contract whose dep is externally provided (already in address book)', () => {
+    // Vault depends on Counter, but Counter is not in contracts — it's already deployed
+    const contracts: DeployManifest['contracts'] = [
+      { name: 'Vault', contract: 'Vault', args: [{ type: 'address', value: '{{contracts.Counter.address}}' }] },
+    ];
+    const resolved = buildDependencyOrder(contracts, new Set(['Counter']));
+    expect(resolved.map(c => c.name)).toEqual(['Vault']);
+  });
 });
 
 describe('buildDeployPlan', () => {

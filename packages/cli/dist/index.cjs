@@ -33,8 +33,11 @@ var import_dotenv = require("dotenv");
 var import_path = require("path");
 var import_os = require("os");
 function loadConfig() {
-  (0, import_dotenv.config)({ path: (0, import_path.resolve)((0, import_os.homedir)(), ".worm-tool", ".env"), override: false });
-  const pk = process.env["WORM_TOOL_PRIVATE_KEY"];
+  (0, import_dotenv.config)({
+    path: (0, import_path.resolve)((0, import_os.homedir)(), ".worm-tool", ".env"),
+    override: false
+  });
+  const pk = process.env["WORM_TOOL_EVM_PRIVATE_KEY"];
   const rpcUrls = {};
   for (const [key, value] of Object.entries(process.env)) {
     const match = /^WORM_TOOL_RPC_(.+)$/.exec(key);

@@ -50,7 +50,7 @@ export const CHAIN_REGISTRY: ChainEntry[] = [
 ];
 
 export function getChainById(wormholeChainId: number): ChainEntry | undefined {
-  return CHAIN_REGISTRY.find(c => c.wormholeChainId === wormholeChainId && !c.isTestnet);
+  return CHAIN_REGISTRY.find(c => c.wormholeChainId === wormholeChainId);
 }
 
 export function getChainByName(name: string): ChainEntry | undefined {

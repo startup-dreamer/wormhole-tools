@@ -75,6 +75,8 @@ function extractDeps(args: DeployManifest['contracts'][number]['args']): string[
  */
 export function buildDependencyOrder(
   contracts: DeployManifest['contracts'],
+  /** Names of contracts whose addresses are already known (e.g. from address book). */
+  externallyResolved?: ReadonlySet<string>,
 ): DeployManifest['contracts'] {
   const byName = new Map<string, DeployManifest['contracts'][number]>();
   for (const c of contracts) byName.set(c.name, c);
@@ -83,7 +85,8 @@ export function buildDependencyOrder(
   const deps = new Map<string, string[]>();
   const reverseDeps = new Map<string, string[]>();
   for (const c of contracts) {
-    const d = extractDeps(c.args);
+    // Deps already present in the address book don't need to be in the manifest.
+    const d = extractDeps(c.args).filter(dep => !externallyResolved?.has(dep));
     deps.set(c.name, d);
     if (!reverseDeps.has(c.name)) reverseDeps.set(c.name, []);
     for (const dep of d) {
@@ -142,7 +145,8 @@ export interface DeployPlanEntry {
  * deployed on all target chains via the address book.
  */
 export function buildDeployPlan(manifest: DeployManifest, book: AddressBook): DeployPlanEntry[] {
-  const ordered = buildDependencyOrder(manifest.contracts);
+  const alreadyInBook = new Set(Object.keys(book.contracts));
+  const ordered = buildDependencyOrder(manifest.contracts, alreadyInBook);
   const entries: DeployPlanEntry[] = [];
 
   for (const contractConfig of ordered) {
@@ -229,7 +233,7 @@ export async function runDeployment(opts: EngineRunOptions): Promise<EngineRunRe
     }
   }
 
-  const ordered = buildDependencyOrder(manifest.contracts);
+  const ordered = buildDependencyOrder(manifest.contracts, new Set(Object.keys(resolvedAddresses)));
   const salt = saltFn(manifest.deployer.salt);
 
   const deployed: EngineRunResult['deployed'] = [];

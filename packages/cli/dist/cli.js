@@ -29,12 +29,13 @@ function registerParseCommand(program2) {
 }
 
 // src/commands/info.ts
-import { getChainInfo, getChainByName, CHAIN_REGISTRY } from "@worm-tool/sdk";
+import { getChainInfo, getChainById, getChainByName, CHAIN_REGISTRY } from "@worm-tool/sdk";
 function registerInfoCommand(program2) {
   const info = program2.command("info").description("Query Wormhole chain and contract metadata");
-  info.command("chain-id <chain>").description("Print the Wormhole chain ID for a named chain").action((chain) => {
+  info.command("chain-id <chain>").description("Print the Wormhole chain ID for a named chain or numeric ID").action((chain) => {
     try {
-      const entry = getChainByName(chain);
+      const asNum = parseInt(chain, 10);
+      const entry = Number.isNaN(asNum) ? getChainByName(chain) : getChainById(asNum);
       if (!entry) {
         printError(`Unknown chain: ${chain}`);
         process.exit(1);
@@ -187,6 +188,7 @@ function registerLatencyCommand(program2) {
 
 // src/commands/deploy.ts
 import { readFile } from "fs/promises";
+import { join } from "path";
 import {
   extractBytecode,
   computeCreate2Address,
@@ -194,7 +196,8 @@ import {
   callAcrossChains,
   upgradeAcrossChains,
   checkContractDeployed,
-  getChainByName as getChainByName3
+  getChainByName as getChainByName3,
+  diffStorageLayouts
 } from "@worm-tool/sdk";
 
 // ../../node_modules/@noble/hashes/esm/_u64.js
@@ -474,8 +477,11 @@ import { config as loadDotenv } from "dotenv";
 import { resolve } from "path";
 import { homedir } from "os";
 function loadConfig() {
-  loadDotenv({ path: resolve(homedir(), ".worm-tool", ".env"), override: false });
-  const pk = process.env["WORM_TOOL_PRIVATE_KEY"];
+  loadDotenv({
+    path: resolve(homedir(), ".worm-tool", ".env"),
+    override: false
+  });
+  const pk = process.env["WORM_TOOL_EVM_PRIVATE_KEY"];
   const rpcUrls = {};
   for (const [key, value] of Object.entries(process.env)) {
     const match = /^WORM_TOOL_RPC_(.+)$/.exec(key);
@@ -573,7 +579,7 @@ function registerDeployCommand(program2) {
       process.exit(1);
     }
   });
-  deploy.command("call").description("Send a cross-chain function call through WormToolDeployer").requiredOption("--target <address>", "Target contract address").requiredOption("--calldata <hex>", "ABI-encoded calldata (0x-prefixed)").requiredOption("--chains <chains>", "Comma-separated chain names").option("--deployer <address>", "Override WormToolDeployer address").action(async (opts) => {
+  deploy.command("call").description("Send a cross-chain function call through WormToolDeployer").requiredOption("--target <address>", "Target contract address").requiredOption("--calldata <hex>", "ABI-encoded calldata (0x-prefixed)").requiredOption("--chains <chains>", "Comma-separated chain names").option("--deployer <address>", "Override WormToolDeployer address").option("--value <wei>", "ETH (in wei) to send for Wormhole relayer fees when using cross-chain targets").action(async (opts) => {
     try {
       const config = loadConfig();
       const chainNames = opts.chains.split(",").map((s) => s.trim());
@@ -583,7 +589,8 @@ function registerDeployCommand(program2) {
         chains,
         target: opts.target,
         calldata: opts.calldata,
-        wormToolDeployerAddress: deployer
+        wormToolDeployerAddress: deployer,
+        ...opts.value !== void 0 && { value: BigInt(opts.value) }
       });
       printJson(results.map((r) => ({ chain: r.chain, txHash: r.receipt.txHash, success: r.receipt.success })));
     } catch (err) {
@@ -591,7 +598,7 @@ function registerDeployCommand(program2) {
       process.exit(1);
     }
   });
-  deploy.command("upgrade").description("Upgrade a UUPS proxy to a new implementation across chains").requiredOption("--proxy <address>", "Proxy contract address").requiredOption("--new-impl <address>", "New implementation address").requiredOption("--chains <chains>", "Comma-separated chain names").option("--deployer <address>", "Override WormToolDeployer address").action(async (opts) => {
+  deploy.command("upgrade").description("Upgrade a UUPS proxy to a new implementation across chains").requiredOption("--proxy <address>", "Proxy contract address").requiredOption("--new-impl <address>", "New implementation address").requiredOption("--chains <chains>", "Comma-separated chain names").option("--deployer <address>", "Override WormToolDeployer address").option("--value <wei>", "ETH (in wei) to send for Wormhole relayer fees when using cross-chain targets").action(async (opts) => {
     try {
       const config = loadConfig();
       const chainNames = opts.chains.split(",").map((s) => s.trim());
@@ -601,7 +608,8 @@ function registerDeployCommand(program2) {
         chains,
         proxy: opts.proxy,
         newImpl: opts.newImpl,
-        wormToolDeployerAddress: deployer
+        wormToolDeployerAddress: deployer,
+        ...opts.value !== void 0 && { value: BigInt(opts.value) }
       });
       printJson(results.map((r) => ({ chain: r.chain, txHash: r.receipt.txHash, success: r.receipt.success })));
     } catch (err) {
@@ -623,6 +631,227 @@ function registerDeployCommand(program2) {
       printJson(results);
     } catch (err) {
       printError("deploy status failed", err);
+      process.exit(1);
+    }
+  });
+  deploy.command("plan").description("Dry-run: show what would be deployed and in what order").option("--project <dir>", "Project root (default: cwd)").action(async (opts) => {
+    try {
+      const root = opts.project ?? process.cwd();
+      const { parseManifest, loadAddressBook, buildDeployPlan } = await import("@worm-tool/sdk");
+      const manifestYaml = await readFile(join(root, "worm-tool.deploy.yaml"), "utf8");
+      const manifest = parseManifest(manifestYaml);
+      const book = await loadAddressBook(root);
+      const plan = buildDeployPlan(manifest, book);
+      printJson(plan);
+    } catch (err) {
+      printError("deploy plan failed", err);
+      process.exit(1);
+    }
+  });
+  deploy.command("run").description("Execute worm-tool.deploy.yaml \u2014 deploy all contracts to target chains").option("--project <dir>", "Project root (default: cwd)").option("--network <name>", "Limit to one network from the manifest").option("--only <contract>", "Deploy only this contract").action(async (opts) => {
+    try {
+      const root = opts.project ?? process.cwd();
+      const config = loadConfig();
+      const {
+        parseManifest,
+        loadAddressBook,
+        saveAddressBook,
+        detectToolchain: detectToolchain2,
+        listArtifacts: listArtifacts2,
+        runDeployment,
+        deployAcrossChains: deployAcrossChains2,
+        getChainByName: getChainByName5
+      } = await import("@worm-tool/sdk");
+      const manifestYaml = await readFile(join(root, "worm-tool.deploy.yaml"), "utf8");
+      let manifest = parseManifest(manifestYaml);
+      if (opts.only) {
+        manifest = { ...manifest, contracts: manifest.contracts.filter((c) => c.name === opts.only) };
+      }
+      if (opts.network) {
+        manifest = {
+          ...manifest,
+          deploy_targets: manifest.deploy_targets.map((t) => ({
+            ...t,
+            chains: t.chains.filter((c) => c === opts.network)
+          })).filter((t) => t.chains.length > 0)
+        };
+      }
+      const toolchain = await detectToolchain2(root);
+      const artifacts = await listArtifacts2(toolchain);
+      const book = await loadAddressBook(root);
+      const result = await runDeployment({
+        manifest,
+        book,
+        artifacts,
+        saltFn: saltFromStr,
+        onProgress: (msg) => process.stderr.write(msg + "\n"),
+        deployFn: async ({ bytecode, constructorArgs, salt, chains }) => {
+          const firstChain = chains[0] ?? "";
+          const networkEntry = manifest.networks[firstChain];
+          const resolvedChainName = networkEntry?.chain ?? firstChain;
+          const chainEntry = getChainByName5(resolvedChainName);
+          if (!chainEntry?.wormToolDeployer) {
+            throw new Error(`No WormToolDeployer address for chain "${firstChain}" \u2014 set --deployer or add to chain registry`);
+          }
+          const allChainObjs = chains.map((n) => {
+            const net = manifest.networks[n];
+            return createEvmChain(net?.chain ?? n, config);
+          });
+          const txResults = await deployAcrossChains2({
+            chains: allChainObjs,
+            bytecode,
+            salt,
+            wormToolDeployerAddress: chainEntry.wormToolDeployer,
+            ...constructorArgs !== "0x" && { constructorArgs }
+          });
+          const initCode = constructorArgs !== "0x" && constructorArgs.length > 2 ? bytecode + constructorArgs.slice(2) : bytecode;
+          const initHex = initCode.startsWith("0x") ? initCode.slice(2) : initCode;
+          const initBytes = new Uint8Array(initHex.length / 2);
+          for (let i = 0; i < initBytes.length; i++) {
+            initBytes[i] = parseInt(initHex.slice(i * 2, i * 2 + 2), 16);
+          }
+          const initCodeHash = "0x" + Array.from(keccak_256(initBytes), (b) => b.toString(16).padStart(2, "0")).join("");
+          const deployedAddress = computeCreate2Address(chainEntry.wormToolDeployer, salt, initCodeHash);
+          return txResults.map((r) => ({
+            chain: r.chain,
+            address: deployedAddress,
+            txHash: r.receipt.txHash
+          }));
+        }
+      });
+      await saveAddressBook(root, result.book);
+      printJson({
+        deployed: result.deployed,
+        skipped: result.skipped.map((s) => s.name)
+      });
+    } catch (err) {
+      printError("deploy run failed", err);
+      process.exit(1);
+    }
+  });
+  deploy.command("verify").description("Verify deployed contracts on block explorers (requires WORM_TOOL_ETHERSCAN_API_KEY)").option("--project <dir>", "Project root (default: cwd)").option("--network <name>", "Limit to one network").option("--contract <name>", "Verify only this contract").option("--constructor-args <hex>", "ABI-encoded constructor arguments (0x-prefixed) for contracts that require them").action(async (opts) => {
+    try {
+      const root = opts.project ?? process.cwd();
+      const { parseManifest, loadAddressBook, detectToolchain: detectToolchain2, listArtifacts: listArtifacts2, verifyContract, getChainByName: getChainByName5 } = await import("@worm-tool/sdk");
+      const apiKey = process.env["WORM_TOOL_ETHERSCAN_API_KEY"];
+      if (!apiKey) throw new Error("WORM_TOOL_ETHERSCAN_API_KEY environment variable is required");
+      const manifestYaml = await readFile(join(root, "worm-tool.deploy.yaml"), "utf8");
+      const manifest = parseManifest(manifestYaml);
+      const book = await loadAddressBook(root);
+      const toolchain = await detectToolchain2(root);
+      const artifacts = await listArtifacts2(toolchain);
+      const results = [];
+      for (const target of manifest.deploy_targets) {
+        for (const contractName of target.contracts) {
+          if (opts.contract && contractName !== opts.contract) continue;
+          for (const chain of target.chains) {
+            if (opts.network && chain !== opts.network) continue;
+            const entry = book.contracts[contractName]?.[chain];
+            if (!entry || entry.verified) continue;
+            const artifact = artifacts.find((a) => a.name === contractName);
+            if (!artifact) continue;
+            const networkConfig = manifest.networks[chain];
+            const chainName = networkConfig?.chain ?? chain;
+            const chainEntry = getChainByName5(chainName);
+            if (!chainEntry?.evmChainId) continue;
+            const result = await verifyContract({
+              artifact,
+              entry,
+              constructorArgs: opts.constructorArgs ?? "0x",
+              evmChainId: chainEntry.evmChainId,
+              apiKey
+            });
+            results.push({ contract: contractName, chain, ...result });
+          }
+        }
+      }
+      printJson(results);
+    } catch (err) {
+      printError("deploy verify failed", err);
+      process.exit(1);
+    }
+  });
+  deploy.command("upgrade-safe").description("Check storage layout safety then upgrade a UUPS proxy across chains").requiredOption("--contract <name>", "Contract name (must match address book)").requiredOption("--new-impl <address>", "New implementation address").requiredOption("--chains <chains>", "Comma-separated chain names").option("--project <dir>", "Project root (default: cwd)").option("--force", "Skip storage safety check and upgrade anyway").option("--old-artifact <path>", "Path to old implementation artifact JSON (for storage layout comparison)").action(async (opts) => {
+    try {
+      const root = opts.project ?? process.cwd();
+      const config = loadConfig();
+      const {
+        detectToolchain: detectToolchain2,
+        listArtifacts: listArtifacts2,
+        loadAddressBook,
+        upgradeAcrossChains: upgradeAcrossChains2,
+        getChainByName: getChainByName5
+      } = await import("@worm-tool/sdk");
+      const toolchain = await detectToolchain2(root);
+      const artifacts = await listArtifacts2(toolchain);
+      const book = await loadAddressBook(root);
+      const artifact = artifacts.find((a) => a.name === opts.contract);
+      if (!artifact) throw new Error(`Contract "${opts.contract}" not found in compiled artifacts`);
+      const chainNames = opts.chains.split(",").map((s) => s.trim());
+      if (!opts.force && opts.oldArtifact) {
+        const oldJson = JSON.parse(await readFile(opts.oldArtifact, "utf8"));
+        const oldLayout = oldJson.storageLayout;
+        const newLayout = artifact.storageLayout;
+        if (oldLayout && newLayout) {
+          const diff = diffStorageLayouts(oldLayout, newLayout);
+          if (!diff.safe) {
+            printError("Storage layout check failed \u2014 upgrade blocked (use --force to override)", void 0);
+            printJson(diff.issues);
+            process.exit(1);
+          }
+          process.stderr.write("Storage layout check passed.\n");
+        } else {
+          process.stderr.write("Warning: storageLayout not available in artifact(s). Proceeding without safety check.\n");
+        }
+      } else if (!opts.force) {
+        process.stderr.write("Tip: use --old-artifact <path> to enable storage layout safety check before upgrading.\n");
+      }
+      const firstChain = chainNames[0] ?? "";
+      const proxyEntry = book.contracts[opts.contract]?.[firstChain];
+      if (!proxyEntry) {
+        throw new Error(`No proxy address found for "${opts.contract}" on "${firstChain}" in address book \u2014 run deploy run first`);
+      }
+      const chainEntry = getChainByName5(firstChain);
+      if (!chainEntry?.wormToolDeployer) {
+        throw new Error(`No WormToolDeployer address for chain "${firstChain}"`);
+      }
+      const chains = chainNames.map((n) => createEvmChain(n, config));
+      const results = await upgradeAcrossChains2({
+        chains,
+        proxy: proxyEntry.address,
+        newImpl: opts.newImpl,
+        wormToolDeployerAddress: chainEntry.wormToolDeployer
+      });
+      printJson(results.map((r) => ({
+        chain: r.chain,
+        txHash: r.receipt.txHash,
+        success: r.receipt.success
+      })));
+    } catch (err) {
+      printError("deploy upgrade-safe failed", err);
+      process.exit(1);
+    }
+  });
+  deploy.command("diff").description("Compare manifest targets vs what is in the address book").option("--project <dir>", "Project root (default: cwd)").action(async (opts) => {
+    try {
+      const root = opts.project ?? process.cwd();
+      const { parseManifest, loadAddressBook, isDeployed } = await import("@worm-tool/sdk");
+      const manifestYaml = await readFile(join(root, "worm-tool.deploy.yaml"), "utf8");
+      const manifest = parseManifest(manifestYaml);
+      const book = await loadAddressBook(root);
+      const rows = [];
+      for (const target of manifest.deploy_targets) {
+        for (const contractName of target.contracts) {
+          for (const chain of target.chains) {
+            const dep = isDeployed(book, contractName, chain);
+            const address = book.contracts[contractName]?.[chain]?.address;
+            rows.push({ contract: contractName, chain, status: dep ? "deployed" : "missing", ...address ? { address } : {} });
+          }
+        }
+      }
+      printJson(rows);
+    } catch (err) {
+      printError("deploy diff failed", err);
       process.exit(1);
     }
   });
@@ -878,6 +1107,142 @@ complete -c ${name} -f -a "(${name} --help 2>/dev/null | grep -oP '^  \\K\\S+')"
   });
 }
 
+// src/commands/contracts.ts
+import { detectToolchain, listArtifacts, ToolchainNotFoundError } from "@worm-tool/sdk";
+function resolveRoot(opts) {
+  return opts.project ?? process.cwd();
+}
+async function loadContracts(root) {
+  const info = await detectToolchain(root);
+  return listArtifacts(info);
+}
+function renderTable(contracts) {
+  const rows = contracts.map((c) => {
+    const args = c.constructorInputs.length === 0 ? "\u2014" : `(${c.constructorInputs.map((p) => p.type).join(", ")})`;
+    const suffix = c.isInterface ? "  \u2190 interface" : c.isAbstract ? "  \u2190 abstract" : "";
+    return [c.name + suffix, c.sourcePath, args];
+  });
+  const headers = ["Contract", "Source", "Constructor Args"];
+  const col0 = Math.max(headers[0].length, ...rows.map((r) => r[0].length));
+  const col1 = Math.max(headers[1].length, ...rows.map((r) => r[1].length));
+  const pad = (s, n) => s.padEnd(n);
+  const col2 = Math.max(headers[2].length, ...rows.map((r) => r[2].length));
+  const sep = `${"\u2500".repeat(col0 + 2)}${"\u2500".repeat(col1 + 2)}${"\u2500".repeat(col2 + 2)}`;
+  const lines = [
+    `${pad(headers[0], col0)}  ${pad(headers[1], col1)}  ${headers[2]}`,
+    sep,
+    ...rows.map((r) => `${pad(r[0], col0)}  ${pad(r[1], col1)}  ${r[2]}`)
+  ];
+  return lines.join("\n");
+}
+function abiNames(abi) {
+  const names = /* @__PURE__ */ new Set();
+  for (const entry of abi) {
+    const e = entry;
+    if (e.name !== void 0) names.add(e.name);
+  }
+  return names;
+}
+function analyzeContract(contract) {
+  const names = abiNames(contract.abi);
+  const isUUPS = names.has("upgradeTo") || names.has("upgradeToAndCall");
+  const isTransparent = names.has("admin") && names.has("implementation");
+  const proxyPattern = isUUPS ? "UUPS" : isTransparent ? "Transparent" : "none";
+  const hasInitializer = names.has("initialize") || [...names].some((n) => n.includes("__init"));
+  const isOwnable = names.has("owner") && names.has("transferOwnership");
+  const hasAuthorizeUpgrade = names.has("_authorizeUpgrade");
+  const warnings = [];
+  if (proxyPattern === "UUPS" && !hasAuthorizeUpgrade) {
+    warnings.push("UUPS proxy missing _authorizeUpgrade");
+  }
+  return { name: contract.name, proxyPattern, hasInitializer, isOwnable, hasAuthorizeUpgrade, warnings };
+}
+function registerContractsCommand(program2) {
+  const contracts = program2.command("contracts").description("Inspect compiled smart contracts in a Foundry or Hardhat project");
+  contracts.command("list").description("List all compiled contracts").option("--project <dir>", "Project root directory (default: cwd)").option("--deployable", "Exclude abstract contracts and interfaces").option("--json", "Output as JSON array").action(async (opts) => {
+    try {
+      const root = resolveRoot(opts);
+      let all = await loadContracts(root);
+      if (opts.deployable) {
+        all = all.filter((c) => !c.isAbstract);
+      }
+      if (opts.json) {
+        const output = all.map((c) => ({
+          name: c.name,
+          sourcePath: c.sourcePath,
+          constructorInputs: c.constructorInputs,
+          isAbstract: c.isAbstract,
+          isInterface: c.isInterface,
+          compilerVersion: c.compilerVersion
+        }));
+        printJson(output);
+      } else {
+        if (all.length === 0) {
+          console.log("No contracts found.");
+        } else {
+          console.log(renderTable(all));
+        }
+      }
+    } catch (err) {
+      if (err instanceof ToolchainNotFoundError) {
+        printError(err.message);
+      } else {
+        printError("contracts list failed", err);
+      }
+      process.exit(1);
+    }
+  });
+  contracts.command("info <name>").description("Show full metadata for a named contract").option("--project <dir>", "Project root directory (default: cwd)").action(async (name, opts) => {
+    try {
+      const root = resolveRoot(opts);
+      const all = await loadContracts(root);
+      const contract = all.find((c) => c.name === name);
+      if (contract === void 0) {
+        printError(`Contract not found: ${name}`);
+        process.exit(1);
+      } else {
+        printJson({
+          name: contract.name,
+          sourcePath: contract.sourcePath,
+          compilerVersion: contract.compilerVersion,
+          constructorInputs: contract.constructorInputs,
+          isAbstract: contract.isAbstract,
+          isInterface: contract.isInterface,
+          abi: contract.abi,
+          storageLayout: contract.storageLayout ?? null
+        });
+      }
+    } catch (err) {
+      if (err instanceof ToolchainNotFoundError) {
+        printError(err.message);
+      } else {
+        printError("contracts info failed", err);
+      }
+      process.exit(1);
+    }
+  });
+  contracts.command("check <name>").description("Analyse proxy patterns, upgradeability, and ownership of a contract").option("--project <dir>", "Project root directory (default: cwd)").action(async (name, opts) => {
+    try {
+      const root = resolveRoot(opts);
+      const all = await loadContracts(root);
+      const contract = all.find((c) => c.name === name);
+      if (contract === void 0) {
+        printError(`Contract not found: ${name}`);
+        process.exit(1);
+      } else {
+        printJson(analyzeContract(contract));
+      }
+    } catch (err) {
+      if (err instanceof ToolchainNotFoundError) {
+        printError(err.message);
+      } else {
+        printError("contracts check failed", err);
+      }
+      process.exit(1);
+    }
+  });
+}
+
 // src/main.ts
 var program = new Command();
 program.name("worm-tool").description("CLI for Wormhole cross-chain protocol interactions").version("0.0.1");
@@ -897,6 +1262,7 @@ registerAptosCommand(program);
 registerNearCommand(program);
 registerSuiCommand(program);
 registerCompletionCommand(program);
+registerContractsCommand(program);
 program.parseAsync(process.argv).catch((err) => {
   printError("Unexpected error", err);
   process.exit(1);

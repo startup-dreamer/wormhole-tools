@@ -9,10 +9,11 @@ export function registerInfoCommand(program: Command): void {
 
   info
     .command('chain-id <chain>')
-    .description('Print the Wormhole chain ID for a named chain')
+    .description('Print the Wormhole chain ID for a named chain or numeric ID')
     .action((chain: string) => {
       try {
-        const entry = getChainByName(chain);
+        const asNum = parseInt(chain, 10);
+        const entry = Number.isNaN(asNum) ? getChainByName(chain) : getChainById(asNum);
         if (!entry) { printError(`Unknown chain: ${chain}`); process.exit(1); }
         printJson({ chain: entry.name, wormholeChainId: entry.wormholeChainId });
       } catch (err) { printError('chain-id failed', err); process.exit(1); }

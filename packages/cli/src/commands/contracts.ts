@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import { detectToolchain, listArtifacts, ToolchainNotFoundError } from '@worm-tool/sdk';
 import type { ContractMeta } from '@worm-tool/sdk';
-import { printJson, printError } from '../output.js';
+import { printJson, printError, formatTable } from '../output.js';
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -16,38 +16,6 @@ function resolveRoot(opts: { project?: string }): string {
 async function loadContracts(root: string): Promise<ContractMeta[]> {
   const info = await detectToolchain(root);
   return listArtifacts(info);
-}
-
-/**
- * Render a text table for `contracts list`.
- * Column widths are dynamic to fit content.
- */
-function renderTable(contracts: ContractMeta[]): string {
-  const rows: Array<[string, string, string]> = contracts.map((c) => {
-    const args =
-      c.constructorInputs.length === 0
-        ? '—'
-        : `(${c.constructorInputs.map((p) => p.type).join(', ')})`;
-    const suffix = c.isInterface ? '  ← interface' : c.isAbstract ? '  ← abstract' : '';
-    return [c.name + suffix, c.sourcePath, args];
-  });
-
-  const headers: [string, string, string] = ['Contract', 'Source', 'Constructor Args'];
-
-  const col0 = Math.max(headers[0].length, ...rows.map((r) => r[0].length));
-  const col1 = Math.max(headers[1].length, ...rows.map((r) => r[1].length));
-
-  const pad = (s: string, n: number): string => s.padEnd(n);
-  const col2 = Math.max(headers[2]!.length, ...rows.map((r) => r[2]!.length));
-  const sep = `${'─'.repeat(col0 + 2)}${'─'.repeat(col1 + 2)}${'─'.repeat(col2 + 2)}`;
-
-  const lines: string[] = [
-    `${pad(headers[0], col0)}  ${pad(headers[1], col1)}  ${headers[2]}`,
-    sep,
-    ...rows.map((r) => `${pad(r[0], col0)}  ${pad(r[1], col1)}  ${r[2]}`),
-  ];
-
-  return lines.join('\n');
 }
 
 // ---------------------------------------------------------------------------
@@ -137,11 +105,14 @@ export function registerContractsCommand(program: Command): void {
           }));
           printJson(output);
         } else {
-          if (all.length === 0) {
-            console.log('No contracts found.');
-          } else {
-            console.log(renderTable(all));
-          }
+          const rows = all.map(c => {
+            const args = c.constructorInputs.length === 0
+              ? '—'
+              : `(${c.constructorInputs.map(p => p.type).join(', ')})`;
+            const suffix = c.isInterface ? '  ← interface' : c.isAbstract ? '  ← abstract' : '';
+            return [c.name + suffix, c.sourcePath, args];
+          });
+          console.log(formatTable(['Contract', 'Source', 'Constructor Args'], rows));
         }
       } catch (err) {
         if (err instanceof ToolchainNotFoundError) {

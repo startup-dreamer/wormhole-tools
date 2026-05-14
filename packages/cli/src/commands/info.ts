@@ -39,10 +39,16 @@ export function registerInfoCommand(program: Command): void {
   info
     .command('chains')
     .description('List all supported chains')
-    .option('--testnet', 'include testnet chains')
-    .action((opts: { testnet?: boolean }) => {
-      const chains = opts.testnet ? CHAIN_REGISTRY : CHAIN_REGISTRY.filter(c => !c.isTestnet);
-      printJson(chains.map((c: { name: string; wormholeChainId: number; evmChainId?: number; isTestnet?: boolean }) => ({
+    .option('--testnet', 'Include testnet chains alongside mainnet chains')
+    .option('--testnet-only', 'Show only testnet chains')
+    .action((opts: { testnet?: boolean; testnetOnly?: boolean }) => {
+      let chains = CHAIN_REGISTRY;
+      if (opts.testnetOnly) {
+        chains = CHAIN_REGISTRY.filter(c => c.isTestnet === true);
+      } else if (!opts.testnet) {
+        chains = CHAIN_REGISTRY.filter(c => !c.isTestnet);
+      }
+      printJson(chains.map(c => ({
         name: c.name,
         wormholeChainId: c.wormholeChainId,
         evmChainId: c.evmChainId ?? null,

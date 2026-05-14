@@ -17,6 +17,6 @@ export function formatTable(headers: string[], rows: string[][]): string {
   );
   const pad = (s: string, n: number) => s.padEnd(n);
   const sep = widths.map(w => '─'.repeat(w + 2)).join('─');
-  const fmt = (row: string[]) => row.map((c, i) => pad(c, widths[i]!)).join('  ');
+  const fmt = (row: string[]) => row.map((c, i) => pad(c, widths[i] ?? 0)).join('  ');
   return [fmt(headers), sep, ...rows.map(fmt)].join('\n');
 }

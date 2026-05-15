@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { getChainInfo, getChainById, getChainByName, CHAIN_REGISTRY } from '@worm-tool/sdk';
+import { getChainInfo, getChainById, getChainByName, getChainByEvmId, CHAIN_REGISTRY } from '@worm-tool/sdk';
 import { printJson, printError } from '../output.js';
 
 export function registerInfoCommand(program: Command): void {
@@ -13,7 +13,12 @@ export function registerInfoCommand(program: Command): void {
     .action((chain: string) => {
       try {
         const asNum = parseInt(chain, 10);
-        const entry = Number.isNaN(asNum) ? getChainByName(chain) : getChainById(asNum);
+        let entry;
+        if (Number.isNaN(asNum)) {
+          entry = getChainByName(chain);
+        } else {
+          entry = getChainById(asNum) ?? getChainByEvmId(asNum);
+        }
         if (!entry) { printError(`Unknown chain: ${chain}`); process.exit(1); }
         printJson({ chain: entry.name, wormholeChainId: entry.wormholeChainId });
       } catch (err) { printError('chain-id failed', err); process.exit(1); }
@@ -25,7 +30,10 @@ export function registerInfoCommand(program: Command): void {
     .option('--network <network>', 'mainnet or testnet', 'mainnet')
     .action((chain: string) => {
       try {
-        const entry = getChainByName(chain);
+        const asNum = parseInt(chain, 10);
+        const entry = Number.isNaN(asNum)
+          ? getChainByName(chain)
+          : (getChainById(asNum) ?? getChainByEvmId(asNum));
         if (!entry) { printError(`Unknown chain: ${chain}`); process.exit(1); }
         printJson({
           chain: entry.name,

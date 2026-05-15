@@ -4,7 +4,7 @@ import { WormToolError } from '../error.js';
 
 export { extractBytecode } from './artifact.js';
 export { computeCreate2Address } from './create2.js';
-export { getChainById, getChainByName, CHAIN_REGISTRY } from './registry.js';
+export { getChainById, getChainByName, getChainByEvmId, CHAIN_REGISTRY } from './registry.js';
 export type { ChainEntry } from './registry.js';
 export { checkContractDeployed } from './status.js';
 export * from './abi.js';

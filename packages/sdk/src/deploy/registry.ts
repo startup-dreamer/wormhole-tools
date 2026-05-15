@@ -56,3 +56,8 @@ export function getChainById(wormholeChainId: number): ChainEntry | undefined {
 export function getChainByName(name: string): ChainEntry | undefined {
   return CHAIN_REGISTRY.find(c => c.name === name.toLowerCase());
 }
+
+/** Look up a chain entry by its EVM chain ID (e.g. 1 for ethereum, 11155111 for sepolia). */
+export function getChainByEvmId(evmChainId: number): ChainEntry | undefined {
+  return CHAIN_REGISTRY.find(c => c.evmChainId === evmChainId);
+}

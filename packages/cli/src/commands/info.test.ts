@@ -115,5 +115,13 @@ describe('info command', () => {
       const program = makeProgram();
       expect(() => program.parse(['info', 'chain-id', 'unknown'], { from: 'user' })).toThrow('exit:1');
     });
+
+    it('falls back to EVM chain ID when Wormhole chain ID not found', () => {
+      const program = makeProgram();
+      program.parse(['info', 'chain-id', '11155111'], { from: 'user' });
+
+      const result = lastJson() as { chain: string; wormholeChainId: number };
+      expect(result.chain).toBe('sepolia');
+    });
   });
 });

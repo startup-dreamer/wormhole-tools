@@ -12,7 +12,7 @@ export function registerGenerateCommand(program: Command): void {
     .description('Generate a synthetic (unsigned) test VAA')
     .requiredOption('--emitter-chain <id>', 'Wormhole emitter chain ID', parseInt)
     .requiredOption('--emitter-address <hex>', '32-byte emitter address (0x-prefixed hex)')
-    .requiredOption('--sequence <n>', 'Message sequence number', (v: string) => BigInt(v))
+    .option('--sequence <n>', 'Message sequence number (default: 0)', (v: string) => BigInt(v))
     .requiredOption('--payload <hex>', 'Payload bytes (0x-prefixed hex)')
     .option('--timestamp <n>', 'Unix timestamp (default: now)', parseInt)
     .option('--nonce <n>', 'Nonce (default: 0)', parseInt)
@@ -20,7 +20,7 @@ export function registerGenerateCommand(program: Command): void {
     .action((opts: {
       emitterChain: number;
       emitterAddress: string;
-      sequence: bigint;
+      sequence?: bigint;
       payload: string;
       timestamp?: number;
       nonce?: number;
@@ -30,7 +30,7 @@ export function registerGenerateCommand(program: Command): void {
         const hex = generateTestVaaHex({
           emitterChain: opts.emitterChain,
           emitterAddress: opts.emitterAddress as `0x${string}`,
-          sequence: opts.sequence,
+          sequence: opts.sequence ?? 0n,
           payload: opts.payload as `0x${string}`,
           ...(opts.timestamp !== undefined && { timestamp: opts.timestamp }),
           ...(opts.nonce !== undefined && { nonce: opts.nonce }),

@@ -98,5 +98,19 @@ describe('generate command', () => {
       ).toThrow();
       // Commander throws CommanderError when a required option is absent (exitOverride is set)
     });
+
+    it('uses sequence 0 when --sequence is omitted', () => {
+      const program = makeProgram();
+      program.parse([
+        'generate', 'test-vaa',
+        '--emitter-chain', '2',
+        '--emitter-address', EMITTER_ADDRESS,
+        '--payload', '0xdeadbeef',
+      ], { from: 'user' });
+
+      const { vaa } = lastJson() as { vaa: string };
+      const parsed = parseVaa(vaa);
+      expect(parsed.sequence).toBe(0n);
+    });
   });
 });

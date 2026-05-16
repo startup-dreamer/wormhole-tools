@@ -15,7 +15,7 @@ import type { StorageLayout } from '@worm-tool/sdk';
 import { keccak_256 } from '@noble/hashes/sha3';
 import { loadConfig } from '../config.js';
 import { createEvmChain } from '../providers/evm.js';
-import { printJson, printError } from '../output.js';
+import { printJson, printError, formatTable } from '../output.js';
 
 function saltFromStr(s: string): `0x${string}` {
   if (/^(0x)?[0-9a-fA-F]{64}$/.test(s)) {
@@ -186,7 +186,8 @@ export function registerDeployCommand(program: Command): void {
     .command('plan')
     .description('Dry-run: show what would be deployed and in what order')
     .option('--project <dir>', 'Project root (default: cwd)')
-    .action(async (opts: { project?: string }) => {
+    .option('--json', 'Output as JSON array instead of a table')
+    .action(async (opts: { project?: string; json?: boolean }) => {
       try {
         const root = opts.project ?? process.cwd();
         const { parseManifest, loadAddressBook, buildDeployPlan } = await import('@worm-tool/sdk');
@@ -194,7 +195,18 @@ export function registerDeployCommand(program: Command): void {
         const manifest = parseManifest(manifestYaml);
         const book = await loadAddressBook(root);
         const plan = buildDeployPlan(manifest, book);
-        printJson(plan);
+
+        if (opts.json) {
+          printJson(plan);
+        } else {
+          const rows = plan.map(e => [
+            e.name,
+            e.targetChains.join(', '),
+            e.alreadyDeployed ? '✓ deployed' : '✗ pending',
+            e.strategy,
+          ]);
+          console.log(formatTable(['Contract', 'Chains', 'Status', 'Strategy'], rows));
+        }
       } catch (err) { printError('deploy plan failed', err); process.exit(1); }
     });
 
@@ -421,7 +433,8 @@ export function registerDeployCommand(program: Command): void {
     .command('diff')
     .description('Compare manifest targets vs what is in the address book')
     .option('--project <dir>', 'Project root (default: cwd)')
-    .action(async (opts: { project?: string }) => {
+    .option('--json', 'Output as JSON array instead of a table')
+    .action(async (opts: { project?: string; json?: boolean }) => {
       try {
         const root = opts.project ?? process.cwd();
         const { parseManifest, loadAddressBook, isDeployed } = await import('@worm-tool/sdk');
@@ -440,7 +453,18 @@ export function registerDeployCommand(program: Command): void {
             }
           }
         }
-        printJson(rows);
+
+        if (opts.json) {
+          printJson(rows);
+        } else {
+          const tableRows = rows.map(r => [
+            r.contract,
+            r.chain,
+            r.status === 'deployed' ? '✓ deployed' : '✗ missing',
+            r.address ?? '—',
+          ]);
+          console.log(formatTable(['Contract', 'Chain', 'Status', 'Address'], tableRows));
+        }
       } catch (err) { printError('deploy diff failed', err); process.exit(1); }
     });
 }

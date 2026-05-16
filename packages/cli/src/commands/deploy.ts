@@ -17,6 +17,20 @@ import { loadConfig } from '../config.js';
 import { createEvmChain } from '../providers/evm.js';
 import { printJson, printError, formatTable } from '../output.js';
 
+function handleManifestMissing(commandName: string, err: unknown): never {
+  if (
+    err instanceof Error &&
+    'code' in err &&
+    (err as NodeJS.ErrnoException).code === 'ENOENT' &&
+    String((err as NodeJS.ErrnoException).path ?? '').endsWith('worm-tool.deploy.yaml')
+  ) {
+    printError('worm-tool.deploy.yaml not found — run `worm-tool deploy init` to create one');
+  } else {
+    printError(`${commandName} failed`, err);
+  }
+  process.exit(1);
+}
+
 function saltFromStr(s: string): `0x${string}` {
   if (/^(0x)?[0-9a-fA-F]{64}$/.test(s)) {
     return (s.startsWith('0x') ? s : '0x' + s) as `0x${string}`;
@@ -207,7 +221,7 @@ export function registerDeployCommand(program: Command): void {
           ]);
           console.log(formatTable(['Contract', 'Chains', 'Status', 'Strategy'], rows));
         }
-      } catch (err) { printError('deploy plan failed', err); process.exit(1); }
+      } catch (err) { handleManifestMissing('deploy plan', err); }
     });
 
   // ── deploy run ────────────────────────────────────────────────────────────
@@ -298,7 +312,7 @@ export function registerDeployCommand(program: Command): void {
           deployed: result.deployed,
           skipped: result.skipped.map(s => s.name),
         });
-      } catch (err) { printError('deploy run failed', err); process.exit(1); }
+      } catch (err) { handleManifestMissing('deploy run', err); }
     });
 
   // ── deploy verify ─────────────────────────────────────────────────────────
@@ -349,7 +363,7 @@ export function registerDeployCommand(program: Command): void {
           }
         }
         printJson(results);
-      } catch (err) { printError('deploy verify failed', err); process.exit(1); }
+      } catch (err) { handleManifestMissing('deploy verify', err); }
     });
 
   // ── deploy upgrade-safe ───────────────────────────────────────────────────
@@ -465,6 +479,6 @@ export function registerDeployCommand(program: Command): void {
           ]);
           console.log(formatTable(['Contract', 'Chain', 'Status', 'Address'], tableRows));
         }
-      } catch (err) { printError('deploy diff failed', err); process.exit(1); }
+      } catch (err) { handleManifestMissing('deploy diff', err); }
     });
 }

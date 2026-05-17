@@ -59,11 +59,10 @@ export function registerDeployCommand(program: Command): void {
       try {
         const bytecode = await resolveBytecode(opts.artifact, opts.bytecode);
         const salt = saltFromStr(opts.salt);
-        const { keccak_256: k } = await import('@noble/hashes/sha3');
         const hex = bytecode.startsWith('0x') ? bytecode.slice(2) : bytecode;
         const initBytes = new Uint8Array(hex.length / 2);
         for (let i = 0; i < initBytes.length; i++) initBytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-        const initCodeHash = ('0x' + Array.from(k(initBytes), b => b.toString(16).padStart(2, '0')).join('')) as `0x${string}`;
+        const initCodeHash = ('0x' + Array.from(keccak_256(initBytes), b => b.toString(16).padStart(2, '0')).join('')) as `0x${string}`;
         const address = computeCreate2Address(opts.deployer, salt, initCodeHash);
         printJson({ address, salt, initCodeHash, deployer: opts.deployer });
       } catch (err) { printError('deploy address failed', err); process.exit(1); }

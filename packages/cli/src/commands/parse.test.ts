@@ -21,7 +21,7 @@ beforeEach(() => {
     throw new Error(`exit:${_code}`);
   });
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => { vi.restoreAllMocks(); });
 
 describe('parse command', () => {
   it('is registered with name "parse"', () => {
@@ -35,7 +35,7 @@ describe('parse command', () => {
     program.parse(['parse', VALID_VAA_HEX], { from: 'user' });
 
     expect(console.log).toHaveBeenCalledOnce();
-    const output = JSON.parse((console.log as ReturnType<typeof vi.fn>).mock.calls[0][0] as string);
+    const output = JSON.parse((console.log as ReturnType<typeof vi.fn>).mock.calls[0]![0] as string);
 
     expect(output.version).toBe(1);
     expect(output.emitterChain).toBe(2);

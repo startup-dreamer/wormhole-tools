@@ -1,10 +1,11 @@
+import { RpcError } from './error.js';
+
 const WORMHOLESCAN_MAINNET = 'https://api.wormholescan.io';
 const WORMHOLESCAN_TESTNET = 'https://api.testnet.wormholescan.io';
 
 export enum MessageStatus {
   Pending = 'pending',
   Signed = 'signed',
-  Relayed = 'relayed',
 }
 
 export interface MessageStatusParams {
@@ -33,7 +34,7 @@ export async function getMessageStatus(
 
   if (!response.ok) {
     if (response.status === 404) return { status: MessageStatus.Pending, vaaBytes: undefined, txHash: undefined };
-    throw new Error(`Guardian API error ${response.status} for ${url}`);
+    throw new RpcError('wormholescan', `HTTP ${response.status} for ${url}`);
   }
 
   const data = await response.json() as { vaaBytes?: string; data?: { txHash?: string } };

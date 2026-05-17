@@ -1,3 +1,4 @@
+import { WormToolError } from './error.js';
 import { getMessageStatus, MessageStatus } from './status.js';
 
 export interface LatencyMeasurement {
@@ -52,7 +53,7 @@ export async function measureSigningLatency(
     await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
   }
 
-  throw new Error(
+  throw new WormToolError(
     `Timed out waiting for VAA signature after ${timeoutMs}ms (chain=${emitterChain}, seq=${sequence})`,
   );
 }

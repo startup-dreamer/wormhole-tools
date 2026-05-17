@@ -8,8 +8,7 @@ function buildMinimalVaa(): { hex: string; bytes: Uint8Array } {
   header[0] = 1;           // version
   // bytes 1-4: guardianSetIndex = 0 (already zero)
   const sigCount = new Uint8Array([0]);
-  const body = new Uint8Array(28); // timestamp(4) + nonce(4) + emitterChain(2) + emitterAddress(32) + seq(8) + consistencyLevel(1) = 51 bytes
-  // Actually need 4+4+2+32+8+1 = 51 bytes for body
+  // timestamp(4) + nonce(4) + emitterChain(2) + emitterAddress(32) + seq(8) + consistencyLevel(1) = 51 bytes
   const fullBody = new Uint8Array(51);
   const full = new Uint8Array(header.length + sigCount.length + fullBody.length);
   full.set(header, 0);

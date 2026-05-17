@@ -76,18 +76,19 @@ export function registerDeployCommand(program: Command): void {
     .option('--bytecode <hex>', 'Raw init bytecode (0x-prefixed)')
     .requiredOption('--salt <salt>', 'CREATE2 salt')
     .requiredOption('--source <chain>', 'Source chain (where the tx is sent)')
-    .requiredOption('--targets <chains>', 'Comma-separated target chain names')
+    .option('--targets <chains>', 'Comma-separated cross-chain target names (omit for local-only)')
     .option('--init-hex <hex>', 'ABI-encoded constructor calldata')
     .option('--deployer <address>', 'Override WormToolDeployer address')
+    .option('--value <wei>', 'ETH (in wei) to send for Wormhole relayer fees when using --targets')
     .action(async (opts: {
       artifact?: string; bytecode?: string; salt: string;
-      source: string; targets: string; initHex?: string; deployer?: string;
+      source: string; targets?: string; initHex?: string; deployer?: string; value?: string;
     }) => {
       try {
         const config = loadConfig();
         const bytecode = await resolveBytecode(opts.artifact, opts.bytecode);
         const salt = saltFromStr(opts.salt);
-        const targetNames = opts.targets.split(',').map(s => s.trim());
+        const targetNames = opts.targets ? opts.targets.split(',').map(s => s.trim()) : [];
         const chains = [opts.source, ...targetNames]
           .filter((v, i, a) => a.indexOf(v) === i)
           .map(n => createEvmChain(n, config));
@@ -98,6 +99,7 @@ export function registerDeployCommand(program: Command): void {
           salt,
           wormToolDeployerAddress: deployer,
           ...(opts.initHex !== undefined && { constructorArgs: opts.initHex as `0x${string}` }),
+          ...(opts.value !== undefined && { value: BigInt(opts.value) }),
         });
         printJson(results.map((r: { chain: string; chainId: bigint; receipt: { txHash: string; success: boolean } }) => ({ chain: r.chain, chainId: r.chainId.toString(), txHash: r.receipt.txHash, success: r.receipt.success })));
       } catch (err) { printError('deploy multi failed', err); process.exit(1); }

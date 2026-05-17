@@ -205,8 +205,35 @@ var CHAIN_REGISTRY = [
   { wormholeChainId: 23, name: "arbitrum", evmChainId: 42161 },
   { wormholeChainId: 24, name: "optimism", evmChainId: 10 },
   { wormholeChainId: 30, name: "base", evmChainId: 8453 },
-  // Testnets
-  { wormholeChainId: 10002, name: "sepolia", evmChainId: 11155111, isTestnet: true },
+  // Testnets — WormToolDeployer deployed at the same address on all chains via CREATE2
+  // (salt = keccak256("worm-tool-deployer-v1"), factory = deployer wallet 0x68A2610f...)
+  {
+    wormholeChainId: 10002,
+    name: "sepolia",
+    evmChainId: 11155111,
+    isTestnet: true,
+    defaultRpc: "https://ethereum-sepolia.publicnode.com",
+    wormholeCore: "0x4a8bc80Ed5a4067f1CCf107057b8270E0cC11A78",
+    wormToolDeployer: "0xC8059e943CD42BfC6273C5A8E6F01fdB80Fa7748"
+  },
+  {
+    wormholeChainId: 10003,
+    name: "arbitrum-sepolia",
+    evmChainId: 421614,
+    isTestnet: true,
+    defaultRpc: "https://sepolia-rollup.arbitrum.io/rpc",
+    wormholeCore: "0x6b9C8671cdDC8dEab9c719bB87cBd3e782bA6a35",
+    wormToolDeployer: "0xC8059e943CD42BfC6273C5A8E6F01fdB80Fa7748"
+  },
+  {
+    wormholeChainId: 10004,
+    name: "base-sepolia",
+    evmChainId: 84532,
+    isTestnet: true,
+    defaultRpc: "https://sepolia.base.org",
+    wormholeCore: "0x79A1027a6A159502049F10906D333EC57E95F083",
+    wormToolDeployer: "0xC8059e943CD42BfC6273C5A8E6F01fdB80Fa7748"
+  },
   { wormholeChainId: 4, name: "bsc-testnet", evmChainId: 97, isTestnet: true }
 ];
 function getChainById(wormholeChainId) {
@@ -413,26 +440,8 @@ var SuiChain = class {
   }
 };
 
-// src/deploy/abi.ts
-import { encodeAbiParameters, parseAbiParameters } from "viem";
-function encodeDeployMessage(p) {
-  return encodeAbiParameters(
-    parseAbiParameters("uint8 msgType, bytes bytecode, bytes constructorArgs, bytes32 salt, uint16[] targetChains"),
-    [1, p.bytecode, p.constructorArgs ?? "0x", p.salt, p.targetChains]
-  );
-}
-function encodeCallMessage(p) {
-  return encodeAbiParameters(
-    parseAbiParameters("uint8 msgType, address target, bytes calldata_, uint16[] targetChains"),
-    [2, p.target, p.calldata, p.targetChains]
-  );
-}
-function encodeUpgradeMessage(p) {
-  return encodeAbiParameters(
-    parseAbiParameters("uint8 msgType, address proxy, address newImpl, uint16[] targetChains"),
-    [3, p.proxy, p.newImpl, p.targetChains]
-  );
-}
+// src/deploy/index.ts
+import { encodeFunctionData } from "viem";
 
 // src/deploy/artifact.ts
 function extractBytecode(artifact, path = "<artifact>") {
@@ -462,7 +471,7 @@ function extractBytecode(artifact, path = "<artifact>") {
 import { keccak_256 as keccak_2562 } from "@noble/hashes/sha3";
 function fromHex(h) {
   const clean = h.startsWith("0x") ? h.slice(2) : h;
-  if (clean.length % 2 !== 0) throw new Error("odd-length hex");
+  if (clean.length % 2 !== 0) throw new WormToolError("odd-length hex");
   const arr = new Uint8Array(clean.length / 2);
   for (let i = 0; i < arr.length; i++) arr[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
   return arr;
@@ -473,15 +482,15 @@ function toChecksumAddress(bytes) {
 function computeCreate2Address(deployer, salt, initCodeHash) {
   const deployerBytes = fromHex(deployer);
   if (deployerBytes.length !== 20) {
-    throw new Error(`deployer must be 20 bytes, got ${deployerBytes.length}`);
+    throw new WormToolError(`deployer must be 20 bytes, got ${deployerBytes.length}`);
   }
   const saltBytes = fromHex(salt);
   if (saltBytes.length !== 32) {
-    throw new Error(`salt must be 32 bytes, got ${saltBytes.length}`);
+    throw new WormToolError(`salt must be 32 bytes, got ${saltBytes.length}`);
   }
   const hashBytes = fromHex(initCodeHash);
   if (hashBytes.length !== 32) {
-    throw new Error(`initCodeHash must be 32 bytes, got ${hashBytes.length}`);
+    throw new WormToolError(`initCodeHash must be 32 bytes, got ${hashBytes.length}`);
   }
   const data = new Uint8Array(85);
   data[0] = 255;
@@ -498,39 +507,99 @@ async function checkContractDeployed(chain, address) {
   return code !== "0x" && code.length > 2;
 }
 
-// src/deploy/index.ts
-async function deployAcrossChains(params) {
-  const { chains, bytecode, constructorArgs = "0x", salt, wormToolDeployerAddress } = params;
-  const targetChains = chains.map((c) => Number(c.chainId));
-  const data = encodeDeployMessage({ bytecode, constructorArgs, salt, targetChains });
-  return Promise.all(
-    chains.map(async (chain) => {
-      const receipt = await chain.sendTransaction(wormToolDeployerAddress, data);
-      return { chain: chain.chainName, chainId: chain.chainId, receipt };
-    })
+// src/deploy/abi.ts
+import { encodeAbiParameters, parseAbiParameters } from "viem";
+function encodeDeployMessage(p) {
+  return encodeAbiParameters(
+    parseAbiParameters("uint8 msgType, bytes bytecode, bytes constructorArgs, bytes32 salt, uint16[] targetChains"),
+    [1, p.bytecode, p.constructorArgs ?? "0x", p.salt, p.targetChains]
   );
+}
+function encodeCallMessage(p) {
+  return encodeAbiParameters(
+    parseAbiParameters("uint8 msgType, address target, bytes calldata_, uint16[] targetChains"),
+    [2, p.target, p.calldata, p.targetChains]
+  );
+}
+function encodeUpgradeMessage(p) {
+  return encodeAbiParameters(
+    parseAbiParameters("uint8 msgType, address proxy, address newImpl, uint16[] targetChains"),
+    [3, p.proxy, p.newImpl, p.targetChains]
+  );
+}
+
+// src/deploy/index.ts
+var DEPLOY_ABI = [{
+  name: "deployAcrossChains",
+  type: "function",
+  inputs: [
+    { name: "targetChains", type: "uint16[]" },
+    { name: "bytecode", type: "bytes" },
+    { name: "salt", type: "bytes32" },
+    { name: "initCalldata", type: "bytes" },
+    { name: "deployOnCurrentChain", type: "bool" }
+  ],
+  stateMutability: "payable"
+}];
+var CALL_ABI = [{
+  name: "callAcrossChains",
+  type: "function",
+  inputs: [
+    { name: "targetChains", type: "uint16[]" },
+    { name: "target", type: "address" },
+    { name: "callData", type: "bytes" },
+    { name: "gasLimit", type: "uint256" }
+  ],
+  stateMutability: "payable"
+}];
+var UPGRADE_ABI = [{
+  name: "upgradeAcrossChains",
+  type: "function",
+  inputs: [
+    { name: "targetChains", type: "uint16[]" },
+    { name: "proxy", type: "address" },
+    { name: "newImpl", type: "address" }
+  ],
+  stateMutability: "payable"
+}];
+async function deployAcrossChains(params) {
+  const { chains, bytecode, constructorArgs = "0x", salt, wormToolDeployerAddress, value = 0n } = params;
+  const [sourceChain, ...rest] = chains;
+  if (!sourceChain) throw new WormToolError("deployAcrossChains: at least one chain required");
+  const targetChainIds = rest.map((c) => Number(c.chainId));
+  const data = encodeFunctionData({
+    abi: DEPLOY_ABI,
+    functionName: "deployAcrossChains",
+    args: [targetChainIds, bytecode, salt, constructorArgs, true]
+  });
+  const receipt = await sourceChain.sendTransaction(wormToolDeployerAddress, data, value);
+  return [{ chain: sourceChain.chainName, chainId: sourceChain.chainId, receipt }];
 }
 async function callAcrossChains(params) {
-  const { chains, target, calldata, wormToolDeployerAddress } = params;
-  const targetChains = chains.map((c) => Number(c.chainId));
-  const data = encodeCallMessage({ target, calldata, targetChains });
-  return Promise.all(
-    chains.map(async (chain) => {
-      const receipt = await chain.sendTransaction(wormToolDeployerAddress, data);
-      return { chain: chain.chainName, chainId: chain.chainId, receipt };
-    })
-  );
+  const { chains, target, calldata, wormToolDeployerAddress, value = 0n } = params;
+  const [sourceChain, ...rest] = chains;
+  if (!sourceChain) throw new WormToolError("callAcrossChains: at least one chain required");
+  const targetChainIds = rest.map((c) => Number(c.chainId));
+  const data = encodeFunctionData({
+    abi: CALL_ABI,
+    functionName: "callAcrossChains",
+    args: [targetChainIds, target, calldata, 3000000n]
+  });
+  const receipt = await sourceChain.sendTransaction(wormToolDeployerAddress, data, value);
+  return [{ chain: sourceChain.chainName, chainId: sourceChain.chainId, receipt }];
 }
 async function upgradeAcrossChains(params) {
-  const { chains, proxy, newImpl, wormToolDeployerAddress } = params;
-  const targetChains = chains.map((c) => Number(c.chainId));
-  const data = encodeUpgradeMessage({ proxy, newImpl, targetChains });
-  return Promise.all(
-    chains.map(async (chain) => {
-      const receipt = await chain.sendTransaction(wormToolDeployerAddress, data);
-      return { chain: chain.chainName, chainId: chain.chainId, receipt };
-    })
-  );
+  const { chains, proxy, newImpl, wormToolDeployerAddress, value = 0n } = params;
+  const [sourceChain, ...rest] = chains;
+  if (!sourceChain) throw new WormToolError("upgradeAcrossChains: at least one chain required");
+  const targetChainIds = rest.map((c) => Number(c.chainId));
+  const data = encodeFunctionData({
+    abi: UPGRADE_ABI,
+    functionName: "upgradeAcrossChains",
+    args: [targetChainIds, proxy, newImpl]
+  });
+  const receipt = await sourceChain.sendTransaction(wormToolDeployerAddress, data, value);
+  return [{ chain: sourceChain.chainName, chainId: sourceChain.chainId, receipt }];
 }
 
 // src/status.ts
@@ -539,7 +608,6 @@ var WORMHOLESCAN_TESTNET = "https://api.testnet.wormholescan.io";
 var MessageStatus = /* @__PURE__ */ ((MessageStatus2) => {
   MessageStatus2["Pending"] = "pending";
   MessageStatus2["Signed"] = "signed";
-  MessageStatus2["Relayed"] = "relayed";
   return MessageStatus2;
 })(MessageStatus || {});
 async function getMessageStatus(params) {
@@ -549,7 +617,7 @@ async function getMessageStatus(params) {
   const response = await fetch(url);
   if (!response.ok) {
     if (response.status === 404) return { status: "pending" /* Pending */, vaaBytes: void 0, txHash: void 0 };
-    throw new Error(`Guardian API error ${response.status} for ${url}`);
+    throw new RpcError("wormholescan", `HTTP ${response.status} for ${url}`);
   }
   const data = await response.json();
   return {
@@ -687,7 +755,7 @@ async function measureSigningLatency(params) {
     }
     await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
   }
-  throw new Error(
+  throw new WormToolError(
     `Timed out waiting for VAA signature after ${timeoutMs}ms (chain=${emitterChain}, seq=${sequence})`
   );
 }

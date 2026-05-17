@@ -33,8 +33,9 @@ contract WormToolDeployerTest is Test {
 
     function setUp() public {
         relayer = new MockRelayer();
+        deployer = new WormToolDeployer(owner);
         vm.prank(owner);
-        deployer = new WormToolDeployer(address(relayer));
+        deployer.setRelayer(address(relayer));
     }
 
     function test_deployAcrossChains_sends_correct_payload() public {

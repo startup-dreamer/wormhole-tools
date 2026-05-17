@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-import {
-  keccak_256
-} from "./chunk-BDSKY23V.js";
 
 // src/main.ts
 import { Command } from "commander";
@@ -90,8 +87,8 @@ function registerInfoCommand(program2) {
 // src/commands/generate.ts
 import { generateTestVaaHex } from "@worm-tool/sdk";
 function registerGenerateCommand(program2) {
-  const gen = program2.command("generate").description("Generate VAAs for devnet and testnet use");
-  gen.command("test-vaa").description("Generate a synthetic (unsigned) test VAA").requiredOption("--emitter-chain <id>", "Wormhole emitter chain ID", parseInt).requiredOption("--emitter-address <hex>", "32-byte emitter address (0x-prefixed hex)").requiredOption("--sequence <n>", "Message sequence number", (v) => BigInt(v)).requiredOption("--payload <hex>", "Payload bytes (0x-prefixed hex)").option("--timestamp <n>", "Unix timestamp (default: now)", parseInt).option("--nonce <n>", "Nonce (default: 0)", parseInt).option("--consistency-level <n>", "Consistency level (default: 1)", parseInt).action((opts) => {
+  const gen2 = program2.command("generate").description("Generate VAAs for devnet and testnet use");
+  gen2.command("test-vaa").description("Generate a synthetic (unsigned) test VAA").requiredOption("--emitter-chain <id>", "Wormhole emitter chain ID", parseInt).requiredOption("--emitter-address <hex>", "32-byte emitter address (0x-prefixed hex)").requiredOption("--sequence <n>", "Message sequence number", (v) => BigInt(v)).requiredOption("--payload <hex>", "Payload bytes (0x-prefixed hex)").option("--timestamp <n>", "Unix timestamp (default: now)", parseInt).option("--nonce <n>", "Nonce (default: 0)", parseInt).option("--consistency-level <n>", "Consistency level (default: 1)", parseInt).action((opts) => {
     try {
       const hex = generateTestVaaHex({
         emitterChain: opts.emitterChain,
@@ -200,6 +197,278 @@ import {
   getChainByName as getChainByName3
 } from "@worm-tool/sdk";
 
+// ../../node_modules/@noble/hashes/esm/_u64.js
+var U32_MASK64 = /* @__PURE__ */ BigInt(2 ** 32 - 1);
+var _32n = /* @__PURE__ */ BigInt(32);
+function fromBig(n, le = false) {
+  if (le)
+    return { h: Number(n & U32_MASK64), l: Number(n >> _32n & U32_MASK64) };
+  return { h: Number(n >> _32n & U32_MASK64) | 0, l: Number(n & U32_MASK64) | 0 };
+}
+function split(lst, le = false) {
+  const len = lst.length;
+  let Ah = new Uint32Array(len);
+  let Al = new Uint32Array(len);
+  for (let i = 0; i < len; i++) {
+    const { h, l } = fromBig(lst[i], le);
+    [Ah[i], Al[i]] = [h, l];
+  }
+  return [Ah, Al];
+}
+var rotlSH = (h, l, s) => h << s | l >>> 32 - s;
+var rotlSL = (h, l, s) => l << s | h >>> 32 - s;
+var rotlBH = (h, l, s) => l << s - 32 | h >>> 64 - s;
+var rotlBL = (h, l, s) => h << s - 32 | l >>> 64 - s;
+
+// ../../node_modules/@noble/hashes/esm/utils.js
+function isBytes(a) {
+  return a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array";
+}
+function anumber(n) {
+  if (!Number.isSafeInteger(n) || n < 0)
+    throw new Error("positive integer expected, got " + n);
+}
+function abytes(b, ...lengths) {
+  if (!isBytes(b))
+    throw new Error("Uint8Array expected");
+  if (lengths.length > 0 && !lengths.includes(b.length))
+    throw new Error("Uint8Array expected of length " + lengths + ", got length=" + b.length);
+}
+function aexists(instance, checkFinished = true) {
+  if (instance.destroyed)
+    throw new Error("Hash instance has been destroyed");
+  if (checkFinished && instance.finished)
+    throw new Error("Hash#digest() has already been called");
+}
+function aoutput(out, instance) {
+  abytes(out);
+  const min = instance.outputLen;
+  if (out.length < min) {
+    throw new Error("digestInto() expects output buffer of length at least " + min);
+  }
+}
+function u32(arr) {
+  return new Uint32Array(arr.buffer, arr.byteOffset, Math.floor(arr.byteLength / 4));
+}
+function clean(...arrays) {
+  for (let i = 0; i < arrays.length; i++) {
+    arrays[i].fill(0);
+  }
+}
+var isLE = /* @__PURE__ */ (() => new Uint8Array(new Uint32Array([287454020]).buffer)[0] === 68)();
+function byteSwap(word) {
+  return word << 24 & 4278190080 | word << 8 & 16711680 | word >>> 8 & 65280 | word >>> 24 & 255;
+}
+function byteSwap32(arr) {
+  for (let i = 0; i < arr.length; i++) {
+    arr[i] = byteSwap(arr[i]);
+  }
+  return arr;
+}
+var swap32IfBE = isLE ? (u) => u : byteSwap32;
+function utf8ToBytes(str) {
+  if (typeof str !== "string")
+    throw new Error("string expected");
+  return new Uint8Array(new TextEncoder().encode(str));
+}
+function toBytes(data) {
+  if (typeof data === "string")
+    data = utf8ToBytes(data);
+  abytes(data);
+  return data;
+}
+var Hash = class {
+};
+function createHasher(hashCons) {
+  const hashC = (msg) => hashCons().update(toBytes(msg)).digest();
+  const tmp = hashCons();
+  hashC.outputLen = tmp.outputLen;
+  hashC.blockLen = tmp.blockLen;
+  hashC.create = () => hashCons();
+  return hashC;
+}
+
+// ../../node_modules/@noble/hashes/esm/sha3.js
+var _0n = BigInt(0);
+var _1n = BigInt(1);
+var _2n = BigInt(2);
+var _7n = BigInt(7);
+var _256n = BigInt(256);
+var _0x71n = BigInt(113);
+var SHA3_PI = [];
+var SHA3_ROTL = [];
+var _SHA3_IOTA = [];
+for (let round = 0, R = _1n, x = 1, y = 0; round < 24; round++) {
+  [x, y] = [y, (2 * x + 3 * y) % 5];
+  SHA3_PI.push(2 * (5 * y + x));
+  SHA3_ROTL.push((round + 1) * (round + 2) / 2 % 64);
+  let t = _0n;
+  for (let j = 0; j < 7; j++) {
+    R = (R << _1n ^ (R >> _7n) * _0x71n) % _256n;
+    if (R & _2n)
+      t ^= _1n << (_1n << /* @__PURE__ */ BigInt(j)) - _1n;
+  }
+  _SHA3_IOTA.push(t);
+}
+var IOTAS = split(_SHA3_IOTA, true);
+var SHA3_IOTA_H = IOTAS[0];
+var SHA3_IOTA_L = IOTAS[1];
+var rotlH = (h, l, s) => s > 32 ? rotlBH(h, l, s) : rotlSH(h, l, s);
+var rotlL = (h, l, s) => s > 32 ? rotlBL(h, l, s) : rotlSL(h, l, s);
+function keccakP(s, rounds = 24) {
+  const B = new Uint32Array(5 * 2);
+  for (let round = 24 - rounds; round < 24; round++) {
+    for (let x = 0; x < 10; x++)
+      B[x] = s[x] ^ s[x + 10] ^ s[x + 20] ^ s[x + 30] ^ s[x + 40];
+    for (let x = 0; x < 10; x += 2) {
+      const idx1 = (x + 8) % 10;
+      const idx0 = (x + 2) % 10;
+      const B0 = B[idx0];
+      const B1 = B[idx0 + 1];
+      const Th = rotlH(B0, B1, 1) ^ B[idx1];
+      const Tl = rotlL(B0, B1, 1) ^ B[idx1 + 1];
+      for (let y = 0; y < 50; y += 10) {
+        s[x + y] ^= Th;
+        s[x + y + 1] ^= Tl;
+      }
+    }
+    let curH = s[2];
+    let curL = s[3];
+    for (let t = 0; t < 24; t++) {
+      const shift = SHA3_ROTL[t];
+      const Th = rotlH(curH, curL, shift);
+      const Tl = rotlL(curH, curL, shift);
+      const PI = SHA3_PI[t];
+      curH = s[PI];
+      curL = s[PI + 1];
+      s[PI] = Th;
+      s[PI + 1] = Tl;
+    }
+    for (let y = 0; y < 50; y += 10) {
+      for (let x = 0; x < 10; x++)
+        B[x] = s[y + x];
+      for (let x = 0; x < 10; x++)
+        s[y + x] ^= ~B[(x + 2) % 10] & B[(x + 4) % 10];
+    }
+    s[0] ^= SHA3_IOTA_H[round];
+    s[1] ^= SHA3_IOTA_L[round];
+  }
+  clean(B);
+}
+var Keccak = class _Keccak extends Hash {
+  // NOTE: we accept arguments in bytes instead of bits here.
+  constructor(blockLen, suffix, outputLen, enableXOF = false, rounds = 24) {
+    super();
+    this.pos = 0;
+    this.posOut = 0;
+    this.finished = false;
+    this.destroyed = false;
+    this.enableXOF = false;
+    this.blockLen = blockLen;
+    this.suffix = suffix;
+    this.outputLen = outputLen;
+    this.enableXOF = enableXOF;
+    this.rounds = rounds;
+    anumber(outputLen);
+    if (!(0 < blockLen && blockLen < 200))
+      throw new Error("only keccak-f1600 function is supported");
+    this.state = new Uint8Array(200);
+    this.state32 = u32(this.state);
+  }
+  clone() {
+    return this._cloneInto();
+  }
+  keccak() {
+    swap32IfBE(this.state32);
+    keccakP(this.state32, this.rounds);
+    swap32IfBE(this.state32);
+    this.posOut = 0;
+    this.pos = 0;
+  }
+  update(data) {
+    aexists(this);
+    data = toBytes(data);
+    abytes(data);
+    const { blockLen, state } = this;
+    const len = data.length;
+    for (let pos = 0; pos < len; ) {
+      const take = Math.min(blockLen - this.pos, len - pos);
+      for (let i = 0; i < take; i++)
+        state[this.pos++] ^= data[pos++];
+      if (this.pos === blockLen)
+        this.keccak();
+    }
+    return this;
+  }
+  finish() {
+    if (this.finished)
+      return;
+    this.finished = true;
+    const { state, suffix, pos, blockLen } = this;
+    state[pos] ^= suffix;
+    if ((suffix & 128) !== 0 && pos === blockLen - 1)
+      this.keccak();
+    state[blockLen - 1] ^= 128;
+    this.keccak();
+  }
+  writeInto(out) {
+    aexists(this, false);
+    abytes(out);
+    this.finish();
+    const bufferOut = this.state;
+    const { blockLen } = this;
+    for (let pos = 0, len = out.length; pos < len; ) {
+      if (this.posOut >= blockLen)
+        this.keccak();
+      const take = Math.min(blockLen - this.posOut, len - pos);
+      out.set(bufferOut.subarray(this.posOut, this.posOut + take), pos);
+      this.posOut += take;
+      pos += take;
+    }
+    return out;
+  }
+  xofInto(out) {
+    if (!this.enableXOF)
+      throw new Error("XOF is not possible for this instance");
+    return this.writeInto(out);
+  }
+  xof(bytes) {
+    anumber(bytes);
+    return this.xofInto(new Uint8Array(bytes));
+  }
+  digestInto(out) {
+    aoutput(out, this);
+    if (this.finished)
+      throw new Error("digest() was already called");
+    this.writeInto(out);
+    this.destroy();
+    return out;
+  }
+  digest() {
+    return this.digestInto(new Uint8Array(this.outputLen));
+  }
+  destroy() {
+    this.destroyed = true;
+    clean(this.state);
+  }
+  _cloneInto(to) {
+    const { blockLen, suffix, outputLen, rounds, enableXOF } = this;
+    to || (to = new _Keccak(blockLen, suffix, outputLen, enableXOF, rounds));
+    to.state32.set(this.state32);
+    to.pos = this.pos;
+    to.posOut = this.posOut;
+    to.finished = this.finished;
+    to.rounds = rounds;
+    to.suffix = suffix;
+    to.outputLen = outputLen;
+    to.enableXOF = enableXOF;
+    to.destroyed = this.destroyed;
+    return to;
+  }
+};
+var gen = (suffix, blockLen, outputLen) => createHasher(() => new Keccak(blockLen, suffix, outputLen));
+var keccak_256 = /* @__PURE__ */ (() => gen(1, 136, 256 / 8))();
+
 // src/config.ts
 import { config as loadDotenv } from "dotenv";
 import { resolve } from "path";
@@ -271,11 +540,10 @@ function registerDeployCommand(program2) {
     try {
       const bytecode = await resolveBytecode(opts.artifact, opts.bytecode);
       const salt = saltFromStr(opts.salt);
-      const { keccak_256: k } = await import("./sha3-BSWN2Z3F.js");
       const hex = bytecode.startsWith("0x") ? bytecode.slice(2) : bytecode;
       const initBytes = new Uint8Array(hex.length / 2);
       for (let i = 0; i < initBytes.length; i++) initBytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-      const initCodeHash = "0x" + Array.from(k(initBytes), (b) => b.toString(16).padStart(2, "0")).join("");
+      const initCodeHash = "0x" + Array.from(keccak_256(initBytes), (b) => b.toString(16).padStart(2, "0")).join("");
       const address = computeCreate2Address(opts.deployer, salt, initCodeHash);
       printJson({ address, salt, initCodeHash, deployer: opts.deployer });
     } catch (err) {
@@ -283,12 +551,12 @@ function registerDeployCommand(program2) {
       process.exit(1);
     }
   });
-  deploy.command("multi").description("Deploy bytecode to multiple chains in one source transaction").option("--artifact <path>", "Path to Hardhat/Foundry artifact JSON").option("--bytecode <hex>", "Raw init bytecode (0x-prefixed)").requiredOption("--salt <salt>", "CREATE2 salt").requiredOption("--source <chain>", "Source chain (where the tx is sent)").requiredOption("--targets <chains>", "Comma-separated target chain names").option("--init-hex <hex>", "ABI-encoded constructor calldata").option("--deployer <address>", "Override WormToolDeployer address").action(async (opts) => {
+  deploy.command("multi").description("Deploy bytecode to multiple chains in one source transaction").option("--artifact <path>", "Path to Hardhat/Foundry artifact JSON").option("--bytecode <hex>", "Raw init bytecode (0x-prefixed)").requiredOption("--salt <salt>", "CREATE2 salt").requiredOption("--source <chain>", "Source chain (where the tx is sent)").option("--targets <chains>", "Comma-separated cross-chain target names (omit for local-only)").option("--init-hex <hex>", "ABI-encoded constructor calldata").option("--deployer <address>", "Override WormToolDeployer address").option("--value <wei>", "ETH (in wei) to send for Wormhole relayer fees when using --targets").action(async (opts) => {
     try {
       const config = loadConfig();
       const bytecode = await resolveBytecode(opts.artifact, opts.bytecode);
       const salt = saltFromStr(opts.salt);
-      const targetNames = opts.targets.split(",").map((s) => s.trim());
+      const targetNames = opts.targets ? opts.targets.split(",").map((s) => s.trim()) : [];
       const chains = [opts.source, ...targetNames].filter((v, i, a) => a.indexOf(v) === i).map((n) => createEvmChain(n, config));
       const deployer = resolveDeployer(opts.source, opts.deployer);
       const results = await deployAcrossChains({
@@ -296,7 +564,8 @@ function registerDeployCommand(program2) {
         bytecode,
         salt,
         wormToolDeployerAddress: deployer,
-        ...opts.initHex !== void 0 && { constructorArgs: opts.initHex }
+        ...opts.initHex !== void 0 && { constructorArgs: opts.initHex },
+        ...opts.value !== void 0 && { value: BigInt(opts.value) }
       });
       printJson(results.map((r) => ({ chain: r.chain, chainId: r.chainId.toString(), txHash: r.receipt.txHash, success: r.receipt.success })));
     } catch (err) {
@@ -414,8 +683,16 @@ function registerTokensCommand(program2) {
 
 // src/commands/submit.ts
 import { parseVaa as parseVaa2, getChainByName as getChainByName4 } from "@worm-tool/sdk";
+function abiEncodeBytes(hex) {
+  const raw = hex.startsWith("0x") ? hex.slice(2) : hex;
+  const byteLen = raw.length / 2;
+  const paddedLen = Math.ceil(byteLen / 32) * 32;
+  const offset = "0000000000000000000000000000000000000000000000000000000000000020";
+  const len = byteLen.toString(16).padStart(64, "0");
+  return `0x${offset}${len}${raw.padEnd(paddedLen * 2, "0")}`;
+}
 function registerSubmitCommand(program2) {
-  program2.command("submit <vaa>").description("Submit a signed VAA to a Wormhole contract on an EVM chain").requiredOption("--chain <name>", "Target EVM chain name (e.g. ethereum)").option("--contract <address>", "Target contract address (overrides default core bridge)").action(async (vaa, opts) => {
+  program2.command("submit <vaa>").description("Submit a signed VAA to a Wormhole contract on an EVM chain").requiredOption("--chain <name>", "Target EVM chain name (e.g. ethereum)").requiredOption("--selector <hex>", "4-byte function selector, e.g. 0x5cb8cae2 (submitContractUpgrade), 0xc6878519 (completeTransfer)").option("--contract <address>", "Target contract address (overrides default core bridge)").action(async (vaa, opts) => {
     try {
       const config = loadConfig();
       const parsed = parseVaa2(vaa);
@@ -425,9 +702,9 @@ function registerSubmitCommand(program2) {
         if (!entry?.wormholeCore) throw new Error(`No known core bridge for ${opts.chain} \u2014 provide --contract`);
         return entry.wormholeCore;
       })();
+      const selector = opts.selector.startsWith("0x") ? opts.selector : "0x" + opts.selector;
       const rawHex = vaa.startsWith("0x") ? vaa : "0x" + vaa;
-      const submitSelector = "0x9981509f";
-      const data = submitSelector + rawHex.slice(2);
+      const data = selector + abiEncodeBytes(rawHex).slice(2);
       const receipt = await chain.sendTransaction(contract, data);
       printJson({ txHash: receipt.txHash, success: receipt.success, chain: opts.chain, sequence: parsed.sequence.toString() });
     } catch (err) {
@@ -439,11 +716,19 @@ function registerSubmitCommand(program2) {
 
 // src/commands/redeem.ts
 import { parseVaa as parseVaa3 } from "@worm-tool/sdk";
+function abiEncodeBytes2(hex) {
+  const raw = hex.startsWith("0x") ? hex.slice(2) : hex;
+  const byteLen = raw.length / 2;
+  const paddedLen = Math.ceil(byteLen / 32) * 32;
+  const offset = "0000000000000000000000000000000000000000000000000000000000000020";
+  const len = byteLen.toString(16).padStart(64, "0");
+  return `0x${offset}${len}${raw.padEnd(paddedLen * 2, "0")}`;
+}
 function isTxHash(input) {
   return input.startsWith("0x") && input.length === 66 && /^[0-9a-fA-F]+$/.test(input.slice(2));
 }
 function registerRedeemCommand(program2) {
-  program2.command("redeem <input>").description("Manually redeem a Wormhole VAA on the destination EVM chain (input: tx hash or raw VAA hex/base64)").requiredOption("--chain <name>", "Destination EVM chain name (e.g. ethereum)").option("--contract <address>", "Target contract address (default: known core bridge)").option("--network <network>", "mainnet or testnet (used if input is a tx hash)", "mainnet").action(async (input, opts) => {
+  program2.command("redeem <input>").description("Manually redeem a Wormhole VAA on the destination EVM chain (input: tx hash or raw VAA hex/base64)").requiredOption("--chain <name>", "Destination EVM chain name (e.g. ethereum)").option("--contract <address>", "Target contract address").option("--selector <hex>", "Function selector override (default: completeTransfer 0xc6878519)").option("--network <network>", "mainnet or testnet (used if input is a tx hash)", "mainnet").action(async (input, opts) => {
     try {
       const config = loadConfig();
       const network = opts.network === "testnet" ? "testnet" : "mainnet";
@@ -457,17 +742,15 @@ function registerRedeemCommand(program2) {
         if (!raw) throw new Error(`No VAA found for tx ${input} (not yet signed?)`);
         vaaHex = raw.startsWith("0x") ? raw : "0x" + raw;
       } else {
-        const parsed = parseVaa3(input);
+        parseVaa3(input);
         vaaHex = input.startsWith("0x") ? input : "0x" + input;
-        void parsed;
       }
       const chain = createEvmChain(opts.chain, config);
-      const contract = opts.contract ?? (() => {
-        throw new Error(`No default core bridge known for ${opts.chain} \u2014 provide --contract`);
-      })();
-      const submitSelector = "0x9981509f";
-      const data = submitSelector + vaaHex.slice(2);
-      const receipt = await chain.sendTransaction(contract, data);
+      if (!opts.contract) throw new Error(`--contract is required for ${opts.chain}`);
+      const selectorRaw = opts.selector ?? "0xc6878519";
+      const selector = selectorRaw.startsWith("0x") ? selectorRaw : "0x" + selectorRaw;
+      const data = selector + abiEncodeBytes2(vaaHex).slice(2);
+      const receipt = await chain.sendTransaction(opts.contract, data);
       printJson({ txHash: receipt.txHash, success: receipt.success, chain: opts.chain });
     } catch (err) {
       printError("redeem failed", err);
@@ -618,4 +901,9 @@ program.parseAsync(process.argv).catch((err) => {
   printError("Unexpected error", err);
   process.exit(1);
 });
+/*! Bundled license information:
+
+@noble/hashes/esm/utils.js:
+  (*! noble-hashes - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
+*/
 //# sourceMappingURL=cli.js.map

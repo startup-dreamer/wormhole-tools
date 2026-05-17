@@ -10,14 +10,12 @@
 use std::io::{self, BufRead};
 
 use clap::{Args, Subcommand};
-use wormhole_sdk::{
-    deploy::{
-        artifact::{parse_artifact_json, parse_bytecode_hex},
-        create2::{compute_create2_address, salt_from_str},
-        registry::ChainRegistry,
-        status::check_contract_deployed,
-        CallParams, DeployParams, UpgradeParams,
-    },
+use wormhole_sdk::deploy::{
+    artifact::{parse_artifact_json, parse_bytecode_hex},
+    create2::{compute_create2_address, salt_from_str},
+    registry::ChainRegistry,
+    status::check_contract_deployed,
+    CallParams, DeployParams, UpgradeParams,
 };
 
 use crate::output;
@@ -397,10 +395,7 @@ async fn run_status(args: &StatusArgs) -> anyhow::Result<()> {
 ///
 /// Exactly one of `artifact` or `bytecode_hex` must be `Some`; if both are
 /// `None` the function returns an error.
-fn load_bytecode(
-    artifact: Option<&str>,
-    bytecode_hex: Option<&str>,
-) -> anyhow::Result<Vec<u8>> {
+fn load_bytecode(artifact: Option<&str>, bytecode_hex: Option<&str>) -> anyhow::Result<Vec<u8>> {
     if let Some(path) = artifact {
         let json = std::fs::read_to_string(path)
             .map_err(|e| anyhow::anyhow!("failed to read artifact file '{path}': {e}"))?;

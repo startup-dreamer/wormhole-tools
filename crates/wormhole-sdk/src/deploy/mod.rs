@@ -10,8 +10,8 @@ pub mod create2;
 pub mod registry;
 pub mod status;
 
-use crate::WormholeError;
 use crate::chains::evm::{eth_call, send_signed};
+use crate::WormholeError;
 use registry::ChainRegistry;
 
 // ── param structs ─────────────────────────────────────────────────────────────
@@ -299,9 +299,7 @@ fn parse_address(addr: &str) -> Result<[u8; 20], WormholeError> {
     hex::decode(s)
         .map_err(|e| WormholeError::InvalidEncoding(e.to_string()))?
         .try_into()
-        .map_err(|_| {
-            WormholeError::InvalidEncoding(format!("address must be 20 bytes: {addr}"))
-        })
+        .map_err(|_| WormholeError::InvalidEncoding(format!("address must be 20 bytes: {addr}")))
 }
 
 // ── tests ─────────────────────────────────────────────────────────────────────
@@ -312,8 +310,9 @@ mod tests {
 
     #[test]
     fn deploy_params_rejects_empty_bytecode() {
-        let result = tokio::runtime::Runtime::new().unwrap().block_on(
-            deploy_across_chains(DeployParams {
+        let result = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(deploy_across_chains(DeployParams {
                 source_chain: "sepolia",
                 target_chains: vec!["base-sepolia"],
                 bytecode: vec![],
@@ -322,8 +321,7 @@ mod tests {
                 deploy_on_source: false,
                 evm_key: "0x01",
                 source_rpc: None,
-            }),
-        );
+            }));
         assert!(result.is_err());
         let msg = result.unwrap_err().to_string();
         assert!(
@@ -334,8 +332,9 @@ mod tests {
 
     #[test]
     fn deploy_params_rejects_unknown_chain() {
-        let result = tokio::runtime::Runtime::new().unwrap().block_on(
-            deploy_across_chains(DeployParams {
+        let result = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(deploy_across_chains(DeployParams {
                 source_chain: "mainnet",
                 target_chains: vec!["base-sepolia"],
                 bytecode: vec![0x60],
@@ -344,15 +343,15 @@ mod tests {
                 deploy_on_source: false,
                 evm_key: "0x01",
                 source_rpc: None,
-            }),
-        );
+            }));
         assert!(result.is_err());
     }
 
     #[test]
     fn call_params_rejects_zero_gas_limit() {
-        let result = tokio::runtime::Runtime::new().unwrap().block_on(
-            call_across_chains(CallParams {
+        let result = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(call_across_chains(CallParams {
                 source_chain: "sepolia",
                 target_chains: vec!["base-sepolia"],
                 target_contract: "0x0000000000000000000000000000000000000000",
@@ -360,15 +359,15 @@ mod tests {
                 gas_limit: 0,
                 evm_key: "0x01",
                 source_rpc: None,
-            }),
-        );
+            }));
         assert!(result.is_err());
     }
 
     #[test]
     fn deploy_params_rejects_empty_target_chains() {
-        let result = tokio::runtime::Runtime::new().unwrap().block_on(
-            deploy_across_chains(DeployParams {
+        let result = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(deploy_across_chains(DeployParams {
                 source_chain: "sepolia",
                 target_chains: vec![],
                 bytecode: vec![0x60],
@@ -377,15 +376,15 @@ mod tests {
                 deploy_on_source: false,
                 evm_key: "0x01",
                 source_rpc: None,
-            }),
-        );
+            }));
         assert!(result.is_err());
     }
 
     #[test]
     fn deploy_params_rejects_unknown_target_chain() {
-        let result = tokio::runtime::Runtime::new().unwrap().block_on(
-            deploy_across_chains(DeployParams {
+        let result = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(deploy_across_chains(DeployParams {
                 source_chain: "sepolia",
                 target_chains: vec!["unknown-chain"],
                 bytecode: vec![0x60],
@@ -394,8 +393,7 @@ mod tests {
                 deploy_on_source: false,
                 evm_key: "0x01",
                 source_rpc: None,
-            }),
-        );
+            }));
         assert!(result.is_err());
         let msg = result.unwrap_err().to_string();
         assert!(
@@ -406,8 +404,9 @@ mod tests {
 
     #[test]
     fn call_params_rejects_empty_call_data() {
-        let result = tokio::runtime::Runtime::new().unwrap().block_on(
-            call_across_chains(CallParams {
+        let result = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(call_across_chains(CallParams {
                 source_chain: "sepolia",
                 target_chains: vec!["base-sepolia"],
                 target_contract: "0x0000000000000000000000000000000000000000",
@@ -415,15 +414,15 @@ mod tests {
                 gas_limit: 100_000,
                 evm_key: "0x01",
                 source_rpc: None,
-            }),
-        );
+            }));
         assert!(result.is_err());
     }
 
     #[test]
     fn upgrade_params_rejects_invalid_proxy_address() {
-        let result = tokio::runtime::Runtime::new().unwrap().block_on(
-            upgrade_across_chains(UpgradeParams {
+        let result = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(upgrade_across_chains(UpgradeParams {
                 source_chain: "sepolia",
                 target_chains: vec!["base-sepolia"],
                 proxy: "not-an-address",
@@ -431,15 +430,15 @@ mod tests {
                 upgrade_on_source: false,
                 evm_key: "0x01",
                 source_rpc: None,
-            }),
-        );
+            }));
         assert!(result.is_err());
     }
 
     #[test]
     fn upgrade_params_rejects_invalid_impl_address() {
-        let result = tokio::runtime::Runtime::new().unwrap().block_on(
-            upgrade_across_chains(UpgradeParams {
+        let result = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(upgrade_across_chains(UpgradeParams {
                 source_chain: "sepolia",
                 target_chains: vec!["base-sepolia"],
                 proxy: "0x0000000000000000000000000000000000000000",
@@ -447,8 +446,7 @@ mod tests {
                 upgrade_on_source: false,
                 evm_key: "0x01",
                 source_rpc: None,
-            }),
-        );
+            }));
         assert!(result.is_err());
     }
 

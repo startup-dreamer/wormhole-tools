@@ -297,7 +297,7 @@ pub(crate) async fn json_rpc_call(
 }
 
 /// Extract the `"result"` string from a JSON-RPC response, or propagate the error.
-fn extract_result_string(resp: serde_json::Value) -> Result<String, WormholeError> {
+pub(crate) fn extract_result_string(resp: serde_json::Value) -> Result<String, WormholeError> {
     if let Some(err) = resp.get("error") {
         return Err(WormholeError::Network(err.to_string()));
     }

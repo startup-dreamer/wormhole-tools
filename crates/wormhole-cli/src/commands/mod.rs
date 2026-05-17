@@ -1,5 +1,6 @@
 pub mod aptos;
 pub mod completion;
+pub mod deploy;
 pub mod evm;
 pub mod generate;
 pub mod info;

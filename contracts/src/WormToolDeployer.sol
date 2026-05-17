@@ -4,9 +4,9 @@ pragma solidity ^0.8.22;
 import {IWormholeRelayer, IWormholeReceiver} from "wormhole-solidity-sdk/interfaces/IWormholeRelayer.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IWormDeployer, MSG_DEPLOY, MSG_CALL, MSG_UPGRADE} from "./interfaces/IWormDeployer.sol";
+import {IWormToolDeployer, MSG_DEPLOY, MSG_CALL, MSG_UPGRADE} from "./interfaces/IWormToolDeployer.sol";
 
-contract WormDeployer is IWormDeployer, IWormholeReceiver, Ownable {
+contract WormToolDeployer is IWormToolDeployer, IWormholeReceiver, Ownable {
 
     // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -17,26 +17,26 @@ contract WormDeployer is IWormDeployer, IWormholeReceiver, Ownable {
 
     IWormholeRelayer public immutable relayer;
 
-    /// @dev chainId => WormDeployer address on that chain (Wormhole bytes32 format).
+    /// @dev chainId => WormToolDeployer address on that chain (Wormhole bytes32 format).
     mapping(uint16 => bytes32) public trustedSenders;
 
     // ── Constructor ───────────────────────────────────────────────────────────
 
-    /// @notice Deploy WormDeployer with the Wormhole relayer address for this chain.
+    /// @notice Deploy WormToolDeployer with the Wormhole relayer address for this chain.
     constructor(address _relayer) Ownable(msg.sender) {
         relayer = IWormholeRelayer(_relayer);
     }
 
     // ── Admin ─────────────────────────────────────────────────────────────────
 
-    /// @inheritdoc IWormDeployer
+    /// @inheritdoc IWormToolDeployer
     function setTrustedSender(uint16 chainId, bytes32 senderAddress) external onlyOwner {
         trustedSenders[chainId] = senderAddress;
     }
 
     // ── Source-chain: Deploy ──────────────────────────────────────────────────
 
-    /// @inheritdoc IWormDeployer
+    /// @inheritdoc IWormToolDeployer
     function deployAcrossChains(
         uint16[] calldata targetChains,
         bytes calldata bytecode,
@@ -53,7 +53,7 @@ contract WormDeployer is IWormDeployer, IWormholeReceiver, Ownable {
             (uint256 cost,) = relayer.quoteEVMDeliveryPrice(
                 targetChains[i], 0, DEPLOY_GAS_LIMIT
             );
-            require(remaining >= cost, "WormDeployer: insufficient fee");
+            require(remaining >= cost, "WormToolDeployer: insufficient fee");
             remaining -= cost;
             relayer.sendPayloadToEvm{value: cost}(
                 targetChains[i],
@@ -71,7 +71,7 @@ contract WormDeployer is IWormDeployer, IWormholeReceiver, Ownable {
 
     // ── Source-chain: Call ────────────────────────────────────────────────────
 
-    /// @inheritdoc IWormDeployer
+    /// @inheritdoc IWormToolDeployer
     function callAcrossChains(
         uint16[] calldata targetChains,
         address target,
@@ -83,7 +83,7 @@ contract WormDeployer is IWormDeployer, IWormholeReceiver, Ownable {
 
         for (uint256 i = 0; i < targetChains.length; i++) {
             (uint256 cost,) = relayer.quoteEVMDeliveryPrice(targetChains[i], 0, gasLimit);
-            require(remaining >= cost, "WormDeployer: insufficient fee");
+            require(remaining >= cost, "WormToolDeployer: insufficient fee");
             remaining -= cost;
             relayer.sendPayloadToEvm{value: cost}(
                 targetChains[i],
@@ -97,7 +97,7 @@ contract WormDeployer is IWormDeployer, IWormholeReceiver, Ownable {
 
     // ── Source-chain: Upgrade ─────────────────────────────────────────────────
 
-    /// @inheritdoc IWormDeployer
+    /// @inheritdoc IWormToolDeployer
     function upgradeAcrossChains(
         uint16[] calldata targetChains,
         address proxy,
@@ -111,7 +111,7 @@ contract WormDeployer is IWormDeployer, IWormholeReceiver, Ownable {
             (uint256 cost,) = relayer.quoteEVMDeliveryPrice(
                 targetChains[i], 0, UPGRADE_GAS_LIMIT
             );
-            require(remaining >= cost, "WormDeployer: insufficient fee");
+            require(remaining >= cost, "WormToolDeployer: insufficient fee");
             remaining -= cost;
             relayer.sendPayloadToEvm{value: cost}(
                 targetChains[i],
@@ -137,7 +137,7 @@ contract WormDeployer is IWormDeployer, IWormholeReceiver, Ownable {
         uint16 sourceChain,
         bytes32
     ) external payable override {
-        require(msg.sender == address(relayer), "WormDeployer: only relayer");
+        require(msg.sender == address(relayer), "WormToolDeployer: only relayer");
         require(
             trustedSenders[sourceChain] == sourceAddress,
             "untrusted sender"
@@ -164,7 +164,7 @@ contract WormDeployer is IWormDeployer, IWormholeReceiver, Ownable {
 
     // ── View: cost quotes ─────────────────────────────────────────────────────
 
-    /// @inheritdoc IWormDeployer
+    /// @inheritdoc IWormToolDeployer
     function getDeployCost(uint16[] calldata chains) external view returns (uint256 total) {
         for (uint256 i = 0; i < chains.length; i++) {
             (uint256 cost,) = relayer.quoteEVMDeliveryPrice(chains[i], 0, DEPLOY_GAS_LIMIT);
@@ -172,7 +172,7 @@ contract WormDeployer is IWormDeployer, IWormholeReceiver, Ownable {
         }
     }
 
-    /// @inheritdoc IWormDeployer
+    /// @inheritdoc IWormToolDeployer
     function getCallCost(uint16[] calldata chains, uint256 gasLimit) external view returns (uint256 total) {
         for (uint256 i = 0; i < chains.length; i++) {
             (uint256 cost,) = relayer.quoteEVMDeliveryPrice(chains[i], 0, gasLimit);
@@ -180,7 +180,7 @@ contract WormDeployer is IWormDeployer, IWormholeReceiver, Ownable {
         }
     }
 
-    /// @inheritdoc IWormDeployer
+    /// @inheritdoc IWormToolDeployer
     function getUpgradeCost(uint16[] calldata chains) external view returns (uint256 total) {
         for (uint256 i = 0; i < chains.length; i++) {
             (uint256 cost,) = relayer.quoteEVMDeliveryPrice(chains[i], 0, UPGRADE_GAS_LIMIT);
@@ -188,7 +188,7 @@ contract WormDeployer is IWormDeployer, IWormholeReceiver, Ownable {
         }
     }
 
-    /// @inheritdoc IWormDeployer
+    /// @inheritdoc IWormToolDeployer
     function computeAddress(bytes32 salt, bytes calldata bytecode) external view returns (address) {
         return Create2.computeAddress(salt, keccak256(bytecode));
     }
@@ -211,7 +211,7 @@ contract WormDeployer is IWormDeployer, IWormholeReceiver, Ownable {
 
         if (initData.length > 0) {
             (bool ok, bytes memory ret) = deployed.call(initData);
-            require(ok, string(abi.encodePacked("WormDeployer: init failed: ", ret)));
+            require(ok, string(abi.encodePacked("WormToolDeployer: init failed: ", ret)));
         }
 
         emit ContractDeployed(deployed, salt, initiator);
@@ -219,7 +219,7 @@ contract WormDeployer is IWormDeployer, IWormholeReceiver, Ownable {
 
     /// @dev External so it can be wrapped in try/catch (Solidity limitation).
     function _create2(bytes32 salt, bytes memory bytecode) external returns (address) {
-        require(msg.sender == address(this), "WormDeployer: internal only");
+        require(msg.sender == address(this), "WormToolDeployer: internal only");
         return Create2.deploy(0, salt, bytecode);
     }
 
@@ -231,17 +231,17 @@ contract WormDeployer is IWormDeployer, IWormholeReceiver, Ownable {
 
     function _upgrade(address proxy, address newImpl) internal {
         // Calls upgradeToAndCall on a UUPS proxy.
-        // The proxy's _authorizeUpgrade must allow address(this) (WormOwnableProxy).
+        // The proxy's _authorizeUpgrade must allow address(this) (WormToolProxy).
         (bool ok, bytes memory ret) = proxy.call(
             abi.encodeWithSignature("upgradeToAndCall(address,bytes)", newImpl, bytes(""))
         );
-        require(ok, string(abi.encodePacked("WormDeployer: upgrade failed: ", ret)));
+        require(ok, string(abi.encodePacked("WormToolDeployer: upgrade failed: ", ret)));
         emit ContractUpgraded(proxy, newImpl);
     }
 
     function _trustedSenderAddress(uint16 chainId) internal view returns (address) {
         bytes32 addr = trustedSenders[chainId];
-        require(addr != bytes32(0), "WormDeployer: no trusted sender for chain");
+        require(addr != bytes32(0), "WormToolDeployer: no trusted sender for chain");
         return address(uint160(uint256(addr)));
     }
 

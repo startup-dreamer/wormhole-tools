@@ -1,94 +1,104 @@
-# wormhole-cli
+# worm-tool
 
-Rust CLI and SDK for interacting with the [Wormhole](https://wormhole.com) cross-chain messaging protocol.
+TypeScript CLI and SDK for interacting with the [Wormhole](https://wormhole.com) cross-chain
+messaging protocol.
 
-> [!IMPORTANT]
-> This tool is provided for convenience and development purposes only. It is not an official Wormhole product.
+> This tool is provided for convenience and development purposes only. It is not an official
+> Wormhole product.
 
 ## Packages
 
-| Crate | Description |
-|-------|-------------|
-| [`wormhole-cli`](./crates/wormhole-cli) | Command-line interface (`worm`) |
-| [`wormhole-sdk`](./crates/wormhole-sdk) | Rust library for Wormhole protocol interaction |
+| Package | Description |
+|---------|-------------|
+| [`worm-tool`](./packages/cli) | Command-line interface (`worm-tool` binary) |
+| [`@worm-tool/sdk`](./packages/sdk) | TypeScript SDK for Wormhole protocol interaction |
 
-## Quick Start
-
-### Track a Wormhole Message
+## Install
 
 ```bash
-worm status 0xb789efdb02a76692efd7f2aabde73470ad63fc9571a93f28f6ec505b79f4de3b --network mainnet
+npm install -g worm-tool
 ```
 
-### Measure Guardian Signing Latency
+## Configuration
+
+Create `~/.worm-tool/.env`:
+
+```env
+WORM_TOOL_PRIVATE_KEY=0xYOUR_EVM_PRIVATE_KEY
+WORM_TOOL_SOLANA_PRIVATE_KEY=YOUR_BASE58_SOLANA_KEY
+```
+
+## Quick Examples
+
+**Track a Wormhole message:**
 
 ```bash
-worm latency solana --network mainnet
-worm latency ethereum --network mainnet
+worm-tool status 0xb789efdb02a76692efd7f2aabde73470ad63fc9571a93f28f6ec505b79f4de3b
 ```
 
-### Query Chain Info
+**Measure guardian signing latency:**
 
 ```bash
-worm info chain-id solana
-worm info contract-address mainnet ethereum core
+worm-tool latency solana
+worm-tool latency ethereum --count 50
 ```
 
-## Installation
-
-### From Source
-
-Requires Rust stable (`rustup` recommended).
+**Query chain info:**
 
 ```bash
-git clone https://github.com/your-org/wormhole-cli
-cd wormhole-cli
-cargo build --release
-./target/release/worm --help
+worm-tool info chain-id solana       # → 1
+worm-tool info contract-address mainnet ethereum core
 ```
 
-To install system-wide:
+**Parse a VAA:**
 
 ```bash
-cargo install --path crates/wormhole-cli
-worm --help
+worm-tool parse 010000000001...
 ```
 
-**Enable shell completion (optional):**
+**Initiate a token bridge transfer:**
 
 ```bash
-# bash
-worm completion bash >> ~/.bashrc
-
-# zsh
-worm completion zsh >> ~/.zshrc
-
-# fish
-worm completion fish > ~/.config/fish/completions/worm.fish
+worm-tool transfer \
+  --token 0x2D8BE6BF0baA74e0A907016679CaE9190e80dD0A \
+  --amount 1000000000000000000 \
+  --dst-chain 1 \
+  --recipient 069b8857feab8184fb687f634618c035dac439dc1aeb8b2598f6c6c71f0ebdd4
 ```
 
-## Supported Chains
+## SDK Usage
 
-| Chain | Status | Notes |
-|-------|--------|-------|
-| EVM (Ethereum, BSC, Polygon, Arbitrum, …) | Full | Read, submit, transfer |
-| Solana | Read | Node info, guardian set, sequence |
-| Aptos | Read | Ledger info; tx submission requires ed25519 (not yet implemented) |
-| NEAR | Read | Node status only |
-| Sui | Read | Latest checkpoint only |
+```typescript
+import { parseVaa, EvmChain, getMessageStatus, MessageStatus } from '@worm-tool/sdk';
+
+// Parse a VAA
+const vaa = parseVaa('0x010000000001...');
+console.log(vaa.emitterChain, vaa.sequence);
+
+// Check message status
+const result = await getMessageStatus({
+  emitterChain: 2,
+  emitterAddress: '0x0000000000000000000000003ee18b2214aff97000d974cf647e7c347e8fa585',
+  sequence: 643990n,
+});
+
+if (result.status === MessageStatus.Signed) {
+  console.log('VAA ready:', result.vaaBytes);
+}
+```
 
 ## Documentation
 
-📖 **[Full CLI Reference](./docs/cli/README.md)** — All commands, options, and examples.
+- [CLI Reference](./docs/cli/README.md) — All commands, options, and examples
+- [SDK Reference](./docs/sdk/README.md) — API reference for `@worm-tool/sdk`
 
 ## Development
 
 ```bash
-cargo build --all
-cargo test --all
+npm install
+npm run build
+npm test
 ```
-
-Zero warnings policy — `RUSTFLAGS="-D warnings" cargo build --all` must pass.
 
 ## License
 

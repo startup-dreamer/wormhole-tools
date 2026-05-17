@@ -3,10 +3,9 @@ import {
   createWalletClient,
   http,
   type PublicClient,
-  type WalletClient,
   type Chain as ViemChain,
 } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
+import { privateKeyToAccount, type PrivateKeyAccount } from 'viem/accounts';
 import type { WormToolChain, TransactionReceipt } from '../chain.js';
 import { RpcError, PrivateKeyError } from '../error.js';
 import { getChainById } from '../deploy/registry.js';
@@ -26,14 +25,17 @@ export class EvmChain implements WormToolChain {
   readonly chainName: string;
 
   private readonly publicClient: PublicClient;
-  private readonly walletClient?: WalletClient;
+  private readonly account: PrivateKeyAccount | undefined;
+  private readonly chain: ViemChain;
+  private readonly rpcUrl: string;
 
   constructor(config: EvmChainConfig) {
     this.chainId = config.wormholeChainId;
     const entry = getChainById(Number(config.wormholeChainId));
     this.chainName = entry?.name ?? `evm-${config.wormholeChainId}`;
+    this.rpcUrl = config.rpcUrl;
 
-    const viemChain: ViemChain = {
+    this.chain = {
       id: config.evmChainId,
       name: this.chainName,
       nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
@@ -41,18 +43,11 @@ export class EvmChain implements WormToolChain {
     };
 
     this.publicClient = createPublicClient({
-      chain: viemChain,
+      chain: this.chain,
       transport: http(config.rpcUrl),
     });
 
-    if (config.privateKey) {
-      const account = privateKeyToAccount(config.privateKey);
-      this.walletClient = createWalletClient({
-        account,
-        chain: viemChain,
-        transport: http(config.rpcUrl),
-      });
-    }
+    this.account = config.privateKey ? privateKeyToAccount(config.privateKey) : undefined;
   }
 
   async getBalance(address: string): Promise<bigint> {
@@ -73,12 +68,19 @@ export class EvmChain implements WormToolChain {
   }
 
   async sendTransaction(to: string, data: `0x${string}`, value?: bigint): Promise<TransactionReceipt> {
-    if (!this.walletClient) throw new PrivateKeyError();
+    if (!this.account) throw new PrivateKeyError();
+    const walletClient = createWalletClient({
+      account: this.account,
+      chain: this.chain,
+      transport: http(this.rpcUrl),
+    });
     try {
-      const hash = await this.walletClient.sendTransaction({
+      const hash = await walletClient.sendTransaction({
+        account: this.account,
         to: to as `0x${string}`,
         data,
-        value,
+        ...(value !== undefined && { value }),
+        chain: this.chain,
       });
       return this.waitForTransaction(hash);
     } catch (e) {

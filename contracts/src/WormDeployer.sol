@@ -3,11 +3,10 @@ pragma solidity ^0.8.22;
 
 import {IWormholeRelayer, IWormholeReceiver} from "wormhole-solidity-sdk/interfaces/IWormholeRelayer.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IWormDeployer, MSG_DEPLOY, MSG_CALL, MSG_UPGRADE} from "./interfaces/IWormDeployer.sol";
 
-contract WormDeployer is IWormDeployer, IWormholeReceiver, OwnableUpgradeable, UUPSUpgradeable {
+contract WormDeployer is IWormDeployer, IWormholeReceiver, Ownable {
 
     // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -16,19 +15,15 @@ contract WormDeployer is IWormDeployer, IWormholeReceiver, OwnableUpgradeable, U
 
     // ── Storage ───────────────────────────────────────────────────────────────
 
-    IWormholeRelayer public relayer;
+    IWormholeRelayer public immutable relayer;
 
     /// @dev chainId => WormDeployer address on that chain (Wormhole bytes32 format).
     mapping(uint16 => bytes32) public trustedSenders;
 
-    // ── Initializer ───────────────────────────────────────────────────────────
+    // ── Constructor ───────────────────────────────────────────────────────────
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() { _disableInitializers(); }
-
-    /// @notice Initialize the WormDeployer with the Wormhole relayer address.
-    function initialize(address _relayer) external initializer {
-        __Ownable_init(msg.sender);
+    /// @notice Deploy WormDeployer with the Wormhole relayer address for this chain.
+    constructor(address _relayer) Ownable(msg.sender) {
         relayer = IWormholeRelayer(_relayer);
     }
 
@@ -249,8 +244,6 @@ contract WormDeployer is IWormDeployer, IWormholeReceiver, OwnableUpgradeable, U
         require(addr != bytes32(0), "WormDeployer: no trusted sender for chain");
         return address(uint160(uint256(addr)));
     }
-
-    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     receive() external payable {}
 }

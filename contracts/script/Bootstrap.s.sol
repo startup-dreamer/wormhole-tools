@@ -3,15 +3,14 @@ pragma solidity ^0.8.22;
 
 import {Script, console} from "forge-std/Script.sol";
 import {WormDeployer} from "../src/WormDeployer.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 interface ICreate2Deployer {
     function deploy(uint256 value, bytes32 salt, bytes memory code) external;
     function computeAddress(bytes32 salt, bytes32 codeHash) external view returns (address);
 }
 
-/// @notice Deploys WormDeployer implementation + UUPS proxy at deterministic addresses
-///         on any EVM chain that has the canonical Create2Deployer factory.
+/// @notice Deploys WormDeployer at a deterministic address on any EVM chain
+///         that has the canonical Create2Deployer factory.
 ///
 /// Usage:
 ///   forge script script/Bootstrap.s.sol \
@@ -22,8 +21,7 @@ contract Bootstrap is Script {
     // Canonical Create2Deployer present on all target testnets
     address constant WORM_CREATE2_FACTORY = 0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2;
 
-    bytes32 constant IMPL_SALT  = keccak256("worm-deployer-impl-v1");
-    bytes32 constant PROXY_SALT = keccak256("worm-deployer-proxy-v1");
+    bytes32 constant DEPLOY_SALT = keccak256("worm-deployer-v1");
 
     function run(address wormholeRelayer) external {
         uint256 deployerKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
@@ -32,40 +30,26 @@ contract Bootstrap is Script {
 
         ICreate2Deployer factory = ICreate2Deployer(WORM_CREATE2_FACTORY);
 
-        // ── Step 1: Deploy implementation ────────────────────────────────────
-        bytes memory implBytecode = type(WormDeployer).creationCode;
-        address implAddr = factory.computeAddress(IMPL_SALT, keccak256(implBytecode));
-        console.log("Expected impl address:", implAddr);
+        bytes memory bytecode = abi.encodePacked(
+            type(WormDeployer).creationCode,
+            abi.encode(wormholeRelayer)
+        );
+        address wormDeployerAddr = factory.computeAddress(DEPLOY_SALT, keccak256(bytecode));
+        console.log("Expected WormDeployer address:", wormDeployerAddr);
 
         vm.startBroadcast(deployerKey);
 
-        if (implAddr.code.length == 0) {
-            factory.deploy(0, IMPL_SALT, implBytecode);
-            console.log("Impl deployed at:", implAddr);
+        if (wormDeployerAddr.code.length == 0) {
+            factory.deploy(0, DEPLOY_SALT, bytecode);
+            console.log("WormDeployer deployed at:", wormDeployerAddr);
         } else {
-            console.log("Impl already deployed at:", implAddr);
-        }
-
-        // ── Step 2: Deploy proxy ──────────────────────────────────────────────
-        bytes memory initData = abi.encodeCall(WormDeployer.initialize, (wormholeRelayer));
-        bytes memory proxyBytecode = abi.encodePacked(
-            type(ERC1967Proxy).creationCode,
-            abi.encode(implAddr, initData)
-        );
-        address proxyAddr = factory.computeAddress(PROXY_SALT, keccak256(proxyBytecode));
-        console.log("Expected proxy address:", proxyAddr);
-
-        if (proxyAddr.code.length == 0) {
-            factory.deploy(0, PROXY_SALT, proxyBytecode);
-            console.log("Proxy deployed at:", proxyAddr);
-        } else {
-            console.log("Proxy already deployed at:", proxyAddr);
+            console.log("WormDeployer already deployed at:", wormDeployerAddr);
         }
 
         vm.stopBroadcast();
 
         console.log("=== Bootstrap complete ===");
-        console.log("WormDeployer canonical address:", proxyAddr);
-        console.log("Add to registry: chain name =>", proxyAddr);
+        console.log("WormDeployer canonical address:", wormDeployerAddr);
+        console.log("Add to registry: chain name =>", wormDeployerAddr);
     }
 }

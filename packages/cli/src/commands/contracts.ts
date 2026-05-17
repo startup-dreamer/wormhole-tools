@@ -38,24 +38,26 @@ function abiNames(abi: readonly unknown[]): Set<string> {
 
 interface CheckResult {
   name: string;
-  proxyPattern: 'UUPS' | 'Transparent' | 'none';
+  proxyPattern: 'UUPS' | 'Transparent' | 'Beacon' | 'none';
   hasInitializer: boolean;
   isOwnable: boolean;
   hasAuthorizeUpgrade: boolean;
   warnings: string[];
 }
 
+/** Exported for tests. Detects proxy upgrade pattern from ABI function names. */
+export function detectProxyPattern(
+  names: Set<string>,
+): 'UUPS' | 'Transparent' | 'Beacon' | 'none' {
+  if (names.has('upgradeTo') || names.has('upgradeToAndCall')) return 'UUPS';
+  if (names.has('admin') && names.has('implementation')) return 'Transparent';
+  if (names.has('beacon')) return 'Beacon';
+  return 'none';
+}
+
 function analyzeContract(contract: ContractMeta): CheckResult {
   const names = abiNames(contract.abi);
-
-  const isUUPS = names.has('upgradeTo') || names.has('upgradeToAndCall');
-  const isTransparent = names.has('admin') && names.has('implementation');
-  const proxyPattern: 'UUPS' | 'Transparent' | 'none' = isUUPS
-    ? 'UUPS'
-    : isTransparent
-    ? 'Transparent'
-    : 'none';
-
+  const proxyPattern = detectProxyPattern(names);
   const hasInitializer = names.has('initialize') || [...names].some((n) => n.includes('__init'));
   const isOwnable = names.has('owner') && names.has('transferOwnership');
   const hasAuthorizeUpgrade = names.has('_authorizeUpgrade');
@@ -63,6 +65,9 @@ function analyzeContract(contract: ContractMeta): CheckResult {
   const warnings: string[] = [];
   if (proxyPattern === 'UUPS' && !hasAuthorizeUpgrade) {
     warnings.push('UUPS proxy missing _authorizeUpgrade');
+  }
+  if (proxyPattern === 'Beacon' && !names.has('implementation')) {
+    warnings.push('Beacon proxy missing implementation() view function');
   }
 
   return { name: contract.name, proxyPattern, hasInitializer, isOwnable, hasAuthorizeUpgrade, warnings };

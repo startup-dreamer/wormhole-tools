@@ -1,0 +1,26 @@
+[package]
+name    = "wormhole-cli"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "wormhole_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "worm"
+path = "src/main.rs"
+
+[dependencies]
+wormhole-sdk = { path = "../wormhole-sdk" }
+hex          = { workspace = true }
+serde        = { workspace = true }
+clap         = { version = "4", features = ["derive", "env"] }
+clap_complete = "4"
+tokio        = { workspace = true }
+anyhow       = { workspace = true }
+dotenvy      = "0.15"
+serde_json   = { workspace = true }
+k256         = { workspace = true }
+sha3         = { workspace = true }
+bs58         = { workspace = true }

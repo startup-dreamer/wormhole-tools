@@ -59,10 +59,90 @@ function resolveDeployer(chainName: string, override?: string): string {
   return entry.wormToolDeployer;
 }
 
+/** Exported for testing. Builds a starter manifest YAML for the given contract names. */
+export function buildStarterManifestYaml(contractNames: string[]): string {
+  const contractsYaml = contractNames.map(n =>
+    `  - name: ${n}\n    contract: ${n}\n    args: []   # TODO: fill constructor args`
+  ).join('\n');
+
+  const targetContracts = `[${contractNames.join(', ')}]`;
+
+  return `version: "1"
+
+# Network definitions — set RPC env vars before running
+networks:
+  sepolia:
+    chain: sepolia
+    rpc: "\${WORM_TOOL_RPC_SEPOLIA}"
+
+# Deployer salt — change this to get a different deterministic address
+deployer:
+  salt: "my-project-v1"
+
+# Contracts to deploy — add constructor args as {type, value} pairs
+contracts:
+${contractsYaml}
+
+# Deploy targets — which contracts go to which chains
+deploy_targets:
+  - contracts: ${targetContracts}
+    chains: [sepolia]
+    strategy: sequential
+`;
+}
+
 export function registerDeployCommand(program: Command): void {
   const deploy = program
     .command('deploy')
     .description('Deploy and manage contracts across chains via WormToolDeployer');
+
+  // ── deploy init ───────────────────────────────────────────────────────────
+  deploy
+    .command('init')
+    .description('Generate a starter worm-tool.deploy.yaml from compiled artifacts')
+    .option('--project <dir>', 'Project root (default: cwd)')
+    .option('--force', 'Overwrite existing manifest')
+    .action(async (opts: { project?: string; force?: boolean }) => {
+      try {
+        const root = opts.project ?? process.cwd();
+        const manifestPath = join(root, 'worm-tool.deploy.yaml');
+
+        if (!opts.force) {
+          try {
+            await readFile(manifestPath, 'utf8');
+            printError('worm-tool.deploy.yaml already exists — use --force to overwrite');
+            process.exit(1);
+          } catch (err) {
+            if (!(err instanceof Error && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT')) {
+              throw err;
+            }
+          }
+        }
+
+        const { detectToolchain, listArtifacts, ToolchainNotFoundError } = await import('@worm-tool/sdk');
+        let contractNames: string[];
+        try {
+          const toolchain = await detectToolchain(root);
+          const artifacts = await listArtifacts(toolchain);
+          contractNames = artifacts.filter(a => !a.isAbstract && !a.isInterface).map(a => a.name);
+        } catch (err) {
+          if (err instanceof ToolchainNotFoundError) {
+            process.stderr.write('No toolchain found — generating manifest with empty contracts list.\n');
+            contractNames = [];
+          } else {
+            throw err;
+          }
+        }
+
+        const { writeFile } = await import('fs/promises');
+        await writeFile(manifestPath, buildStarterManifestYaml(contractNames), 'utf8');
+        process.stdout.write(`Created ${manifestPath}\n`);
+        if (contractNames.length > 0) {
+          process.stdout.write(`Found ${contractNames.length} deployable contract(s): ${contractNames.join(', ')}\n`);
+          process.stdout.write('Edit the file to fill in constructor args and networks.\n');
+        }
+      } catch (err) { printError('deploy init failed', err); process.exit(1); }
+    });
 
   // ── deploy address ───────────────────────────────────────────────────────
   deploy

@@ -33,12 +33,14 @@ __export(index_exports, {
   SDK_VERSION: () => SDK_VERSION,
   SolanaChain: () => SolanaChain,
   SuiChain: () => SuiChain,
+  ToolchainNotFoundError: () => ToolchainNotFoundError,
   VaaParseError: () => VaaParseError,
   WormToolError: () => WormToolError,
   callAcrossChains: () => callAcrossChains,
   checkContractDeployed: () => checkContractDeployed,
   computeCreate2Address: () => computeCreate2Address,
   deployAcrossChains: () => deployAcrossChains,
+  detectToolchain: () => detectToolchain,
   encodeCallMessage: () => encodeCallMessage,
   encodeDeployMessage: () => encodeDeployMessage,
   encodeUpgradeMessage: () => encodeUpgradeMessage,
@@ -53,6 +55,7 @@ __export(index_exports, {
   getTokenBalance: () => getTokenBalance,
   getTokenInfo: () => getTokenInfo,
   initiateTransfer: () => initiateTransfer,
+  listArtifacts: () => listArtifacts,
   measureSigningLatency: () => measureSigningLatency,
   parseVaa: () => parseVaa,
   upgradeAcrossChains: () => upgradeAcrossChains
@@ -94,7 +97,7 @@ var ContractCallError = class extends WormToolError {
 };
 var PrivateKeyError = class extends WormToolError {
   constructor() {
-    super("Private key not found or invalid \u2014 set WORM_TOOL_PRIVATE_KEY");
+    super("Private key not found or invalid \u2014 set WORM_TOOL_EVM_PRIVATE_KEY");
   }
 };
 var ArtifactParseError = class extends WormToolError {
@@ -271,7 +274,7 @@ var CHAIN_REGISTRY = [
     isTestnet: true,
     defaultRpc: "https://ethereum-sepolia.publicnode.com",
     wormholeCore: "0x4a8bc80Ed5a4067f1CCf107057b8270E0cC11A78",
-    wormToolDeployer: "0xC8059e943CD42BfC6273C5A8E6F01fdB80Fa7748"
+    wormToolDeployer: "0x0aA4B5899bAF7326397b1041db9c854056126F57"
   },
   {
     wormholeChainId: 10003,
@@ -280,7 +283,7 @@ var CHAIN_REGISTRY = [
     isTestnet: true,
     defaultRpc: "https://sepolia-rollup.arbitrum.io/rpc",
     wormholeCore: "0x6b9C8671cdDC8dEab9c719bB87cBd3e782bA6a35",
-    wormToolDeployer: "0xC8059e943CD42BfC6273C5A8E6F01fdB80Fa7748"
+    wormToolDeployer: "0x0aA4B5899bAF7326397b1041db9c854056126F57"
   },
   {
     wormholeChainId: 10004,
@@ -289,7 +292,7 @@ var CHAIN_REGISTRY = [
     isTestnet: true,
     defaultRpc: "https://sepolia.base.org",
     wormholeCore: "0x79A1027a6A159502049F10906D333EC57E95F083",
-    wormToolDeployer: "0xC8059e943CD42BfC6273C5A8E6F01fdB80Fa7748"
+    wormToolDeployer: "0x0aA4B5899bAF7326397b1041db9c854056126F57"
   },
   { wormholeChainId: 4, name: "bsc-testnet", evmChainId: 97, isTestnet: true }
 ];
@@ -615,7 +618,8 @@ var UPGRADE_ABI = [{
   inputs: [
     { name: "targetChains", type: "uint16[]" },
     { name: "proxy", type: "address" },
-    { name: "newImpl", type: "address" }
+    { name: "newImpl", type: "address" },
+    { name: "upgradeOnCurrentChain", type: "bool" }
   ],
   stateMutability: "payable"
 }];
@@ -653,7 +657,7 @@ async function upgradeAcrossChains(params) {
   const data = (0, import_viem3.encodeFunctionData)({
     abi: UPGRADE_ABI,
     functionName: "upgradeAcrossChains",
-    args: [targetChainIds, proxy, newImpl]
+    args: [targetChainIds, proxy, newImpl, true]
   });
   const receipt = await sourceChain.sendTransaction(wormToolDeployerAddress, data, value);
   return [{ chain: sourceChain.chainName, chainId: sourceChain.chainId, receipt }];
@@ -872,6 +876,168 @@ function generateTestVaaHex(params) {
   return encodeVaaHex(generateTestVaa(params));
 }
 
+// src/toolchain/detect.ts
+var import_promises = require("fs/promises");
+var import_path = require("path");
+var ToolchainNotFoundError = class extends WormToolError {
+  constructor(root) {
+    super(`${root} is not a Foundry or Hardhat project (no foundry.toml or hardhat.config.ts/js found)`);
+  }
+};
+async function exists(path) {
+  try {
+    await (0, import_promises.access)(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function foundryArtifactDir(root) {
+  try {
+    const toml = await (0, import_promises.readFile)((0, import_path.join)(root, "foundry.toml"), "utf8");
+    const match = /^\s*out\s*=\s*"([^"]+)"/m.exec(toml);
+    return (0, import_path.join)(root, match?.[1] ?? "out");
+  } catch {
+    return (0, import_path.join)(root, "out");
+  }
+}
+async function detectToolchain(root) {
+  const hasFoundry = await exists((0, import_path.join)(root, "foundry.toml"));
+  if (hasFoundry) {
+    return { type: "foundry", root, artifactDir: await foundryArtifactDir(root) };
+  }
+  const hasHardhatTs = await exists((0, import_path.join)(root, "hardhat.config.ts"));
+  const hasHardhatJs = await exists((0, import_path.join)(root, "hardhat.config.js"));
+  if (hasHardhatTs || hasHardhatJs) {
+    return { type: "hardhat", root, artifactDir: (0, import_path.join)(root, "artifacts") };
+  }
+  throw new ToolchainNotFoundError(root);
+}
+
+// src/toolchain/foundry.ts
+var import_promises2 = require("fs/promises");
+var import_path2 = require("path");
+
+// src/toolchain/utils.ts
+function extractConstructorInputs(abi) {
+  const ctor = abi.find(
+    (e) => typeof e === "object" && e !== null && e.type === "constructor"
+  );
+  return ctor?.inputs ?? [];
+}
+
+// src/toolchain/foundry.ts
+async function readFoundryArtifacts(artifactDir) {
+  const results = [];
+  let solDirs;
+  try {
+    const entries = await (0, import_promises2.readdir)(artifactDir, { withFileTypes: true });
+    solDirs = entries.filter((e) => e.isDirectory() && e.name.endsWith(".sol")).map((e) => (0, import_path2.join)(artifactDir, e.name));
+  } catch {
+    return [];
+  }
+  for (const solDir of solDirs) {
+    const files = await (0, import_promises2.readdir)(solDir);
+    for (const file of files) {
+      if (!file.endsWith(".json")) continue;
+      const contractName = (0, import_path2.basename)(file, ".json");
+      const artifactPath = (0, import_path2.join)(solDir, file);
+      let raw;
+      try {
+        raw = JSON.parse(await (0, import_promises2.readFile)(artifactPath, "utf8"));
+      } catch (err) {
+        process.stderr.write(`Warning: failed to parse artifact ${artifactPath}: ${err instanceof Error ? err.message : String(err)}
+`);
+        continue;
+      }
+      const bytecodeObj = raw.bytecode?.object ?? "";
+      const bytecodeHex = bytecodeObj.startsWith("0x") ? bytecodeObj : "0x" + bytecodeObj;
+      const isEmpty = bytecodeHex === "0x";
+      const compilationTarget = raw.metadata?.settings?.compilationTarget ?? {};
+      const sourcePath = Object.keys(compilationTarget)[0] ?? `${contractName}.sol`;
+      const compilerVersion = raw.metadata?.compiler?.version ?? "unknown";
+      const abi = raw.abi ?? [];
+      const isInterface = isEmpty && abi.length > 0 && abi.every(
+        (e) => e.type === "function" || e.type === "event" || e.type === "error"
+      );
+      results.push({
+        name: contractName,
+        sourcePath,
+        artifactPath,
+        abi,
+        bytecode: bytecodeHex,
+        constructorInputs: extractConstructorInputs(abi),
+        isAbstract: isEmpty,
+        isInterface,
+        compilerVersion,
+        ...raw.storageLayout !== void 0 && { storageLayout: raw.storageLayout }
+      });
+    }
+  }
+  return results;
+}
+
+// src/toolchain/hardhat.ts
+var import_promises3 = require("fs/promises");
+var import_path3 = require("path");
+async function walkArtifactDir(dir) {
+  const paths = [];
+  try {
+    const entries = await (0, import_promises3.readdir)(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const full = (0, import_path3.join)(dir, entry.name);
+      if (entry.isDirectory()) {
+        paths.push(...await walkArtifactDir(full));
+      } else if (entry.name.endsWith(".json") && !entry.name.endsWith(".dbg.json")) {
+        paths.push(full);
+      }
+    }
+  } catch {
+  }
+  return paths;
+}
+async function readHardhatArtifacts(artifactDir) {
+  const results = [];
+  const files = await walkArtifactDir(artifactDir);
+  for (const artifactPath of files) {
+    let raw;
+    try {
+      raw = JSON.parse(await (0, import_promises3.readFile)(artifactPath, "utf8"));
+    } catch (err) {
+      process.stderr.write(`Warning: failed to parse artifact ${artifactPath}: ${err instanceof Error ? err.message : String(err)}
+`);
+      continue;
+    }
+    if (!raw._format?.startsWith("hh-sol-artifact")) continue;
+    const contractName = raw.contractName ?? (0, import_path3.basename)(artifactPath, ".json");
+    const sourcePath = raw.sourceName ?? `contracts/${contractName}.sol`;
+    const bytecodeRaw = raw.bytecode ?? "0x";
+    const bytecode = bytecodeRaw.startsWith("0x") ? bytecodeRaw : "0x" + bytecodeRaw;
+    const isEmpty = bytecode === "0x";
+    const abi = raw.abi ?? [];
+    const allEntries = abi.filter((e) => typeof e === "object" && e !== null);
+    const isInterface = isEmpty && allEntries.length > 0 && allEntries.every((e) => e.type === "function" || e.type === "event" || e.type === "error");
+    results.push({
+      name: contractName,
+      sourcePath,
+      artifactPath,
+      abi,
+      bytecode,
+      constructorInputs: extractConstructorInputs(abi),
+      isAbstract: isEmpty,
+      isInterface,
+      compilerVersion: "unknown"
+    });
+  }
+  return results;
+}
+
+// src/toolchain/index.ts
+async function listArtifacts(info) {
+  if (info.type === "foundry") return readFoundryArtifacts(info.artifactDir);
+  return readHardhatArtifacts(info.artifactDir);
+}
+
 // src/index.ts
 var SDK_VERSION = "0.0.1";
 // Annotate the CommonJS export names for ESM import in node:
@@ -889,12 +1055,14 @@ var SDK_VERSION = "0.0.1";
   SDK_VERSION,
   SolanaChain,
   SuiChain,
+  ToolchainNotFoundError,
   VaaParseError,
   WormToolError,
   callAcrossChains,
   checkContractDeployed,
   computeCreate2Address,
   deployAcrossChains,
+  detectToolchain,
   encodeCallMessage,
   encodeDeployMessage,
   encodeUpgradeMessage,
@@ -909,6 +1077,7 @@ var SDK_VERSION = "0.0.1";
   getTokenBalance,
   getTokenInfo,
   initiateTransfer,
+  listArtifacts,
   measureSigningLatency,
   parseVaa,
   upgradeAcrossChains

@@ -1,3 +1,5 @@
+import { AbiParameter } from 'viem';
+
 /** Base class for all worm-tool errors. */
 declare class WormToolError extends Error {
     readonly name: string;
@@ -383,6 +385,58 @@ declare function generateTestVaa(params: GenerateVaaParams): ParsedVaa;
 /** Generate a test VAA and encode it as a 0x-prefixed hex string. */
 declare function generateTestVaaHex(params: GenerateVaaParams): `0x${string}`;
 
+type ToolchainType = 'foundry' | 'hardhat';
+/** Detected toolchain with resolved artifact directory. */
+interface ToolchainInfo {
+    type: ToolchainType;
+    root: string;
+    artifactDir: string;
+}
+/** A single storage variable from the Solidity compiler's storage layout output. */
+interface StorageVariable {
+    label: string;
+    type: string;
+    slot: string;
+    offset: number;
+}
+/** Storage layout as emitted by solc (Foundry passes this through directly). */
+interface StorageLayout {
+    storage: StorageVariable[];
+    types: Record<string, {
+        encoding: string;
+        label: string;
+        numberOfBytes: string;
+    }>;
+}
+/** Normalized contract metadata, toolchain-agnostic. */
+interface ContractMeta {
+    name: string;
+    sourcePath: string;
+    artifactPath: string;
+    abi: readonly unknown[];
+    bytecode: `0x${string}`;
+    constructorInputs: readonly AbiParameter[];
+    /** True when bytecode is empty (abstract contract or interface). */
+    isAbstract: boolean;
+    /** True when the artifact appears to be a pure interface (empty bytecode + only function/event/error entries). */
+    isInterface: boolean;
+    compilerVersion: string;
+    storageLayout?: StorageLayout;
+}
+
+/** Thrown when a directory contains neither a Foundry nor Hardhat project. */
+declare class ToolchainNotFoundError extends WormToolError {
+    constructor(root: string);
+}
+/**
+ * Detect the toolchain used in a project directory.
+ * Foundry takes precedence over Hardhat when both configs are present.
+ */
+declare function detectToolchain(root: string): Promise<ToolchainInfo>;
+
+/** Read all compiled contracts from a detected toolchain. */
+declare function listArtifacts(info: ToolchainInfo): Promise<ContractMeta[]>;
+
 declare const SDK_VERSION = "0.0.1";
 
-export { AptosChain, type AptosChainConfig, ArtifactParseError, CHAIN_REGISTRY, type CallAcrossChainsParams, type CallMessageParams, type ChainDeployResult, type ChainEntry, type ChainInfoSummary, ChainNotSupportedError, ContractCallError, type DeployAcrossChainsParams, type DeployMessageParams, EvmChain, type EvmChainConfig, type GenerateVaaParams, type LatencyMeasurement, type MeasureLatencyParams, MessageStatus, type MessageStatusParams, type MessageStatusResult, NearChain, type NearChainConfig, type ParsedVaa, PrivateKeyError, RpcError, SDK_VERSION, SolanaChain, type SolanaChainConfig, SuiChain, type SuiChainConfig, type TokenBalance, type TokenInfo, type TransactionReceipt, type TransferParams, type TransferResult, type UpgradeAcrossChainsParams, type UpgradeMessageParams, VaaParseError, type VaaSignature, type WormToolChain, WormToolError, callAcrossChains, checkContractDeployed, computeCreate2Address, deployAcrossChains, encodeCallMessage, encodeDeployMessage, encodeUpgradeMessage, encodeVaaHex, extractBytecode, generateTestVaa, generateTestVaaHex, getChainById, getChainByName, getChainInfo, getMessageStatus, getTokenBalance, getTokenInfo, initiateTransfer, measureSigningLatency, parseVaa, upgradeAcrossChains };
+export { AptosChain, type AptosChainConfig, ArtifactParseError, CHAIN_REGISTRY, type CallAcrossChainsParams, type CallMessageParams, type ChainDeployResult, type ChainEntry, type ChainInfoSummary, ChainNotSupportedError, ContractCallError, type ContractMeta, type DeployAcrossChainsParams, type DeployMessageParams, EvmChain, type EvmChainConfig, type GenerateVaaParams, type LatencyMeasurement, type MeasureLatencyParams, MessageStatus, type MessageStatusParams, type MessageStatusResult, NearChain, type NearChainConfig, type ParsedVaa, PrivateKeyError, RpcError, SDK_VERSION, SolanaChain, type SolanaChainConfig, type StorageLayout, type StorageVariable, SuiChain, type SuiChainConfig, type TokenBalance, type TokenInfo, type ToolchainInfo, ToolchainNotFoundError, type ToolchainType, type TransactionReceipt, type TransferParams, type TransferResult, type UpgradeAcrossChainsParams, type UpgradeMessageParams, VaaParseError, type VaaSignature, type WormToolChain, WormToolError, callAcrossChains, checkContractDeployed, computeCreate2Address, deployAcrossChains, detectToolchain, encodeCallMessage, encodeDeployMessage, encodeUpgradeMessage, encodeVaaHex, extractBytecode, generateTestVaa, generateTestVaaHex, getChainById, getChainByName, getChainInfo, getMessageStatus, getTokenBalance, getTokenInfo, initiateTransfer, listArtifacts, measureSigningLatency, parseVaa, upgradeAcrossChains };

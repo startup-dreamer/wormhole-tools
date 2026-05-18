@@ -97,7 +97,7 @@ describe('listArtifacts - foundry', () => {
     const contractDir = join(root, 'out', 'Vault.sol');
     mkdirSync(contractDir, { recursive: true });
     const storageLayout = {
-      storage: [{ label: 'owner', type: 't_address', slot: 0, offset: 0 }],
+      storage: [{ label: 'owner', type: 't_address', slot: '0', offset: 0 }],
       types: { t_address: { encoding: 'inplace', label: 'address', numberOfBytes: '20' } },
     };
     writeJson(join(contractDir, 'Vault.json'), {

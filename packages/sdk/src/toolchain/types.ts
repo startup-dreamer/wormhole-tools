@@ -13,7 +13,7 @@ export interface ToolchainInfo {
 export interface StorageVariable {
   label: string;
   type: string;
-  slot: number;
+  slot: string;
   offset: number;
 }
 

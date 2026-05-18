@@ -154,6 +154,48 @@ describe('runDeployment', () => {
   });
 });
 
+describe('runDeployment dry-run', () => {
+  it('dry-run skips deployFn and returns computed addresses', async () => {
+    const manifest: DeployManifest = {
+      version: '1',
+      networks: { sepolia: { chain: 'sepolia', rpc: 'http://localhost' } },
+      deployer: { salt: 'test' },
+      contracts: [{ name: 'Counter', contract: 'Counter' }],
+      deploy_targets: [{ contracts: ['Counter'], chains: ['sepolia'], strategy: 'sequential' }],
+    };
+    const book: AddressBook = { version: '1', salt: '', contracts: {} };
+    const artifacts: ContractMeta[] = [
+      {
+        name: 'Counter',
+        bytecode: '0x6080' as `0x${string}`,
+        abi: [],
+        constructorInputs: [],
+        isAbstract: false,
+        isInterface: false,
+        sourcePath: 'src/Counter.sol',
+        artifactPath: '',
+        compilerVersion: '0.8.24',
+      },
+    ];
+
+    let deployFnCalled = false;
+    const result = await runDeployment({
+      manifest,
+      book,
+      artifacts,
+      saltFn: _s => ('0x' + '00'.repeat(32)) as `0x${string}`,
+      deployFn: async () => { deployFnCalled = true; return []; },
+      dryRun: true,
+      dryRunDeployerAddress: '0x4e59b44847b379578588920cA78FbF26c0B4956C',
+    });
+
+    expect(deployFnCalled).toBe(false);
+    expect(result.deployed.length).toBe(1);
+    expect(result.deployed[0]?.name).toBe('Counter');
+    expect(result.deployed[0]?.address).toMatch(/^0x[0-9a-fA-F]{40}$/);
+  });
+});
+
 describe('bool constructor arg encoding', () => {
   it('correctly encodes bool constructor arg', async () => {
     const boolArtifact: ContractMeta = {

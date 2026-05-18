@@ -5,6 +5,8 @@ import type { DeployManifest } from './manifest.js';
 import type { AddressBook } from './address-book.js';
 import { isDeployed, setAddress } from './address-book.js';
 import type { ContractMeta } from '../toolchain/types.js';
+import { keccak_256 } from '@noble/hashes/sha3';
+import { computeCreate2Address } from './create2.js';
 
 /** Thrown when the deployment engine encounters an unrecoverable error. */
 export class EngineError extends WormToolError {
@@ -194,6 +196,10 @@ export interface EngineRunOptions {
   saltFn: (salt: string) => `0x${string}`;
   /** Optional progress callback written to stderr by callers. */
   onProgress?: (msg: string) => void;
+  /** When true, skip calling deployFn and compute addresses offline. */
+  dryRun?: boolean;
+  /** Required when dryRun is true — the CREATE2 deployer contract address. */
+  dryRunDeployerAddress?: string;
 }
 
 /** Result returned by {@link runDeployment}. */
@@ -291,6 +297,32 @@ export async function runDeployment(opts: EngineRunOptions): Promise<EngineRunRe
       }
 
       onProgress?.(`Deploying ${contractConfig.name} (${contractConfig.contract}) to [${target.chains.join(', ')}]`);
+
+      if (opts.dryRun) {
+        const deployerAddr = opts.dryRunDeployerAddress ?? '0x0000000000000000000000000000000000000000';
+        const initCode = (constructorArgs !== '0x' && constructorArgs.length > 2)
+          ? (artifact.bytecode + constructorArgs.slice(2)) as `0x${string}`
+          : artifact.bytecode;
+        const initHex = initCode.startsWith('0x') ? initCode.slice(2) : initCode;
+        const initBytes = new Uint8Array(initHex.length / 2);
+        for (let i = 0; i < initBytes.length; i++) {
+          initBytes[i] = parseInt(initHex.slice(i * 2, i * 2 + 2), 16);
+        }
+        const initCodeHash = ('0x' + Array.from(keccak_256(initBytes), b => b.toString(16).padStart(2, '0')).join('')) as `0x${string}`;
+        const address = computeCreate2Address(deployerAddr, salt, initCodeHash);
+
+        for (const chain of target.chains) {
+          book = setAddress(book, contractConfig.name, chain, {
+            address,
+            deployedAt: new Date().toISOString(),
+          });
+          deployed.push({ name: contractConfig.name, chain, address });
+        }
+        if (!resolvedAddresses[contractConfig.name]) {
+          resolvedAddresses[contractConfig.name] = address;
+        }
+        continue;
+      }
 
       const results = await deployFn({
         contractName: contractConfig.contract,

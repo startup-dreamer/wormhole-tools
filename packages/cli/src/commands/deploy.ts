@@ -311,7 +311,8 @@ export function registerDeployCommand(program: Command): void {
     .option('--project <dir>', 'Project root (default: cwd)')
     .option('--network <name>', 'Limit to one network from the manifest')
     .option('--only <contract>', 'Deploy only this contract')
-    .action(async (opts: { project?: string; network?: string; only?: string }) => {
+    .option('--dry-run', 'Simulate deployment — compute addresses without sending transactions')
+    .action(async (opts: { project?: string; network?: string; only?: string; dryRun?: boolean }) => {
       try {
         const root = opts.project ?? process.cwd();
         const config = loadConfig();
@@ -347,6 +348,10 @@ export function registerDeployCommand(program: Command): void {
           artifacts,
           saltFn: saltFromStr,
           onProgress: (msg) => process.stderr.write(msg + '\n'),
+          ...(opts.dryRun ? {
+            dryRun: true,
+            dryRunDeployerAddress: '0x4e59b44847b379578588920cA78FbF26c0B4956C',
+          } : {}),
           deployFn: async ({ bytecode, constructorArgs, salt, chains }) => {
             const firstChain = chains[0] ?? '';
             const networkEntry = manifest.networks[firstChain];
@@ -387,7 +392,11 @@ export function registerDeployCommand(program: Command): void {
           },
         });
 
-        await saveAddressBook(root, result.book);
+        if (opts.dryRun) {
+          process.stderr.write('DRY RUN — no transactions sent\n');
+        } else {
+          await saveAddressBook(root, result.book);
+        }
         printJson({
           deployed: result.deployed,
           skipped: result.skipped.map(s => s.name),

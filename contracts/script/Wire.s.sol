@@ -7,8 +7,8 @@ interface IHasTrustedSender {
 }
 
 contract Wire is Script {
-    address constant DEPLOYER = 0xC8059e943CD42BfC6273C5A8E6F01fdB80Fa7748;
-    bytes32 constant ADDR32 = bytes32(uint256(uint160(0xC8059e943CD42BfC6273C5A8E6F01fdB80Fa7748)));
+    address constant DEPLOYER = 0x0aA4B5899bAF7326397b1041db9c854056126F57;
+    bytes32 constant ADDR32 = bytes32(uint256(uint160(0x0aA4B5899bAF7326397b1041db9c854056126F57)));
 
     function run(uint16 peer1, uint16 peer2) external {
         uint256 key = vm.envUint("DEPLOYER_PRIVATE_KEY");
@@ -16,6 +16,6 @@ contract Wire is Script {
         IHasTrustedSender(DEPLOYER).setTrustedSender(peer1, ADDR32);
         IHasTrustedSender(DEPLOYER).setTrustedSender(peer2, ADDR32);
         vm.stopBroadcast();
-        console.log("Wired: peer1=%s peer2=%s", peer1, peer2);
+        console.log("Wired ok");
     }
 }

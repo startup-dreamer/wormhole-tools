@@ -210,13 +210,16 @@ contract WormToolDeployer is IWormToolDeployer, IWormholeReceiver, Ownable {
         bytes memory initData,
         address initiator
     ) internal {
-        address deployed;
-        try this._create2(salt, bytecode) returns (address addr) {
-            deployed = addr;
-        } catch {
+        // Pre-check: skip silently if the contract is already deployed at this address.
+        // Using a pre-check instead of try/catch on an external call avoids the EIP-150
+        // 63/64 gas-forwarding penalty, which starves large-bytecode CREATE2 deployments.
+        address predicted = Create2.computeAddress(salt, keccak256(bytecode));
+        if (predicted.code.length > 0) {
             emit DeploymentSkipped(salt, "already deployed");
             return;
         }
+
+        address deployed = Create2.deploy(0, salt, bytecode);
 
         if (initData.length > 0) {
             (bool ok, bytes memory ret) = deployed.call(initData);
@@ -224,12 +227,6 @@ contract WormToolDeployer is IWormToolDeployer, IWormholeReceiver, Ownable {
         }
 
         emit ContractDeployed(deployed, salt, initiator);
-    }
-
-    /// @dev External so it can be wrapped in try/catch (Solidity limitation).
-    function _create2(bytes32 salt, bytes memory bytecode) external returns (address) {
-        require(msg.sender == address(this), "WormToolDeployer: internal only");
-        return Create2.deploy(0, salt, bytecode);
     }
 
     function _call(address target, bytes memory callData) internal {

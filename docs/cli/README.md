@@ -3,8 +3,8 @@
 Command-line interface for interacting with the Wormhole cross-chain protocol.
 
 `worm-tool` can query message status, measure guardian latency, read on-chain contract state, parse
-and generate VAAs, and initiate token bridge transfers — across EVM chains, Solana, Aptos, NEAR,
-and Sui.
+and generate VAAs, initiate token bridge transfers, and **deploy contracts to deterministic addresses
+across EVM chains** — across EVM chains, Solana, Aptos, NEAR, and Sui.
 
 ---
 
@@ -15,6 +15,7 @@ and Sui.
 - [Networks](#networks)
 - [Wallet & Private Keys](#wallet--private-keys)
 - [Command Reference](#command-reference)
+  - [deploy](#deploy)
   - [status](#status)
   - [latency](#latency)
   - [info](#info)
@@ -112,6 +113,129 @@ export WORM_TOOL_SOLANA_PRIVATE_KEY=<base58-64-byte-keypair>
 ---
 
 ## Command Reference
+
+---
+
+### `deploy`
+
+Deploy and manage contracts at deterministic addresses across EVM chains via `WormToolDeployer`.
+
+See the full guide at **[docs/deploy.md](../deploy.md)** for address determinism, upgradeability, and bootstrapping.
+
+#### `deploy address`
+
+Compute the CREATE2 deployment address offline — no gas required.
+
+```bash
+worm-tool deploy address \
+  --artifact contracts/out/MyContract.sol/MyContract.json \
+  --salt "my-project-v1" \
+  --deployer 0x0aA4B5899bAF7326397b1041db9c854056126F57
+```
+
+| Option | Description |
+|--------|-------------|
+| `--artifact <path>` | Hardhat/Foundry artifact JSON |
+| `--bytecode <hex>` | Raw init bytecode (alternative to `--artifact`) |
+| `--salt <salt>` | CREATE2 salt: 32-byte hex or arbitrary string (keccak256'd) |
+| `--deployer <address>` | WormToolDeployer address acting as CREATE2 factory |
+
+#### `deploy multi`
+
+Deploy bytecode on the source chain and optionally propagate cross-chain via Wormhole.
+
+```bash
+# Local only (no fee)
+worm-tool deploy multi \
+  --artifact contracts/out/Counter.sol/Counter.json \
+  --salt "counter-v1" \
+  --source sepolia
+
+# Cross-chain (requires Wormhole relayer fee)
+worm-tool deploy multi \
+  --artifact contracts/out/Counter.sol/Counter.json \
+  --salt "counter-v1" \
+  --source sepolia \
+  --targets arbitrum-sepolia,base-sepolia \
+  --value 33000000000000000
+```
+
+| Option | Description |
+|--------|-------------|
+| `--artifact <path>` | Hardhat/Foundry artifact JSON |
+| `--bytecode <hex>` | Raw init bytecode |
+| `--salt <salt>` | CREATE2 salt |
+| `--source <chain>` | Source chain (transaction sent here) |
+| `--targets <chains>` | Comma-separated cross-chain targets (optional) |
+| `--init-hex <hex>` | ABI-encoded initializer calldata |
+| `--value <wei>` | ETH for Wormhole relayer fees (required with `--targets`) |
+| `--deployer <address>` | Override WormToolDeployer address |
+
+#### `deploy upgrade`
+
+Upgrade a UUPS proxy to a new implementation across chains in one transaction.
+
+```bash
+# 1. Deploy v2 impl on each chain
+worm-tool deploy multi --artifact out/V2.json --salt "my-v2-impl" --source sepolia
+worm-tool deploy multi --artifact out/V2.json --salt "my-v2-impl" --source arbitrum-sepolia
+worm-tool deploy multi --artifact out/V2.json --salt "my-v2-impl" --source base-sepolia
+
+# 2. Upgrade — one call propagates to all chains via Wormhole
+worm-tool deploy upgrade \
+  --proxy 0xPROXY_ADDRESS \
+  --new-impl 0xV2_IMPL_ADDRESS \
+  --chains sepolia,arbitrum-sepolia,base-sepolia \
+  --value 33000000000000000
+```
+
+| Option | Description |
+|--------|-------------|
+| `--proxy <address>` | Proxy contract address |
+| `--new-impl <address>` | New implementation address |
+| `--chains <chains>` | Comma-separated chain names; first is the source |
+| `--value <wei>` | ETH for Wormhole relayer fees |
+| `--deployer <address>` | Override WormToolDeployer address |
+
+The proxy must inherit `WormToolProxy` to authorize cross-chain upgrades from WormToolDeployer.
+
+#### `deploy call`
+
+Send an arbitrary function call through WormToolDeployer to the same contract on multiple chains.
+
+```bash
+worm-tool deploy call \
+  --target 0xCONTRACT_ADDRESS \
+  --calldata $(cast calldata "setValue(uint256)" 42) \
+  --chains sepolia,arbitrum-sepolia,base-sepolia \
+  --value 33000000000000000
+```
+
+| Option | Description |
+|--------|-------------|
+| `--target <address>` | Target contract address |
+| `--calldata <hex>` | ABI-encoded calldata |
+| `--chains <chains>` | Comma-separated chain names; first is the source |
+| `--value <wei>` | ETH for Wormhole relayer fees |
+| `--deployer <address>` | Override WormToolDeployer address |
+
+#### `deploy status`
+
+Check whether a contract is deployed at an address on one or more chains.
+
+```bash
+worm-tool deploy status \
+  --address 0x8a7a833a0ffb9947102be06a6ebf9f8447bb6823 \
+  --chains sepolia,arbitrum-sepolia,base-sepolia
+```
+
+```json
+[
+  { "chain": "sepolia",          "address": "0x8a7a...", "deployed": true },
+  { "chain": "arbitrum-sepolia", "address": "0x8a7a...", "deployed": true },
+  { "chain": "base-sepolia",     "address": "0x8a7a...", "deployed": true }
+]
+```
 
 ---
 

@@ -44,6 +44,7 @@ const UPGRADE_ABI = [{
     { name: 'targetChains', type: 'uint16[]' },
     { name: 'proxy', type: 'address' },
     { name: 'newImpl', type: 'address' },
+    { name: 'upgradeOnCurrentChain', type: 'bool' },
   ],
   stateMutability: 'payable',
 }] as const;
@@ -143,7 +144,7 @@ export async function upgradeAcrossChains(
   const data = encodeFunctionData({
     abi: UPGRADE_ABI,
     functionName: 'upgradeAcrossChains',
-    args: [targetChainIds, proxy, newImpl],
+    args: [targetChainIds, proxy, newImpl, true],
   });
 
   const receipt = await sourceChain.sendTransaction(wormToolDeployerAddress, data, value);

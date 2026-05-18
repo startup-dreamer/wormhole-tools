@@ -405,7 +405,9 @@ declare function resolveTemplateArg(value: string, deployedAddresses: Record<str
  * @throws {EngineError} containing the word `"circular"` when a dependency
  *   cycle is detected.
  */
-declare function buildDependencyOrder(contracts: DeployManifest['contracts']): DeployManifest['contracts'];
+declare function buildDependencyOrder(contracts: DeployManifest['contracts'], 
+/** Names of contracts whose addresses are already known (e.g. from address book). */
+externallyResolved?: ReadonlySet<string>): DeployManifest['contracts'];
 /** A single entry in a deployment dry-run plan. */
 interface DeployPlanEntry {
     name: string;
@@ -503,6 +505,10 @@ interface BuildVerificationPayloadOptions {
     constructorArgs: `0x${string}` | string;
     evmChainId: number;
     apiKey: string;
+    /** Whether the compiler optimizer was enabled. Defaults to `true`. */
+    optimizationUsed?: boolean;
+    /** Number of optimizer runs. Defaults to 200. */
+    optimizerRuns?: number;
 }
 /** Options passed to {@link verifyContract}. */
 interface VerifyContractOptions {
@@ -534,10 +540,6 @@ declare function verifyContract(opts: VerifyContractOptions): Promise<{
     message: string;
 }>;
 
-/** Error thrown when a storage diff operation fails. */
-declare class StorageDiffError extends WormToolError {
-    constructor(message: string);
-}
 /** A single issue found when comparing two storage layouts. */
 interface StorageDiffIssue {
     /** Critical issues block upgrades; warnings are informational. */
@@ -748,4 +750,4 @@ declare function listArtifacts(info: ToolchainInfo): Promise<ContractMeta[]>;
 
 declare const SDK_VERSION = "0.0.1";
 
-export { type AddressBook, type AddressBookEntry, AptosChain, type AptosChainConfig, ArtifactParseError, type BuildVerificationPayloadOptions, CHAIN_REGISTRY, type CallAcrossChainsParams, type CallMessageParams, type ChainDeployResult, type ChainEntry, type ChainInfoSummary, ChainNotSupportedError, type ContractArg, ContractCallError, type ContractDeployConfig, type ContractMeta, type DeployAcrossChainsParams, type DeployManifest, type DeployMessageParams, type DeployPlanEntry, type DeployStrategy, type DeployTarget, EngineError, type EngineRunOptions, type EngineRunResult, EvmChain, type EvmChainConfig, type GenerateVaaParams, type LatencyMeasurement, ManifestParseError, type MeasureLatencyParams, MessageStatus, type MessageStatusParams, type MessageStatusResult, NearChain, type NearChainConfig, type NetworkConfig, type ParsedVaa, type PartialBook, PrivateKeyError, RpcError, SDK_VERSION, SolanaChain, type SolanaChainConfig, StorageDiffError, type StorageDiffIssue, type StorageDiffResult, type StorageLayout, type StorageVariable, SuiChain, type SuiChainConfig, type TokenBalance, type TokenInfo, type ToolchainInfo, ToolchainNotFoundError, type ToolchainType, type TransactionReceipt, type TransferParams, type TransferResult, type UpgradeAcrossChainsParams, type UpgradeMessageParams, VaaParseError, type VaaSignature, VerificationError, type VerificationPayload, type VerifyContractOptions, type WormToolChain, WormToolError, buildDependencyOrder, buildDeployPlan, buildVerificationPayload, callAcrossChains, checkContractDeployed, computeCreate2Address, deployAcrossChains, detectToolchain, diffStorageLayouts, encodeCallMessage, encodeDeployMessage, encodeUpgradeMessage, encodeVaaHex, extractBytecode, generateTestVaa, generateTestVaaHex, getAddress, getChainById, getChainByName, getChainInfo, getMessageStatus, getTokenBalance, getTokenInfo, importFromFoundryBroadcast, importFromHardhatDeploy, initiateTransfer, isDeployed, listArtifacts, loadAddressBook, measureSigningLatency, mergePartialBook, parseManifest, parseVaa, resolveEnvVars, resolveTemplateArg, runDeployment, saveAddressBook, setAddress, upgradeAcrossChains, verifyContract };
+export { type AddressBook, type AddressBookEntry, AptosChain, type AptosChainConfig, ArtifactParseError, type BuildVerificationPayloadOptions, CHAIN_REGISTRY, type CallAcrossChainsParams, type CallMessageParams, type ChainDeployResult, type ChainEntry, type ChainInfoSummary, ChainNotSupportedError, type ContractArg, ContractCallError, type ContractDeployConfig, type ContractMeta, type DeployAcrossChainsParams, type DeployManifest, type DeployMessageParams, type DeployPlanEntry, type DeployStrategy, type DeployTarget, EngineError, type EngineRunOptions, type EngineRunResult, EvmChain, type EvmChainConfig, type GenerateVaaParams, type LatencyMeasurement, ManifestParseError, type MeasureLatencyParams, MessageStatus, type MessageStatusParams, type MessageStatusResult, NearChain, type NearChainConfig, type NetworkConfig, type ParsedVaa, type PartialBook, PrivateKeyError, RpcError, SDK_VERSION, SolanaChain, type SolanaChainConfig, type StorageDiffIssue, type StorageDiffResult, type StorageLayout, type StorageVariable, SuiChain, type SuiChainConfig, type TokenBalance, type TokenInfo, type ToolchainInfo, ToolchainNotFoundError, type ToolchainType, type TransactionReceipt, type TransferParams, type TransferResult, type UpgradeAcrossChainsParams, type UpgradeMessageParams, VaaParseError, type VaaSignature, VerificationError, type VerificationPayload, type VerifyContractOptions, type WormToolChain, WormToolError, buildDependencyOrder, buildDeployPlan, buildVerificationPayload, callAcrossChains, checkContractDeployed, computeCreate2Address, deployAcrossChains, detectToolchain, diffStorageLayouts, encodeCallMessage, encodeDeployMessage, encodeUpgradeMessage, encodeVaaHex, extractBytecode, generateTestVaa, generateTestVaaHex, getAddress, getChainById, getChainByName, getChainInfo, getMessageStatus, getTokenBalance, getTokenInfo, importFromFoundryBroadcast, importFromHardhatDeploy, initiateTransfer, isDeployed, listArtifacts, loadAddressBook, measureSigningLatency, mergePartialBook, parseManifest, parseVaa, resolveEnvVars, resolveTemplateArg, runDeployment, saveAddressBook, setAddress, upgradeAcrossChains, verifyContract };

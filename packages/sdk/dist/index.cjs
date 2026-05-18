@@ -34,7 +34,6 @@ __export(index_exports, {
   RpcError: () => RpcError,
   SDK_VERSION: () => SDK_VERSION,
   SolanaChain: () => SolanaChain,
-  StorageDiffError: () => StorageDiffError,
   SuiChain: () => SuiChain,
   ToolchainNotFoundError: () => ToolchainNotFoundError,
   VaaParseError: () => VaaParseError,
@@ -318,7 +317,7 @@ var CHAIN_REGISTRY = [
   { wormholeChainId: 4, name: "bsc-testnet", evmChainId: 97, isTestnet: true }
 ];
 function getChainById(wormholeChainId) {
-  return CHAIN_REGISTRY.find((c) => c.wormholeChainId === wormholeChainId && !c.isTestnet);
+  return CHAIN_REGISTRY.find((c) => c.wormholeChainId === wormholeChainId);
 }
 function getChainByName(name) {
   return CHAIN_REGISTRY.find((c) => c.name === name.toLowerCase());
@@ -859,13 +858,13 @@ function extractDeps(args) {
   }
   return deps;
 }
-function buildDependencyOrder(contracts) {
+function buildDependencyOrder(contracts, externallyResolved) {
   const byName = /* @__PURE__ */ new Map();
   for (const c of contracts) byName.set(c.name, c);
   const deps = /* @__PURE__ */ new Map();
   const reverseDeps = /* @__PURE__ */ new Map();
   for (const c of contracts) {
-    const d = extractDeps(c.args);
+    const d = extractDeps(c.args).filter((dep) => !externallyResolved?.has(dep));
     deps.set(c.name, d);
     if (!reverseDeps.has(c.name)) reverseDeps.set(c.name, []);
     for (const dep of d) {
@@ -901,7 +900,8 @@ function buildDependencyOrder(contracts) {
   return result;
 }
 function buildDeployPlan(manifest, book) {
-  const ordered = buildDependencyOrder(manifest.contracts);
+  const alreadyInBook = new Set(Object.keys(book.contracts));
+  const ordered = buildDependencyOrder(manifest.contracts, alreadyInBook);
   const entries = [];
   for (const contractConfig of ordered) {
     for (const target of manifest.deploy_targets) {
@@ -931,7 +931,7 @@ async function runDeployment(opts) {
       }
     }
   }
-  const ordered = buildDependencyOrder(manifest.contracts);
+  const ordered = buildDependencyOrder(manifest.contracts, new Set(Object.keys(resolvedAddresses)));
   const salt = saltFn(manifest.deployer.salt);
   const deployed = [];
   const skipped = [];
@@ -967,14 +967,10 @@ async function runDeployment(opts) {
         const params = artifact.constructorInputs;
         const values = resolvedArgs.map((arg, i) => {
           const param = params[i];
-          if (!param) {
-            throw new EngineError(
-              `Too many args for ${contractConfig.name} constructor (expected ${params.length}, got ${resolvedArgs.length})`
-            );
-          }
-          if (param.type === "uint256" || param.type.startsWith("uint") || param.type.startsWith("int")) {
-            return BigInt(arg.value);
-          }
+          if (!param) throw new EngineError(`Too many args for "${contractConfig.name}" constructor (expected ${params.length})`);
+          const t = param.type;
+          if (t === "bool") return arg.value === "true" || arg.value === "1";
+          if (t.startsWith("uint") || t.startsWith("int")) return BigInt(arg.value);
           return arg.value;
         });
         constructorArgs = (0, import_viem3.encodeAbiParameters)(params, values);
@@ -1035,7 +1031,8 @@ function buildVerificationPayload(opts) {
     codeformat: "solidity-standard-json-input",
     contractname: artifact.name,
     compilerversion,
-    optimizationUsed: "1",
+    optimizationUsed: opts.optimizationUsed ?? true ? "1" : "0",
+    ...opts.optimizerRuns !== void 0 && { runs: String(opts.optimizerRuns) },
     constructorArguements,
     chainId: String(evmChainId)
   };
@@ -1044,12 +1041,25 @@ async function verifyContract(opts) {
   const { artifact, entry, constructorArgs, evmChainId, apiKey } = opts;
   const apiUrl = CHAIN_API_MAP[evmChainId] ?? ETHERSCAN_API_DEFAULT;
   let sourceCode = "{}";
+  let optimizationUsed;
+  let optimizerRuns;
   const metadataPath = artifact.artifactPath.replace(/\.json$/, ".metadata.json");
   try {
     sourceCode = await (0, import_promises2.readFile)(metadataPath, "utf8");
+    const metaRaw = JSON.parse(sourceCode);
+    optimizationUsed = metaRaw.settings?.optimizer?.enabled;
+    optimizerRuns = metaRaw.settings?.optimizer?.runs;
   } catch {
   }
-  const payload = buildVerificationPayload({ artifact, entry, constructorArgs, evmChainId, apiKey });
+  const payload = buildVerificationPayload({
+    artifact,
+    entry,
+    constructorArgs,
+    evmChainId,
+    apiKey,
+    ...optimizationUsed !== void 0 && { optimizationUsed },
+    ...optimizerRuns !== void 0 && { optimizerRuns }
+  });
   payload.sourceCode = sourceCode;
   const body = new URLSearchParams();
   for (const [key, value] of Object.entries(payload)) {
@@ -1073,11 +1083,6 @@ async function verifyContract(opts) {
 }
 
 // src/deploy/storage-diff.ts
-var StorageDiffError = class extends WormToolError {
-  constructor(message) {
-    super(`Storage diff error: ${message}`);
-  }
-};
 function diffStorageLayouts(oldLayout, newLayout) {
   const issues = [];
   const oldByLabel = new Map(oldLayout.storage.map((v) => [v.label, v]));
@@ -1564,7 +1569,8 @@ async function readHardhatArtifacts(artifactDir) {
       constructorInputs: extractConstructorInputs(abi),
       isAbstract: isEmpty,
       isInterface,
-      compilerVersion: "unknown"
+      compilerVersion: "unknown",
+      ...raw.storageLayout !== void 0 && { storageLayout: raw.storageLayout }
     });
   }
   return results;
@@ -1594,7 +1600,6 @@ var SDK_VERSION = "0.0.1";
   RpcError,
   SDK_VERSION,
   SolanaChain,
-  StorageDiffError,
   SuiChain,
   ToolchainNotFoundError,
   VaaParseError,

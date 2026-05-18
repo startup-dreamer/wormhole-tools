@@ -3,7 +3,7 @@ import { EvmChain } from '@worm-tool/sdk';
 interface WormToolConfig {
     privateKey: `0x${string}` | undefined;
     rpcUrls: Record<string, string>;
-    network: 'mainnet' | 'testnet';
+    network: "mainnet" | "testnet";
 }
 /** Load config from ~/.worm-tool/.env then process.env (process.env wins). */
 declare function loadConfig(): WormToolConfig;

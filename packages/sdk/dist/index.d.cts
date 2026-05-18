@@ -222,6 +222,354 @@ declare function encodeCallMessage(p: CallMessageParams): `0x${string}`;
 /** Encode a MSG_UPGRADE (0x03) payload for WormToolDeployer. */
 declare function encodeUpgradeMessage(p: UpgradeMessageParams): `0x${string}`;
 
+/** Thrown when a deploy manifest cannot be parsed or is structurally invalid. */
+declare class ManifestParseError extends WormToolError {
+    constructor(message: string, cause?: unknown);
+}
+/** RPC and chain identity for a single network entry. */
+interface NetworkConfig {
+    chain: string;
+    rpc: string;
+}
+/** A single constructor argument for a contract deployment. */
+interface ContractArg {
+    type: string;
+    value: string;
+}
+/** Configuration for deploying one contract. */
+interface ContractDeployConfig {
+    name: string;
+    contract: string;
+    args?: ContractArg[];
+    verify?: boolean;
+}
+/** Deployment execution strategy across chains. */
+type DeployStrategy = 'cross-chain' | 'sequential';
+/** A group of contracts deployed together to a set of chains. */
+interface DeployTarget {
+    contracts: string[];
+    chains: string[];
+    strategy: DeployStrategy;
+}
+/** Top-level structure of a `worm-tool.deploy.yaml` file. */
+interface DeployManifest {
+    version: string;
+    networks: Record<string, NetworkConfig>;
+    deployer: {
+        salt: string;
+    };
+    contracts: ContractDeployConfig[];
+    deploy_targets: DeployTarget[];
+}
+/**
+ * Replaces `${VAR}` placeholders in `value` with the corresponding
+ * `process.env[VAR]` value. Unknown variables are left as the literal
+ * `${VAR}` string.
+ */
+declare function resolveEnvVars(value: string): string;
+/**
+ * Parse a `worm-tool.deploy.yaml` string into a validated {@link DeployManifest}.
+ *
+ * All string values have `${VAR}` placeholders resolved against `process.env`
+ * before validation. Unknown placeholders are kept as-is.
+ *
+ * @throws {ManifestParseError} on invalid YAML, missing required fields, or
+ *   an unrecognised `deploy_targets[].strategy` value.
+ */
+declare function parseManifest(yaml: string): DeployManifest;
+
+/** A single deployed contract record. */
+interface AddressBookEntry {
+    address: `0x${string}`;
+    txHash?: string;
+    blockNumber?: number;
+    /** ISO 8601 timestamp of when the entry was recorded. */
+    deployedAt: string;
+    verified?: boolean;
+}
+/**
+ * Persistent address book stored at `<root>/deployments/worm-tool.json`.
+ * `contracts` is keyed by contractName → chainName → entry.
+ */
+interface AddressBook {
+    version: '1';
+    salt: string;
+    contracts: Record<string, Record<string, AddressBookEntry>>;
+}
+/** Partial address book returned by import functions (no version/salt wrapper). */
+type PartialBook = Record<string, Record<string, AddressBookEntry>>;
+/**
+ * Load the address book from `<root>/deployments/worm-tool.json`.
+ * Returns an empty book when the file does not exist.
+ */
+declare function loadAddressBook(root: string): Promise<AddressBook>;
+/**
+ * Persist the address book to `<root>/deployments/worm-tool.json`.
+ * Creates the `deployments/` directory if it does not exist.
+ */
+declare function saveAddressBook(root: string, book: AddressBook): Promise<void>;
+/**
+ * Retrieve the deployed address for a contract on a given chain.
+ * Returns `undefined` if no entry exists.
+ */
+declare function getAddress(book: AddressBook, contractName: string, chain: string): `0x${string}` | undefined;
+/**
+ * Return `true` if a deployment entry exists for the contract on the given chain.
+ */
+declare function isDeployed(book: AddressBook, contractName: string, chain: string): boolean;
+/**
+ * Pure function: return a new address book with the entry set for
+ * `contractName` on `chain`. Does not mutate the original book.
+ */
+declare function setAddress(book: AddressBook, contractName: string, chain: string, entry: AddressBookEntry): AddressBook;
+/**
+ * Merge a {@link PartialBook} (from {@link importFromFoundryBroadcast} or
+ * {@link importFromHardhatDeploy}) into an {@link AddressBook}.
+ * Existing entries are NOT overwritten — only new contract/chain pairs are added.
+ */
+declare function mergePartialBook(book: AddressBook, partial: PartialBook): AddressBook;
+/**
+ * Walk `<root>/broadcast/` recursively, find every `run-latest.json`, and
+ * extract CREATE transactions. Uses `CHAIN_REGISTRY` to map EVM chain ID →
+ * chain name. Returns a `PartialBook` ready to merge into an `AddressBook`.
+ */
+declare function importFromFoundryBroadcast(root: string): Promise<PartialBook>;
+/**
+ * Walk `<root>/deployments/<networkName>/<Contract>.json` (hardhat-deploy
+ * layout), skipping `worm-tool.json`. Returns a `PartialBook` ready to merge
+ * into an `AddressBook`.
+ */
+declare function importFromHardhatDeploy(root: string): Promise<PartialBook>;
+
+type ToolchainType = 'foundry' | 'hardhat';
+/** Detected toolchain with resolved artifact directory. */
+interface ToolchainInfo {
+    type: ToolchainType;
+    root: string;
+    artifactDir: string;
+}
+/** A single storage variable from the Solidity compiler's storage layout output. */
+interface StorageVariable {
+    label: string;
+    type: string;
+    slot: string;
+    offset: number;
+}
+/** Storage layout as emitted by solc (Foundry passes this through directly). */
+interface StorageLayout {
+    storage: StorageVariable[];
+    types: Record<string, {
+        encoding: string;
+        label: string;
+        numberOfBytes: string;
+    }>;
+}
+/** Normalized contract metadata, toolchain-agnostic. */
+interface ContractMeta {
+    name: string;
+    sourcePath: string;
+    artifactPath: string;
+    abi: readonly unknown[];
+    bytecode: `0x${string}`;
+    constructorInputs: readonly AbiParameter[];
+    /** True when bytecode is empty (abstract contract or interface). */
+    isAbstract: boolean;
+    /** True when the artifact appears to be a pure interface (empty bytecode + only function/event/error entries). */
+    isInterface: boolean;
+    compilerVersion: string;
+    storageLayout?: StorageLayout;
+}
+
+/** Thrown when the deployment engine encounters an unrecoverable error. */
+declare class EngineError extends WormToolError {
+    constructor(message: string, cause?: unknown);
+}
+/**
+ * Resolve a single template expression in a constructor arg value.
+ *
+ * Supported patterns:
+ * - `{{contracts.Name.address}}` — look up `Name` in `deployedAddresses`
+ * - `{{env.VAR}}` — read `process.env[VAR]`
+ * - Literal (no `{{`) — returned as-is
+ *
+ * @throws {EngineError} when a referenced contract or env var is missing,
+ *   or when the template pattern is not recognised.
+ */
+declare function resolveTemplateArg(value: string, deployedAddresses: Record<string, `0x${string}`>): string;
+/**
+ * Sort contracts in topological (dependency-first) order.
+ *
+ * Reads `{{contracts.X.address}}` references from each contract's args to
+ * build a dependency graph, then performs a depth-first topological sort.
+ *
+ * @throws {EngineError} containing the word `"circular"` when a dependency
+ *   cycle is detected.
+ */
+declare function buildDependencyOrder(contracts: DeployManifest['contracts']): DeployManifest['contracts'];
+/** A single entry in a deployment dry-run plan. */
+interface DeployPlanEntry {
+    name: string;
+    contract: string;
+    alreadyDeployed: boolean;
+    targetChains: string[];
+    strategy: string;
+}
+/**
+ * Build a dry-run deployment plan from a manifest and an address book.
+ *
+ * For each contract in each deploy_target, checks whether it is already
+ * deployed on all target chains via the address book.
+ */
+declare function buildDeployPlan(manifest: DeployManifest, book: AddressBook): DeployPlanEntry[];
+/** Options for {@link runDeployment}. */
+interface EngineRunOptions {
+    manifest: DeployManifest;
+    book: AddressBook;
+    artifacts: ContractMeta[];
+    /**
+     * Callback that performs the actual deployment.
+     * Called once per contract/target combination that needs deploying.
+     */
+    deployFn: (params: {
+        contractName: string;
+        bytecode: `0x${string}`;
+        constructorArgs: `0x${string}`;
+        salt: `0x${string}`;
+        chains: string[];
+        strategy: string;
+    }) => Promise<Array<{
+        chain: string;
+        address: `0x${string}`;
+        txHash: string;
+    }>>;
+    /**
+     * Convert a string salt (from the manifest) into a 32-byte hex salt.
+     * Typically keccak256 of the string unless it is already 32-byte hex.
+     */
+    saltFn: (salt: string) => `0x${string}`;
+    /** Optional progress callback written to stderr by callers. */
+    onProgress?: (msg: string) => void;
+}
+/** Result returned by {@link runDeployment}. */
+interface EngineRunResult {
+    book: AddressBook;
+    deployed: Array<{
+        name: string;
+        chain: string;
+        address: `0x${string}`;
+    }>;
+    skipped: Array<{
+        name: string;
+        chains: string[];
+    }>;
+}
+/**
+ * Execute a full multi-contract, multi-chain deployment driven by the manifest.
+ *
+ * Algorithm:
+ * 1. Seed `resolvedAddresses` from the existing address book.
+ * 2. Topologically sort contracts so dependencies deploy first.
+ * 3. For each contract × deploy_target pair:
+ *    - If already deployed on all chains: skip and seed resolved address.
+ *    - Otherwise: find artifact, resolve template args, ABI-encode constructor
+ *      args, call `deployFn`, record results in the address book.
+ * 4. Return the updated book plus `deployed` / `skipped` summaries.
+ *
+ * @throws {EngineError} when an artifact is missing, a template reference
+ *   cannot be resolved, or a circular dependency exists.
+ */
+declare function runDeployment(opts: EngineRunOptions): Promise<EngineRunResult>;
+
+/** Etherscan API verification payload (note: `constructorArguements` is the API's typo). */
+interface VerificationPayload {
+    apikey: string;
+    module: 'contract';
+    action: 'verifysourcecode';
+    contractaddress: string;
+    sourceCode: string;
+    codeformat: 'solidity-single-file' | 'solidity-standard-json-input';
+    contractname: string;
+    compilerversion: string;
+    optimizationUsed: '0' | '1';
+    runs?: string;
+    /** Etherscan API spells this with a typo — must match exactly. */
+    constructorArguements: string;
+    chainId: string;
+}
+/** Options passed to {@link buildVerificationPayload}. */
+interface BuildVerificationPayloadOptions {
+    artifact: ContractMeta;
+    entry: AddressBookEntry;
+    constructorArgs: `0x${string}` | string;
+    evmChainId: number;
+    apiKey: string;
+}
+/** Options passed to {@link verifyContract}. */
+interface VerifyContractOptions {
+    artifact: ContractMeta;
+    entry: AddressBookEntry;
+    constructorArgs: `0x${string}`;
+    evmChainId: number;
+    apiKey: string;
+}
+/** Thrown when the Etherscan verification API returns a non-OK HTTP response. */
+declare class VerificationError extends WormToolError {
+    constructor(message: string, cause?: unknown);
+}
+/**
+ * Build an Etherscan-compatible verification payload from contract metadata.
+ * The `sourceCode` field is left empty; callers must set it before submitting.
+ */
+declare function buildVerificationPayload(opts: BuildVerificationPayloadOptions): VerificationPayload;
+/**
+ * Submit a contract for Etherscan verification.
+ *
+ * Reads the Foundry metadata JSON (if present) to populate `sourceCode`.
+ * Returns a result object with `success`, optional `guid`, and `message`.
+ * Throws {@link VerificationError} on HTTP-level failures.
+ */
+declare function verifyContract(opts: VerifyContractOptions): Promise<{
+    success: boolean;
+    guid?: string;
+    message: string;
+}>;
+
+/** Error thrown when a storage diff operation fails. */
+declare class StorageDiffError extends WormToolError {
+    constructor(message: string);
+}
+/** A single issue found when comparing two storage layouts. */
+interface StorageDiffIssue {
+    /** Critical issues block upgrades; warnings are informational. */
+    severity: 'critical' | 'warning';
+    /** The Solidity variable label that triggered this issue. */
+    variable: string;
+    /** Human-readable description of the issue. */
+    message: string;
+}
+/** Result of comparing old and new storage layouts. */
+interface StorageDiffResult {
+    /**
+     * True when there are no critical issues (only warnings or no issues at all).
+     * A `safe` result means it is likely safe to upgrade.
+     */
+    safe: boolean;
+    /** All issues found, sorted with critical issues first. */
+    issues: StorageDiffIssue[];
+}
+/**
+ * Compare old and new Solidity storage layouts.
+ *
+ * Checks for removed variables, type changes, slot moves, and offset changes —
+ * each classified as `critical`. New variables appended at the end are classified
+ * as `warning`.
+ *
+ * @param oldLayout - Storage layout from the currently deployed implementation.
+ * @param newLayout - Storage layout from the new implementation to upgrade to.
+ * @returns A `StorageDiffResult` with all issues and a `safe` flag.
+ */
+declare function diffStorageLayouts(oldLayout: StorageLayout, newLayout: StorageLayout): StorageDiffResult;
+
 interface ChainDeployResult {
     chain: string;
     chainId: bigint;
@@ -385,45 +733,6 @@ declare function generateTestVaa(params: GenerateVaaParams): ParsedVaa;
 /** Generate a test VAA and encode it as a 0x-prefixed hex string. */
 declare function generateTestVaaHex(params: GenerateVaaParams): `0x${string}`;
 
-type ToolchainType = 'foundry' | 'hardhat';
-/** Detected toolchain with resolved artifact directory. */
-interface ToolchainInfo {
-    type: ToolchainType;
-    root: string;
-    artifactDir: string;
-}
-/** A single storage variable from the Solidity compiler's storage layout output. */
-interface StorageVariable {
-    label: string;
-    type: string;
-    slot: string;
-    offset: number;
-}
-/** Storage layout as emitted by solc (Foundry passes this through directly). */
-interface StorageLayout {
-    storage: StorageVariable[];
-    types: Record<string, {
-        encoding: string;
-        label: string;
-        numberOfBytes: string;
-    }>;
-}
-/** Normalized contract metadata, toolchain-agnostic. */
-interface ContractMeta {
-    name: string;
-    sourcePath: string;
-    artifactPath: string;
-    abi: readonly unknown[];
-    bytecode: `0x${string}`;
-    constructorInputs: readonly AbiParameter[];
-    /** True when bytecode is empty (abstract contract or interface). */
-    isAbstract: boolean;
-    /** True when the artifact appears to be a pure interface (empty bytecode + only function/event/error entries). */
-    isInterface: boolean;
-    compilerVersion: string;
-    storageLayout?: StorageLayout;
-}
-
 /** Thrown when a directory contains neither a Foundry nor Hardhat project. */
 declare class ToolchainNotFoundError extends WormToolError {
     constructor(root: string);
@@ -439,4 +748,4 @@ declare function listArtifacts(info: ToolchainInfo): Promise<ContractMeta[]>;
 
 declare const SDK_VERSION = "0.0.1";
 
-export { AptosChain, type AptosChainConfig, ArtifactParseError, CHAIN_REGISTRY, type CallAcrossChainsParams, type CallMessageParams, type ChainDeployResult, type ChainEntry, type ChainInfoSummary, ChainNotSupportedError, ContractCallError, type ContractMeta, type DeployAcrossChainsParams, type DeployMessageParams, EvmChain, type EvmChainConfig, type GenerateVaaParams, type LatencyMeasurement, type MeasureLatencyParams, MessageStatus, type MessageStatusParams, type MessageStatusResult, NearChain, type NearChainConfig, type ParsedVaa, PrivateKeyError, RpcError, SDK_VERSION, SolanaChain, type SolanaChainConfig, type StorageLayout, type StorageVariable, SuiChain, type SuiChainConfig, type TokenBalance, type TokenInfo, type ToolchainInfo, ToolchainNotFoundError, type ToolchainType, type TransactionReceipt, type TransferParams, type TransferResult, type UpgradeAcrossChainsParams, type UpgradeMessageParams, VaaParseError, type VaaSignature, type WormToolChain, WormToolError, callAcrossChains, checkContractDeployed, computeCreate2Address, deployAcrossChains, detectToolchain, encodeCallMessage, encodeDeployMessage, encodeUpgradeMessage, encodeVaaHex, extractBytecode, generateTestVaa, generateTestVaaHex, getChainById, getChainByName, getChainInfo, getMessageStatus, getTokenBalance, getTokenInfo, initiateTransfer, listArtifacts, measureSigningLatency, parseVaa, upgradeAcrossChains };
+export { type AddressBook, type AddressBookEntry, AptosChain, type AptosChainConfig, ArtifactParseError, type BuildVerificationPayloadOptions, CHAIN_REGISTRY, type CallAcrossChainsParams, type CallMessageParams, type ChainDeployResult, type ChainEntry, type ChainInfoSummary, ChainNotSupportedError, type ContractArg, ContractCallError, type ContractDeployConfig, type ContractMeta, type DeployAcrossChainsParams, type DeployManifest, type DeployMessageParams, type DeployPlanEntry, type DeployStrategy, type DeployTarget, EngineError, type EngineRunOptions, type EngineRunResult, EvmChain, type EvmChainConfig, type GenerateVaaParams, type LatencyMeasurement, ManifestParseError, type MeasureLatencyParams, MessageStatus, type MessageStatusParams, type MessageStatusResult, NearChain, type NearChainConfig, type NetworkConfig, type ParsedVaa, type PartialBook, PrivateKeyError, RpcError, SDK_VERSION, SolanaChain, type SolanaChainConfig, StorageDiffError, type StorageDiffIssue, type StorageDiffResult, type StorageLayout, type StorageVariable, SuiChain, type SuiChainConfig, type TokenBalance, type TokenInfo, type ToolchainInfo, ToolchainNotFoundError, type ToolchainType, type TransactionReceipt, type TransferParams, type TransferResult, type UpgradeAcrossChainsParams, type UpgradeMessageParams, VaaParseError, type VaaSignature, VerificationError, type VerificationPayload, type VerifyContractOptions, type WormToolChain, WormToolError, buildDependencyOrder, buildDeployPlan, buildVerificationPayload, callAcrossChains, checkContractDeployed, computeCreate2Address, deployAcrossChains, detectToolchain, diffStorageLayouts, encodeCallMessage, encodeDeployMessage, encodeUpgradeMessage, encodeVaaHex, extractBytecode, generateTestVaa, generateTestVaaHex, getAddress, getChainById, getChainByName, getChainInfo, getMessageStatus, getTokenBalance, getTokenInfo, importFromFoundryBroadcast, importFromHardhatDeploy, initiateTransfer, isDeployed, listArtifacts, loadAddressBook, measureSigningLatency, mergePartialBook, parseManifest, parseVaa, resolveEnvVars, resolveTemplateArg, runDeployment, saveAddressBook, setAddress, upgradeAcrossChains, verifyContract };

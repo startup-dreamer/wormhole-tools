@@ -25,22 +25,30 @@ __export(index_exports, {
   CHAIN_REGISTRY: () => CHAIN_REGISTRY,
   ChainNotSupportedError: () => ChainNotSupportedError,
   ContractCallError: () => ContractCallError,
+  EngineError: () => EngineError,
   EvmChain: () => EvmChain,
+  ManifestParseError: () => ManifestParseError,
   MessageStatus: () => MessageStatus,
   NearChain: () => NearChain,
   PrivateKeyError: () => PrivateKeyError,
   RpcError: () => RpcError,
   SDK_VERSION: () => SDK_VERSION,
   SolanaChain: () => SolanaChain,
+  StorageDiffError: () => StorageDiffError,
   SuiChain: () => SuiChain,
   ToolchainNotFoundError: () => ToolchainNotFoundError,
   VaaParseError: () => VaaParseError,
+  VerificationError: () => VerificationError,
   WormToolError: () => WormToolError,
+  buildDependencyOrder: () => buildDependencyOrder,
+  buildDeployPlan: () => buildDeployPlan,
+  buildVerificationPayload: () => buildVerificationPayload,
   callAcrossChains: () => callAcrossChains,
   checkContractDeployed: () => checkContractDeployed,
   computeCreate2Address: () => computeCreate2Address,
   deployAcrossChains: () => deployAcrossChains,
   detectToolchain: () => detectToolchain,
+  diffStorageLayouts: () => diffStorageLayouts,
   encodeCallMessage: () => encodeCallMessage,
   encodeDeployMessage: () => encodeDeployMessage,
   encodeUpgradeMessage: () => encodeUpgradeMessage,
@@ -48,17 +56,30 @@ __export(index_exports, {
   extractBytecode: () => extractBytecode,
   generateTestVaa: () => generateTestVaa,
   generateTestVaaHex: () => generateTestVaaHex,
+  getAddress: () => getAddress,
   getChainById: () => getChainById,
   getChainByName: () => getChainByName,
   getChainInfo: () => getChainInfo,
   getMessageStatus: () => getMessageStatus,
   getTokenBalance: () => getTokenBalance,
   getTokenInfo: () => getTokenInfo,
+  importFromFoundryBroadcast: () => importFromFoundryBroadcast,
+  importFromHardhatDeploy: () => importFromHardhatDeploy,
   initiateTransfer: () => initiateTransfer,
+  isDeployed: () => isDeployed,
   listArtifacts: () => listArtifacts,
+  loadAddressBook: () => loadAddressBook,
   measureSigningLatency: () => measureSigningLatency,
+  mergePartialBook: () => mergePartialBook,
+  parseManifest: () => parseManifest,
   parseVaa: () => parseVaa,
-  upgradeAcrossChains: () => upgradeAcrossChains
+  resolveEnvVars: () => resolveEnvVars,
+  resolveTemplateArg: () => resolveTemplateArg,
+  runDeployment: () => runDeployment,
+  saveAddressBook: () => saveAddressBook,
+  setAddress: () => setAddress,
+  upgradeAcrossChains: () => upgradeAcrossChains,
+  verifyContract: () => verifyContract
 });
 module.exports = __toCommonJS(index_exports);
 
@@ -501,7 +522,7 @@ var SuiChain = class {
 };
 
 // src/deploy/index.ts
-var import_viem3 = require("viem");
+var import_viem4 = require("viem");
 
 // src/deploy/artifact.ts
 function extractBytecode(artifact, path = "<artifact>") {
@@ -588,6 +609,523 @@ function encodeUpgradeMessage(p) {
   );
 }
 
+// src/deploy/manifest.ts
+var import_yaml = require("yaml");
+var ManifestParseError = class extends WormToolError {
+  constructor(message, cause) {
+    super(`Manifest parse error: ${message}`, cause);
+  }
+};
+var VALID_STRATEGIES = ["cross-chain", "sequential"];
+function resolveEnvVars(value) {
+  return value.replace(/\$\{([^}]+)\}/g, (match, varName) => {
+    return process.env[varName] ?? match;
+  });
+}
+function resolveEnvVarsDeep(obj) {
+  if (typeof obj === "string") return resolveEnvVars(obj);
+  if (Array.isArray(obj)) return obj.map(resolveEnvVarsDeep);
+  if (obj !== null && typeof obj === "object") {
+    return Object.fromEntries(
+      Object.entries(obj).map(([k, v]) => [k, resolveEnvVarsDeep(v)])
+    );
+  }
+  return obj;
+}
+function validateManifest(raw) {
+  if (typeof raw !== "object" || raw === null) {
+    throw new ManifestParseError("manifest must be an object");
+  }
+  const obj = raw;
+  if (!obj["networks"] || typeof obj["networks"] !== "object") {
+    throw new ManifestParseError('"networks" is required');
+  }
+  if (!obj["deployer"] || typeof obj["deployer"] !== "object") {
+    throw new ManifestParseError('"deployer" is required');
+  }
+  const deployer = obj["deployer"];
+  if (typeof deployer["salt"] !== "string" || deployer["salt"].length === 0) {
+    throw new ManifestParseError('"deployer.salt" must be a non-empty string');
+  }
+  if (!Array.isArray(obj["contracts"])) {
+    throw new ManifestParseError('"contracts" must be an array');
+  }
+  if (!Array.isArray(obj["deploy_targets"])) {
+    throw new ManifestParseError('"deploy_targets" must be an array');
+  }
+  for (const target of obj["deploy_targets"]) {
+    const t = target;
+    if (!Array.isArray(t["contracts"]) || !Array.isArray(t["chains"])) {
+      throw new ManifestParseError('deploy_targets[] entries must have "contracts" and "chains" arrays');
+    }
+    if (!VALID_STRATEGIES.includes(t["strategy"])) {
+      throw new ManifestParseError(
+        `Invalid strategy "${String(t["strategy"])}" \u2014 must be one of: ${VALID_STRATEGIES.join(", ")}`
+      );
+    }
+  }
+  return raw;
+}
+function parseManifest(yaml) {
+  let raw;
+  try {
+    raw = (0, import_yaml.parse)(yaml);
+  } catch (err) {
+    throw new ManifestParseError("invalid YAML", err);
+  }
+  const resolved = resolveEnvVarsDeep(raw);
+  return validateManifest(resolved);
+}
+
+// src/deploy/address-book.ts
+var import_promises = require("fs/promises");
+var import_path = require("path");
+var BOOK_PATH = (root) => (0, import_path.join)(root, "deployments", "worm-tool.json");
+async function loadAddressBook(root) {
+  const path = BOOK_PATH(root);
+  try {
+    const raw = await (0, import_promises.readFile)(path, "utf8");
+    const parsed = JSON.parse(raw);
+    if (typeof parsed["contracts"] !== "object" || parsed["contracts"] === null) {
+      process.stderr.write(`Warning: ${path} has unexpected format, starting fresh
+`);
+      return { version: "1", salt: "", contracts: {} };
+    }
+    return parsed;
+  } catch (err) {
+    if (isNodeError(err) && err.code === "ENOENT") {
+      return { version: "1", salt: "", contracts: {} };
+    }
+    throw err;
+  }
+}
+async function saveAddressBook(root, book) {
+  const dir = (0, import_path.join)(root, "deployments");
+  await (0, import_promises.mkdir)(dir, { recursive: true });
+  await (0, import_promises.writeFile)(BOOK_PATH(root), JSON.stringify(book, null, 2), "utf8");
+}
+function getAddress(book, contractName, chain) {
+  return book.contracts[contractName]?.[chain]?.address;
+}
+function isDeployed(book, contractName, chain) {
+  return getAddress(book, contractName, chain) !== void 0;
+}
+function setAddress(book, contractName, chain, entry) {
+  return {
+    ...book,
+    contracts: {
+      ...book.contracts,
+      [contractName]: {
+        ...book.contracts[contractName],
+        [chain]: entry
+      }
+    }
+  };
+}
+function mergePartialBook(book, partial) {
+  let result = book;
+  for (const [contractName, chains] of Object.entries(partial)) {
+    for (const [chain, entry] of Object.entries(chains)) {
+      if (!isDeployed(result, contractName, chain)) {
+        result = setAddress(result, contractName, chain, entry);
+      }
+    }
+  }
+  return result;
+}
+async function importFromFoundryBroadcast(root) {
+  const broadcastRoot = (0, import_path.join)(root, "broadcast");
+  const result = {};
+  const files = await collectFiles(broadcastRoot, "run-latest.json");
+  for (const file of files) {
+    try {
+      const raw = await (0, import_promises.readFile)(file, "utf8");
+      const data = JSON.parse(raw);
+      const chainEntry = CHAIN_REGISTRY.find((c) => c.evmChainId === data.chain);
+      const chainName = chainEntry?.name;
+      if (!chainName) continue;
+      for (const tx of data.transactions ?? []) {
+        if (tx.transactionType !== "CREATE") continue;
+        const name = tx.contractName;
+        const addr = tx.contractAddress;
+        if (!name || !addr) continue;
+        const nameEntry = result[name] ?? (result[name] = {});
+        nameEntry[chainName] = {
+          address: addr,
+          ...tx.hash !== void 0 ? { txHash: tx.hash } : {},
+          deployedAt: (/* @__PURE__ */ new Date()).toISOString()
+        };
+      }
+    } catch {
+    }
+  }
+  return result;
+}
+async function importFromHardhatDeploy(root) {
+  const deploymentsRoot = (0, import_path.join)(root, "deployments");
+  const result = {};
+  let networks;
+  try {
+    const entries = await (0, import_promises.readdir)(deploymentsRoot, { withFileTypes: true });
+    networks = entries.filter((e) => e.isDirectory()).map((e) => e.name);
+  } catch (err) {
+    if (isNodeError(err) && err.code === "ENOENT") return result;
+    throw err;
+  }
+  for (const network of networks) {
+    const networkDir = (0, import_path.join)(deploymentsRoot, network);
+    let files;
+    try {
+      const entries = await (0, import_promises.readdir)(networkDir, { withFileTypes: true });
+      files = entries.filter((e) => e.isFile() && e.name.endsWith(".json") && e.name !== "worm-tool.json").map((e) => e.name);
+    } catch {
+      continue;
+    }
+    for (const file of files) {
+      const contractName = file.slice(0, -5);
+      try {
+        const raw = await (0, import_promises.readFile)((0, import_path.join)(networkDir, file), "utf8");
+        const data = JSON.parse(raw);
+        if (!data.address) continue;
+        const contractEntry = result[contractName] ?? (result[contractName] = {});
+        contractEntry[network] = {
+          address: data.address,
+          ...data.transactionHash !== void 0 ? { txHash: data.transactionHash } : {},
+          deployedAt: (/* @__PURE__ */ new Date()).toISOString()
+        };
+      } catch {
+      }
+    }
+  }
+  return result;
+}
+async function collectFiles(dir, basename3) {
+  const results = [];
+  let entries;
+  try {
+    entries = await (0, import_promises.readdir)(dir, { withFileTypes: true });
+  } catch (err) {
+    if (isNodeError(err) && err.code === "ENOENT") return results;
+    throw err;
+  }
+  for (const entry of entries) {
+    const full = (0, import_path.join)(dir, entry.name);
+    if (entry.isDirectory()) {
+      const sub = await collectFiles(full, basename3);
+      results.push(...sub);
+    } else if (entry.isFile() && entry.name === basename3) {
+      results.push(full);
+    }
+  }
+  return results;
+}
+function isNodeError(err) {
+  return err instanceof Error && "code" in err;
+}
+
+// src/deploy/engine.ts
+var import_viem3 = require("viem");
+var EngineError = class extends WormToolError {
+  constructor(message, cause) {
+    super(message, cause);
+  }
+};
+function resolveTemplateArg(value, deployedAddresses) {
+  if (!value.includes("{{")) return value;
+  const contractMatch = /^\{\{contracts\.([^}]+)\.address\}\}$/.exec(value);
+  if (contractMatch) {
+    const name = contractMatch[1];
+    if (!name) throw new EngineError(`Invalid contract template expression: ${value}`);
+    const addr = deployedAddresses[name];
+    if (!addr) throw new EngineError(`Contract "${name}" has not been deployed yet (referenced in template)`);
+    return addr;
+  }
+  const envMatch = /^\{\{env\.([^}]+)\}\}$/.exec(value);
+  if (envMatch) {
+    const varName = envMatch[1];
+    if (!varName) throw new EngineError(`Invalid env template expression: ${value}`);
+    const envVal = process.env[varName];
+    if (envVal === void 0) throw new EngineError(`Environment variable "${varName}" is not set`);
+    return envVal;
+  }
+  throw new EngineError(`Unsupported template expression: ${value}`);
+}
+function extractDeps(args) {
+  if (!args) return [];
+  const deps = [];
+  for (const arg of args) {
+    const m = /^\{\{contracts\.([^}]+)\.address\}\}$/.exec(arg.value);
+    if (m && m[1]) deps.push(m[1]);
+  }
+  return deps;
+}
+function buildDependencyOrder(contracts) {
+  const byName = /* @__PURE__ */ new Map();
+  for (const c of contracts) byName.set(c.name, c);
+  const deps = /* @__PURE__ */ new Map();
+  const reverseDeps = /* @__PURE__ */ new Map();
+  for (const c of contracts) {
+    const d = extractDeps(c.args);
+    deps.set(c.name, d);
+    if (!reverseDeps.has(c.name)) reverseDeps.set(c.name, []);
+    for (const dep of d) {
+      const rev = reverseDeps.get(dep) ?? [];
+      rev.push(c.name);
+      reverseDeps.set(dep, rev);
+    }
+  }
+  const inDegree = /* @__PURE__ */ new Map();
+  for (const c of contracts) {
+    inDegree.set(c.name, (deps.get(c.name) ?? []).length);
+  }
+  const queue = [];
+  for (const c of contracts) {
+    if ((inDegree.get(c.name) ?? 0) === 0) queue.push(c.name);
+  }
+  const result = [];
+  while (queue.length > 0) {
+    const name = queue.shift();
+    if (!name) break;
+    const contract = byName.get(name);
+    if (!contract) throw new EngineError(`Contract "${name}" referenced but not defined`);
+    result.push(contract);
+    for (const dependent of reverseDeps.get(name) ?? []) {
+      const newDeg = (inDegree.get(dependent) ?? 0) - 1;
+      inDegree.set(dependent, newDeg);
+      if (newDeg === 0) queue.push(dependent);
+    }
+  }
+  if (result.length !== contracts.length) {
+    throw new EngineError("circular dependency detected in contract deployment graph");
+  }
+  return result;
+}
+function buildDeployPlan(manifest, book) {
+  const ordered = buildDependencyOrder(manifest.contracts);
+  const entries = [];
+  for (const contractConfig of ordered) {
+    for (const target of manifest.deploy_targets) {
+      if (!target.contracts.includes(contractConfig.name)) continue;
+      const alreadyDeployed = target.chains.every(
+        (chain) => isDeployed(book, contractConfig.name, chain)
+      );
+      entries.push({
+        name: contractConfig.name,
+        contract: contractConfig.contract,
+        alreadyDeployed,
+        targetChains: target.chains,
+        strategy: target.strategy
+      });
+    }
+  }
+  return entries;
+}
+async function runDeployment(opts) {
+  const { manifest, artifacts, deployFn, saltFn, onProgress } = opts;
+  let book = opts.book;
+  const resolvedAddresses = {};
+  for (const [contractName, chains] of Object.entries(book.contracts)) {
+    for (const [, entry] of Object.entries(chains)) {
+      if (!resolvedAddresses[contractName]) {
+        resolvedAddresses[contractName] = entry.address;
+      }
+    }
+  }
+  const ordered = buildDependencyOrder(manifest.contracts);
+  const salt = saltFn(manifest.deployer.salt);
+  const deployed = [];
+  const skipped = [];
+  for (const contractConfig of ordered) {
+    for (const target of manifest.deploy_targets) {
+      if (!target.contracts.includes(contractConfig.name)) continue;
+      const allDeployed = target.chains.every(
+        (chain) => isDeployed(book, contractConfig.name, chain)
+      );
+      if (allDeployed) {
+        onProgress?.(`Skipping ${contractConfig.name} (already deployed on all target chains)`);
+        const firstChain = target.chains[0];
+        if (firstChain) {
+          const addr = book.contracts[contractConfig.name]?.[firstChain]?.address;
+          if (addr) resolvedAddresses[contractConfig.name] = addr;
+        }
+        skipped.push({ name: contractConfig.name, chains: target.chains });
+        continue;
+      }
+      const artifact = artifacts.find((a) => a.name === contractConfig.contract);
+      if (!artifact) {
+        throw new EngineError(
+          `Artifact not found for contract "${contractConfig.contract}" (used by "${contractConfig.name}")`
+        );
+      }
+      const rawArgs = contractConfig.args ?? [];
+      const resolvedArgs = rawArgs.map((arg) => ({
+        ...arg,
+        value: resolveTemplateArg(arg.value, resolvedAddresses)
+      }));
+      let constructorArgs = "0x";
+      if (resolvedArgs.length > 0 && artifact.constructorInputs.length > 0) {
+        const params = artifact.constructorInputs;
+        const values = resolvedArgs.map((arg, i) => {
+          const param = params[i];
+          if (!param) {
+            throw new EngineError(
+              `Too many args for ${contractConfig.name} constructor (expected ${params.length}, got ${resolvedArgs.length})`
+            );
+          }
+          if (param.type === "uint256" || param.type.startsWith("uint") || param.type.startsWith("int")) {
+            return BigInt(arg.value);
+          }
+          return arg.value;
+        });
+        constructorArgs = (0, import_viem3.encodeAbiParameters)(params, values);
+      }
+      onProgress?.(`Deploying ${contractConfig.name} (${contractConfig.contract}) to [${target.chains.join(", ")}]`);
+      const results = await deployFn({
+        contractName: contractConfig.contract,
+        bytecode: artifact.bytecode,
+        constructorArgs,
+        salt,
+        chains: target.chains,
+        strategy: target.strategy
+      });
+      for (const r of results) {
+        book = setAddress(book, contractConfig.name, r.chain, {
+          address: r.address,
+          txHash: r.txHash,
+          deployedAt: (/* @__PURE__ */ new Date()).toISOString()
+        });
+        deployed.push({ name: contractConfig.name, chain: r.chain, address: r.address });
+        if (!resolvedAddresses[contractConfig.name]) {
+          resolvedAddresses[contractConfig.name] = r.address;
+        }
+      }
+    }
+  }
+  return { book, deployed, skipped };
+}
+
+// src/deploy/verify.ts
+var import_promises2 = require("fs/promises");
+var VerificationError = class extends WormToolError {
+  constructor(message, cause) {
+    super(`Verification error: ${message}`, cause);
+  }
+};
+var CHAIN_API_MAP = {
+  1: "https://api.etherscan.io/api",
+  11155111: "https://api-sepolia.etherscan.io/api",
+  42161: "https://api.arbiscan.io/api",
+  421614: "https://api-sepolia.arbiscan.io/api",
+  8453: "https://api.basescan.org/api",
+  84532: "https://api-sepolia.basescan.org/api",
+  137: "https://api.polygonscan.com/api",
+  56: "https://api.bscscan.com/api"
+};
+var ETHERSCAN_API_DEFAULT = "https://api.etherscan.io/api";
+function buildVerificationPayload(opts) {
+  const { artifact, entry, constructorArgs, evmChainId, apiKey } = opts;
+  const compilerversion = artifact.compilerVersion.startsWith("v") ? artifact.compilerVersion : `v${artifact.compilerVersion}`;
+  const constructorArguements = constructorArgs.startsWith("0x") ? constructorArgs.slice(2) : constructorArgs;
+  return {
+    apikey: apiKey,
+    module: "contract",
+    action: "verifysourcecode",
+    contractaddress: entry.address,
+    sourceCode: "",
+    codeformat: "solidity-standard-json-input",
+    contractname: artifact.name,
+    compilerversion,
+    optimizationUsed: "1",
+    constructorArguements,
+    chainId: String(evmChainId)
+  };
+}
+async function verifyContract(opts) {
+  const { artifact, entry, constructorArgs, evmChainId, apiKey } = opts;
+  const apiUrl = CHAIN_API_MAP[evmChainId] ?? ETHERSCAN_API_DEFAULT;
+  let sourceCode = "{}";
+  const metadataPath = artifact.artifactPath.replace(/\.json$/, ".metadata.json");
+  try {
+    sourceCode = await (0, import_promises2.readFile)(metadataPath, "utf8");
+  } catch {
+  }
+  const payload = buildVerificationPayload({ artifact, entry, constructorArgs, evmChainId, apiKey });
+  payload.sourceCode = sourceCode;
+  const body = new URLSearchParams();
+  for (const [key, value] of Object.entries(payload)) {
+    if (value !== void 0) {
+      body.set(key, String(value));
+    }
+  }
+  const response = await fetch(apiUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString()
+  });
+  if (!response.ok) {
+    throw new VerificationError(`HTTP ${response.status} from ${apiUrl}`);
+  }
+  const result = await response.json();
+  if (result.status !== "1") {
+    return { success: false, message: result.result ?? result.message ?? "Unknown error" };
+  }
+  return result.result !== void 0 ? { success: true, guid: result.result, message: "Verification submitted" } : { success: true, message: "Verification submitted" };
+}
+
+// src/deploy/storage-diff.ts
+var StorageDiffError = class extends WormToolError {
+  constructor(message) {
+    super(`Storage diff error: ${message}`);
+  }
+};
+function diffStorageLayouts(oldLayout, newLayout) {
+  const issues = [];
+  const oldByLabel = new Map(oldLayout.storage.map((v) => [v.label, v]));
+  const newByLabel = new Map(newLayout.storage.map((v) => [v.label, v]));
+  for (const [label, oldVar] of oldByLabel) {
+    const newVar = newByLabel.get(label);
+    if (!newVar) {
+      issues.push({
+        severity: "critical",
+        variable: label,
+        message: `Variable "${label}" was removed \u2014 this corrupts storage on upgrade`
+      });
+      continue;
+    }
+    if (newVar.type !== oldVar.type) {
+      issues.push({
+        severity: "critical",
+        variable: label,
+        message: `Variable "${label}" changed type from "${oldVar.type}" to "${newVar.type}"`
+      });
+    }
+    if (newVar.slot !== oldVar.slot) {
+      issues.push({
+        severity: "critical",
+        variable: label,
+        message: `Variable "${label}" moved from slot ${oldVar.slot} to ${newVar.slot}`
+      });
+    }
+    if (newVar.offset !== oldVar.offset) {
+      issues.push({
+        severity: "critical",
+        variable: label,
+        message: `Variable "${label}" offset changed from ${oldVar.offset} to ${newVar.offset}`
+      });
+    }
+  }
+  for (const [label] of newByLabel) {
+    if (!oldByLabel.has(label)) {
+      issues.push({
+        severity: "warning",
+        variable: label,
+        message: `New variable "${label}" added \u2014 ensure it is appended after all existing variables`
+      });
+    }
+  }
+  return { safe: issues.every((i) => i.severity === "warning"), issues };
+}
+
 // src/deploy/index.ts
 var DEPLOY_ABI = [{
   name: "deployAcrossChains",
@@ -628,7 +1166,7 @@ async function deployAcrossChains(params) {
   const [sourceChain, ...rest] = chains;
   if (!sourceChain) throw new WormToolError("deployAcrossChains: at least one chain required");
   const targetChainIds = rest.map((c) => Number(c.chainId));
-  const data = (0, import_viem3.encodeFunctionData)({
+  const data = (0, import_viem4.encodeFunctionData)({
     abi: DEPLOY_ABI,
     functionName: "deployAcrossChains",
     args: [targetChainIds, bytecode, salt, constructorArgs, true]
@@ -641,7 +1179,7 @@ async function callAcrossChains(params) {
   const [sourceChain, ...rest] = chains;
   if (!sourceChain) throw new WormToolError("callAcrossChains: at least one chain required");
   const targetChainIds = rest.map((c) => Number(c.chainId));
-  const data = (0, import_viem3.encodeFunctionData)({
+  const data = (0, import_viem4.encodeFunctionData)({
     abi: CALL_ABI,
     functionName: "callAcrossChains",
     args: [targetChainIds, target, calldata, 3000000n]
@@ -654,7 +1192,7 @@ async function upgradeAcrossChains(params) {
   const [sourceChain, ...rest] = chains;
   if (!sourceChain) throw new WormToolError("upgradeAcrossChains: at least one chain required");
   const targetChainIds = rest.map((c) => Number(c.chainId));
-  const data = (0, import_viem3.encodeFunctionData)({
+  const data = (0, import_viem4.encodeFunctionData)({
     abi: UPGRADE_ABI,
     functionName: "upgradeAcrossChains",
     args: [targetChainIds, proxy, newImpl, true]
@@ -719,10 +1257,10 @@ function getChainInfo(nameOrId) {
 }
 
 // src/transfer.ts
-var import_viem4 = require("viem");
+var import_viem5 = require("viem");
 function encodeTransferData(params) {
-  return (0, import_viem4.encodeAbiParameters)(
-    (0, import_viem4.parseAbiParameters)("address token, uint256 amount, uint16 recipientChain, bytes32 recipient, uint256 relayerFee, uint32 nonce"),
+  return (0, import_viem5.encodeAbiParameters)(
+    (0, import_viem5.parseAbiParameters)("address token, uint256 amount, uint16 recipientChain, bytes32 recipient, uint256 relayerFee, uint32 nonce"),
     [
       params.tokenAddress,
       params.amount,
@@ -740,7 +1278,7 @@ async function initiateTransfer(params) {
 }
 
 // src/tokens.ts
-var import_viem5 = require("viem");
+var import_viem6 = require("viem");
 function encodeErc20Call(selector) {
   return selector;
 }
@@ -751,7 +1289,7 @@ async function callString(chain, token, selector) {
   const result = await chain.call(token, encodeErc20Call(selector));
   if (result === "0x" || result.length <= 2) return "";
   try {
-    const [value] = (0, import_viem5.decodeAbiParameters)((0, import_viem5.parseAbiParameters)("string"), result);
+    const [value] = (0, import_viem6.decodeAbiParameters)((0, import_viem6.parseAbiParameters)("string"), result);
     return value;
   } catch {
     return "";
@@ -761,7 +1299,7 @@ async function callUint8(chain, token, selector) {
   const result = await chain.call(token, encodeErc20Call(selector));
   if (result === "0x" || result.length <= 2) return 18;
   try {
-    const [value] = (0, import_viem5.decodeAbiParameters)((0, import_viem5.parseAbiParameters)("uint8"), result);
+    const [value] = (0, import_viem6.decodeAbiParameters)((0, import_viem6.parseAbiParameters)("uint8"), result);
     return Number(value);
   } catch {
     return 18;
@@ -777,12 +1315,12 @@ async function getTokenInfo(chain, tokenAddress) {
 }
 var ERC20_BALANCE_OF_SELECTOR = "0x70a08231";
 async function getTokenBalance(chain, tokenAddress, walletAddress) {
-  const calldata = ERC20_BALANCE_OF_SELECTOR + (0, import_viem5.encodeAbiParameters)((0, import_viem5.parseAbiParameters)("address"), [walletAddress]).slice(2);
+  const calldata = ERC20_BALANCE_OF_SELECTOR + (0, import_viem6.encodeAbiParameters)((0, import_viem6.parseAbiParameters)("address"), [walletAddress]).slice(2);
   const result = await chain.call(tokenAddress, calldata);
   let balance = 0n;
   if (result !== "0x" && result.length > 2) {
     try {
-      const [v] = (0, import_viem5.decodeAbiParameters)((0, import_viem5.parseAbiParameters)("uint256"), result);
+      const [v] = (0, import_viem6.decodeAbiParameters)((0, import_viem6.parseAbiParameters)("uint256"), result);
       balance = v;
     } catch {
     }
@@ -877,8 +1415,8 @@ function generateTestVaaHex(params) {
 }
 
 // src/toolchain/detect.ts
-var import_promises = require("fs/promises");
-var import_path = require("path");
+var import_promises3 = require("fs/promises");
+var import_path2 = require("path");
 var ToolchainNotFoundError = class extends WormToolError {
   constructor(root) {
     super(`${root} is not a Foundry or Hardhat project (no foundry.toml or hardhat.config.ts/js found)`);
@@ -886,7 +1424,7 @@ var ToolchainNotFoundError = class extends WormToolError {
 };
 async function exists(path) {
   try {
-    await (0, import_promises.access)(path);
+    await (0, import_promises3.access)(path);
     return true;
   } catch {
     return false;
@@ -894,29 +1432,29 @@ async function exists(path) {
 }
 async function foundryArtifactDir(root) {
   try {
-    const toml = await (0, import_promises.readFile)((0, import_path.join)(root, "foundry.toml"), "utf8");
+    const toml = await (0, import_promises3.readFile)((0, import_path2.join)(root, "foundry.toml"), "utf8");
     const match = /^\s*out\s*=\s*"([^"]+)"/m.exec(toml);
-    return (0, import_path.join)(root, match?.[1] ?? "out");
+    return (0, import_path2.join)(root, match?.[1] ?? "out");
   } catch {
-    return (0, import_path.join)(root, "out");
+    return (0, import_path2.join)(root, "out");
   }
 }
 async function detectToolchain(root) {
-  const hasFoundry = await exists((0, import_path.join)(root, "foundry.toml"));
+  const hasFoundry = await exists((0, import_path2.join)(root, "foundry.toml"));
   if (hasFoundry) {
     return { type: "foundry", root, artifactDir: await foundryArtifactDir(root) };
   }
-  const hasHardhatTs = await exists((0, import_path.join)(root, "hardhat.config.ts"));
-  const hasHardhatJs = await exists((0, import_path.join)(root, "hardhat.config.js"));
+  const hasHardhatTs = await exists((0, import_path2.join)(root, "hardhat.config.ts"));
+  const hasHardhatJs = await exists((0, import_path2.join)(root, "hardhat.config.js"));
   if (hasHardhatTs || hasHardhatJs) {
-    return { type: "hardhat", root, artifactDir: (0, import_path.join)(root, "artifacts") };
+    return { type: "hardhat", root, artifactDir: (0, import_path2.join)(root, "artifacts") };
   }
   throw new ToolchainNotFoundError(root);
 }
 
 // src/toolchain/foundry.ts
-var import_promises2 = require("fs/promises");
-var import_path2 = require("path");
+var import_promises4 = require("fs/promises");
+var import_path3 = require("path");
 
 // src/toolchain/utils.ts
 function extractConstructorInputs(abi) {
@@ -931,20 +1469,20 @@ async function readFoundryArtifacts(artifactDir) {
   const results = [];
   let solDirs;
   try {
-    const entries = await (0, import_promises2.readdir)(artifactDir, { withFileTypes: true });
-    solDirs = entries.filter((e) => e.isDirectory() && e.name.endsWith(".sol")).map((e) => (0, import_path2.join)(artifactDir, e.name));
+    const entries = await (0, import_promises4.readdir)(artifactDir, { withFileTypes: true });
+    solDirs = entries.filter((e) => e.isDirectory() && e.name.endsWith(".sol")).map((e) => (0, import_path3.join)(artifactDir, e.name));
   } catch {
     return [];
   }
   for (const solDir of solDirs) {
-    const files = await (0, import_promises2.readdir)(solDir);
+    const files = await (0, import_promises4.readdir)(solDir);
     for (const file of files) {
       if (!file.endsWith(".json")) continue;
-      const contractName = (0, import_path2.basename)(file, ".json");
-      const artifactPath = (0, import_path2.join)(solDir, file);
+      const contractName = (0, import_path3.basename)(file, ".json");
+      const artifactPath = (0, import_path3.join)(solDir, file);
       let raw;
       try {
-        raw = JSON.parse(await (0, import_promises2.readFile)(artifactPath, "utf8"));
+        raw = JSON.parse(await (0, import_promises4.readFile)(artifactPath, "utf8"));
       } catch (err) {
         process.stderr.write(`Warning: failed to parse artifact ${artifactPath}: ${err instanceof Error ? err.message : String(err)}
 `);
@@ -978,14 +1516,14 @@ async function readFoundryArtifacts(artifactDir) {
 }
 
 // src/toolchain/hardhat.ts
-var import_promises3 = require("fs/promises");
-var import_path3 = require("path");
+var import_promises5 = require("fs/promises");
+var import_path4 = require("path");
 async function walkArtifactDir(dir) {
   const paths = [];
   try {
-    const entries = await (0, import_promises3.readdir)(dir, { withFileTypes: true });
+    const entries = await (0, import_promises5.readdir)(dir, { withFileTypes: true });
     for (const entry of entries) {
-      const full = (0, import_path3.join)(dir, entry.name);
+      const full = (0, import_path4.join)(dir, entry.name);
       if (entry.isDirectory()) {
         paths.push(...await walkArtifactDir(full));
       } else if (entry.name.endsWith(".json") && !entry.name.endsWith(".dbg.json")) {
@@ -1002,14 +1540,14 @@ async function readHardhatArtifacts(artifactDir) {
   for (const artifactPath of files) {
     let raw;
     try {
-      raw = JSON.parse(await (0, import_promises3.readFile)(artifactPath, "utf8"));
+      raw = JSON.parse(await (0, import_promises5.readFile)(artifactPath, "utf8"));
     } catch (err) {
       process.stderr.write(`Warning: failed to parse artifact ${artifactPath}: ${err instanceof Error ? err.message : String(err)}
 `);
       continue;
     }
     if (!raw._format?.startsWith("hh-sol-artifact")) continue;
-    const contractName = raw.contractName ?? (0, import_path3.basename)(artifactPath, ".json");
+    const contractName = raw.contractName ?? (0, import_path4.basename)(artifactPath, ".json");
     const sourcePath = raw.sourceName ?? `contracts/${contractName}.sol`;
     const bytecodeRaw = raw.bytecode ?? "0x";
     const bytecode = bytecodeRaw.startsWith("0x") ? bytecodeRaw : "0x" + bytecodeRaw;
@@ -1047,22 +1585,30 @@ var SDK_VERSION = "0.0.1";
   CHAIN_REGISTRY,
   ChainNotSupportedError,
   ContractCallError,
+  EngineError,
   EvmChain,
+  ManifestParseError,
   MessageStatus,
   NearChain,
   PrivateKeyError,
   RpcError,
   SDK_VERSION,
   SolanaChain,
+  StorageDiffError,
   SuiChain,
   ToolchainNotFoundError,
   VaaParseError,
+  VerificationError,
   WormToolError,
+  buildDependencyOrder,
+  buildDeployPlan,
+  buildVerificationPayload,
   callAcrossChains,
   checkContractDeployed,
   computeCreate2Address,
   deployAcrossChains,
   detectToolchain,
+  diffStorageLayouts,
   encodeCallMessage,
   encodeDeployMessage,
   encodeUpgradeMessage,
@@ -1070,16 +1616,29 @@ var SDK_VERSION = "0.0.1";
   extractBytecode,
   generateTestVaa,
   generateTestVaaHex,
+  getAddress,
   getChainById,
   getChainByName,
   getChainInfo,
   getMessageStatus,
   getTokenBalance,
   getTokenInfo,
+  importFromFoundryBroadcast,
+  importFromHardhatDeploy,
   initiateTransfer,
+  isDeployed,
   listArtifacts,
+  loadAddressBook,
   measureSigningLatency,
+  mergePartialBook,
+  parseManifest,
   parseVaa,
-  upgradeAcrossChains
+  resolveEnvVars,
+  resolveTemplateArg,
+  runDeployment,
+  saveAddressBook,
+  setAddress,
+  upgradeAcrossChains,
+  verifyContract
 });
 //# sourceMappingURL=index.cjs.map

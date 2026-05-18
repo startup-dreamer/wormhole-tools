@@ -1,4 +1,5 @@
 import { readFile } from 'fs/promises';
+import { join } from 'path';
 import type { Command } from 'commander';
 import {
   extractBytecode,
@@ -8,7 +9,9 @@ import {
   upgradeAcrossChains,
   checkContractDeployed,
   getChainByName,
+  diffStorageLayouts,
 } from '@worm-tool/sdk';
+import type { StorageLayout } from '@worm-tool/sdk';
 import { keccak_256 } from '@noble/hashes/sha3';
 import { loadConfig } from '../config.js';
 import { createEvmChain } from '../providers/evm.js';
@@ -186,8 +189,6 @@ export function registerDeployCommand(program: Command): void {
     .action(async (opts: { project?: string }) => {
       try {
         const root = opts.project ?? process.cwd();
-        const { readFile } = await import('fs/promises');
-        const { join } = await import('path');
         const { parseManifest, loadAddressBook, buildDeployPlan } = await import('@worm-tool/sdk');
         const manifestYaml = await readFile(join(root, 'worm-tool.deploy.yaml'), 'utf8');
         const manifest = parseManifest(manifestYaml);
@@ -208,8 +209,6 @@ export function registerDeployCommand(program: Command): void {
       try {
         const root = opts.project ?? process.cwd();
         const config = loadConfig();
-        const { readFile } = await import('fs/promises');
-        const { join } = await import('path');
         const {
           parseManifest, loadAddressBook, saveAddressBook,
           detectToolchain, listArtifacts, runDeployment,
@@ -236,19 +235,11 @@ export function registerDeployCommand(program: Command): void {
         const artifacts = await listArtifacts(toolchain);
         const book = await loadAddressBook(root);
 
-        const saltFn = (s: string): `0x${string}` => {
-          if (/^(0x)?[0-9a-fA-F]{64}$/.test(s)) {
-            return (s.startsWith('0x') ? s : '0x' + s) as `0x${string}`;
-          }
-          const hash = keccak_256(new TextEncoder().encode(s));
-          return ('0x' + Array.from(hash, (b: number) => b.toString(16).padStart(2, '0')).join('')) as `0x${string}`;
-        };
-
         const result = await runDeployment({
           manifest,
           book,
           artifacts,
-          saltFn,
+          saltFn: saltFromStr,
           onProgress: (msg) => process.stderr.write(msg + '\n'),
           deployFn: async ({ bytecode, constructorArgs, salt, chains }) => {
             const firstChain = chains[0] ?? '';
@@ -309,8 +300,6 @@ export function registerDeployCommand(program: Command): void {
     .action(async (opts: { project?: string; network?: string; contract?: string; constructorArgs?: string }) => {
       try {
         const root = opts.project ?? process.cwd();
-        const { readFile } = await import('fs/promises');
-        const { join } = await import('path');
         const { parseManifest, loadAddressBook, detectToolchain, listArtifacts, verifyContract, getChainByName } = await import('@worm-tool/sdk');
 
         const apiKey = process.env['WORM_TOOL_ETHERSCAN_API_KEY'];
@@ -360,7 +349,8 @@ export function registerDeployCommand(program: Command): void {
     .requiredOption('--chains <chains>', 'Comma-separated chain names')
     .option('--project <dir>', 'Project root (default: cwd)')
     .option('--force', 'Skip storage safety check and upgrade anyway')
-    .action(async (opts: { contract: string; newImpl: string; chains: string; project?: string; force?: boolean }) => {
+    .option('--old-artifact <path>', 'Path to old implementation artifact JSON (for storage layout comparison)')
+    .action(async (opts: { contract: string; newImpl: string; chains: string; project?: string; force?: boolean; oldArtifact?: string }) => {
       try {
         const root = opts.project ?? process.cwd();
         const config = loadConfig();
@@ -379,8 +369,25 @@ export function registerDeployCommand(program: Command): void {
         const chainNames = opts.chains.split(',').map(s => s.trim());
 
         // Storage layout safety check
-        if (!opts.force) {
-          process.stderr.write('Note: storage layout comparison requires the old implementation artifact. Use --force to skip, or provide the old artifact manually. Proceeding with upgrade.\n');
+        if (!opts.force && opts.oldArtifact) {
+          const oldJson = JSON.parse(await readFile(opts.oldArtifact, 'utf8')) as {
+            storageLayout?: StorageLayout;
+          };
+          const oldLayout = oldJson.storageLayout;
+          const newLayout = artifact.storageLayout;
+          if (oldLayout && newLayout) {
+            const diff = diffStorageLayouts(oldLayout, newLayout);
+            if (!diff.safe) {
+              printError('Storage layout check failed — upgrade blocked (use --force to override)', undefined);
+              printJson(diff.issues);
+              process.exit(1);
+            }
+            process.stderr.write('Storage layout check passed.\n');
+          } else {
+            process.stderr.write('Warning: storageLayout not available in artifact(s). Proceeding without safety check.\n');
+          }
+        } else if (!opts.force) {
+          process.stderr.write('Tip: use --old-artifact <path> to enable storage layout safety check before upgrading.\n');
         }
 
         // Get proxy address from address book
@@ -417,8 +424,6 @@ export function registerDeployCommand(program: Command): void {
     .action(async (opts: { project?: string }) => {
       try {
         const root = opts.project ?? process.cwd();
-        const { readFile } = await import('fs/promises');
-        const { join } = await import('path');
         const { parseManifest, loadAddressBook, isDeployed } = await import('@worm-tool/sdk');
 
         const manifestYaml = await readFile(join(root, 'worm-tool.deploy.yaml'), 'utf8');

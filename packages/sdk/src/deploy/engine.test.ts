@@ -144,3 +144,39 @@ describe('runDeployment', () => {
     })).rejects.toThrow('MyToken');
   });
 });
+
+describe('bool constructor arg encoding', () => {
+  it('correctly encodes bool constructor arg', async () => {
+    const boolArtifact: ContractMeta = {
+      name: 'Toggle',
+      sourcePath: 'src/Toggle.sol',
+      artifactPath: '/tmp/Toggle.json',
+      abi: [{ type: 'constructor', inputs: [{ name: '_enabled', type: 'bool' }], stateMutability: 'nonpayable' }],
+      bytecode: '0x6080' as `0x${string}`,
+      constructorInputs: [{ name: '_enabled', type: 'bool' }] as any,
+      isAbstract: false,
+      isInterface: false,
+      compilerVersion: '0.8.24',
+    };
+    const boolManifest: DeployManifest = {
+      version: '1',
+      networks: { sepolia: { chain: 'sepolia', rpc: 'http://localhost' } },
+      deployer: { salt: 'test' },
+      contracts: [{ name: 'Toggle', contract: 'Toggle', args: [{ type: 'bool', value: 'true' }] }],
+      deploy_targets: [{ contracts: ['Toggle'], chains: ['sepolia'], strategy: 'cross-chain' }],
+    };
+    const deployFn = vi.fn().mockResolvedValue([{ chain: 'sepolia', address: '0xfeed' as `0x${string}`, txHash: '0xtx' }]);
+    const result = await runDeployment({
+      manifest: boolManifest,
+      book: { version: '1', salt: '', contracts: {} },
+      artifacts: [boolArtifact],
+      deployFn,
+      saltFn: () => '0x' + '00'.repeat(32) as `0x${string}`,
+    });
+    expect(deployFn).toHaveBeenCalledOnce();
+    const callArgs = deployFn.mock.calls[0]![0];
+    // constructorArgs should be ABI-encoded bool(true) = 32 bytes of 0x...01
+    expect(callArgs.constructorArgs).not.toBe('0x');
+    expect(result.deployed[0]!.address).toBe('0xfeed');
+  });
+});

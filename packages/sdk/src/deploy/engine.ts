@@ -276,18 +276,11 @@ export async function runDeployment(opts: EngineRunOptions): Promise<EngineRunRe
         const params = artifact.constructorInputs as AbiParameter[];
         const values = resolvedArgs.map((arg, i) => {
           const param = params[i];
-          if (!param) {
-            throw new EngineError(
-              `Too many args for ${contractConfig.name} constructor (expected ${params.length}, got ${resolvedArgs.length})`,
-            );
-          }
-          if (
-            param.type === 'uint256' ||
-            param.type.startsWith('uint') ||
-            param.type.startsWith('int')
-          ) {
-            return BigInt(arg.value);
-          }
+          if (!param) throw new EngineError(`Too many args for "${contractConfig.name}" constructor (expected ${params.length})`);
+          const t = param.type;
+          if (t === 'bool') return arg.value === 'true' || arg.value === '1';
+          if (t.startsWith('uint') || t.startsWith('int')) return BigInt(arg.value);
+          // string, address, bytes, bytes32, etc. — pass as string; viem handles the encoding
           return arg.value;
         });
         constructorArgs = encodeAbiParameters(params, values);

@@ -8,6 +8,7 @@ export { getChainById, getChainByName, CHAIN_REGISTRY } from './registry.js';
 export type { ChainEntry } from './registry.js';
 export { checkContractDeployed } from './status.js';
 export * from './abi.js';
+export * from './manifest.js';
 
 /** Minimal ABI fragment for WormToolDeployer.deployAcrossChains. */
 const DEPLOY_ABI = [{

@@ -13,19 +13,22 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit",
+    "lint": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "clean": "rm -rf dist"
   },
   "dependencies": {
     "@noble/hashes": "^1.4.0",
     "@solana/web3.js": "^1.95.0",
     "bs58": "^6.0.0",
-    "viem": "^2.0.0"
+    "viem": "^2.0.0",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

@@ -9,6 +9,7 @@ export type { ChainEntry } from './registry.js';
 export { checkContractDeployed } from './status.js';
 export * from './abi.js';
 export * from './manifest.js';
+export * from './address-book.js';
 
 /** Minimal ABI fragment for WormToolDeployer.deployAcrossChains. */
 const DEPLOY_ABI = [{

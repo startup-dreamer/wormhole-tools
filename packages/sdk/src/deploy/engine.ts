@@ -93,17 +93,8 @@ export function buildDependencyOrder(
     }
   }
 
-  // In-degree count
+  // In-degree = number of deps each node has
   const inDegree = new Map<string, number>();
-  for (const c of contracts) inDegree.set(c.name, 0);
-  for (const [, depList] of deps) {
-    for (const dep of depList) {
-      const cur = inDegree.get(dep) ?? 0;
-      // dep must be decremented for node not dep — recalc properly below
-      void cur;
-    }
-  }
-  // Reset and recompute: in-degree = number of deps each node has
   for (const c of contracts) {
     inDegree.set(c.name, (deps.get(c.name) ?? []).length);
   }

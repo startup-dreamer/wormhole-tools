@@ -177,4 +177,143 @@ export function registerDeployCommand(program: Command): void {
         printJson(results);
       } catch (err) { printError('deploy status failed', err); process.exit(1); }
     });
+
+  // ── deploy plan ───────────────────────────────────────────────────────────
+  deploy
+    .command('plan')
+    .description('Dry-run: show what would be deployed and in what order')
+    .option('--project <dir>', 'Project root (default: cwd)')
+    .action(async (opts: { project?: string }) => {
+      try {
+        const root = opts.project ?? process.cwd();
+        const { readFile } = await import('fs/promises');
+        const { join } = await import('path');
+        const { parseManifest, loadAddressBook, buildDeployPlan } = await import('@worm-tool/sdk');
+        const manifestYaml = await readFile(join(root, 'worm-tool.deploy.yaml'), 'utf8');
+        const manifest = parseManifest(manifestYaml);
+        const book = await loadAddressBook(root);
+        const plan = buildDeployPlan(manifest, book);
+        printJson(plan);
+      } catch (err) { printError('deploy plan failed', err); process.exit(1); }
+    });
+
+  // ── deploy run ────────────────────────────────────────────────────────────
+  deploy
+    .command('run')
+    .description('Execute worm-tool.deploy.yaml — deploy all contracts to target chains')
+    .option('--project <dir>', 'Project root (default: cwd)')
+    .option('--network <name>', 'Limit to one network from the manifest')
+    .option('--only <contract>', 'Deploy only this contract')
+    .action(async (opts: { project?: string; network?: string; only?: string }) => {
+      try {
+        const root = opts.project ?? process.cwd();
+        const config = loadConfig();
+        const { readFile } = await import('fs/promises');
+        const { join } = await import('path');
+        const {
+          parseManifest, loadAddressBook, saveAddressBook,
+          detectToolchain, listArtifacts, runDeployment,
+          deployAcrossChains, getChainByName,
+        } = await import('@worm-tool/sdk');
+        const { keccak_256 } = await import('@noble/hashes/sha3');
+
+        const manifestYaml = await readFile(join(root, 'worm-tool.deploy.yaml'), 'utf8');
+        let manifest = parseManifest(manifestYaml);
+
+        if (opts.only) {
+          manifest = { ...manifest, contracts: manifest.contracts.filter(c => c.name === opts.only) };
+        }
+        if (opts.network) {
+          manifest = {
+            ...manifest,
+            deploy_targets: manifest.deploy_targets.map(t => ({
+              ...t,
+              chains: t.chains.filter(c => c === opts.network),
+            })).filter(t => t.chains.length > 0),
+          };
+        }
+
+        const toolchain = await detectToolchain(root);
+        const artifacts = await listArtifacts(toolchain);
+        const book = await loadAddressBook(root);
+
+        const saltFn = (s: string): `0x${string}` => {
+          if (/^(0x)?[0-9a-fA-F]{64}$/.test(s)) {
+            return (s.startsWith('0x') ? s : '0x' + s) as `0x${string}`;
+          }
+          const hash = keccak_256(new TextEncoder().encode(s));
+          return ('0x' + Array.from(hash, (b: number) => b.toString(16).padStart(2, '0')).join('')) as `0x${string}`;
+        };
+
+        const result = await runDeployment({
+          manifest,
+          book,
+          artifacts,
+          saltFn,
+          onProgress: (msg) => process.stderr.write(msg + '\n'),
+          deployFn: async ({ bytecode, constructorArgs, salt, chains, strategy }) => {
+            const firstChain = chains[0] ?? '';
+            const networkEntry = manifest.networks[firstChain];
+            const resolvedChainName = networkEntry?.chain ?? firstChain;
+            const chainEntry = getChainByName(resolvedChainName);
+            if (!chainEntry?.wormToolDeployer) {
+              throw new Error(`No WormToolDeployer address for chain "${firstChain}" — set --deployer or add to chain registry`);
+            }
+            const allChainObjs = chains.map(n => {
+              const net = manifest.networks[n];
+              return createEvmChain(net?.chain ?? n, config);
+            });
+            const txResults = await deployAcrossChains({
+              chains: allChainObjs,
+              bytecode,
+              salt,
+              wormToolDeployerAddress: chainEntry.wormToolDeployer,
+              ...(constructorArgs !== '0x' && { constructorArgs }),
+            });
+            void strategy;
+            return txResults.map((r: { chain: string; receipt: { txHash: string } }) => ({
+              chain: r.chain,
+              address: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+              txHash: r.receipt.txHash,
+            }));
+          },
+        });
+
+        await saveAddressBook(root, result.book);
+        printJson({
+          deployed: result.deployed,
+          skipped: result.skipped.map(s => s.name),
+        });
+      } catch (err) { printError('deploy run failed', err); process.exit(1); }
+    });
+
+  // ── deploy diff ───────────────────────────────────────────────────────────
+  deploy
+    .command('diff')
+    .description('Compare manifest targets vs what is in the address book')
+    .option('--project <dir>', 'Project root (default: cwd)')
+    .action(async (opts: { project?: string }) => {
+      try {
+        const root = opts.project ?? process.cwd();
+        const { readFile } = await import('fs/promises');
+        const { join } = await import('path');
+        const { parseManifest, loadAddressBook, isDeployed } = await import('@worm-tool/sdk');
+
+        const manifestYaml = await readFile(join(root, 'worm-tool.deploy.yaml'), 'utf8');
+        const manifest = parseManifest(manifestYaml);
+        const book = await loadAddressBook(root);
+
+        const rows: Array<{ contract: string; chain: string; status: 'deployed' | 'missing'; address?: string }> = [];
+        for (const target of manifest.deploy_targets) {
+          for (const contractName of target.contracts) {
+            for (const chain of target.chains) {
+              const dep = isDeployed(book, contractName, chain);
+              const address = book.contracts[contractName]?.[chain]?.address;
+              rows.push({ contract: contractName, chain, status: dep ? 'deployed' : 'missing', ...(address ? { address } : {}) });
+            }
+          }
+        }
+        printJson(rows);
+      } catch (err) { printError('deploy diff failed', err); process.exit(1); }
+    });
 }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>worm-tool — Wormhole CLI & SDK</title>
+  <title>wormcraft — Wormhole CLI & SDK</title>
   <style>
     :root {
       --bg: #0d1117;
@@ -281,7 +281,7 @@
     <span class="badge green">Wormhole Protocol</span>
     <span class="badge">EVM · Solana · Aptos · NEAR · Sui</span>
   </div>
-  <h1>The <span class="hl">worm-tool</span> CLI</h1>
+  <h1>The <span class="hl">wormcraft</span> CLI</h1>
   <p class="tagline">
     Query, parse, and interact with the Wormhole cross-chain protocol — plus a full deploy pipeline for cross-chain contracts.
   </p>
@@ -295,8 +295,8 @@
   <p>Requires Node.js 18+</p>
   <div class="install-cmd">
     <span class="dollar">$</span>
-    <span>npm install -g worm-tool</span>
-    <button class="copy-btn" onclick="navigator.clipboard.writeText('npm install -g worm-tool').then(()=>{this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button>
+    <span>npm install -g wormcraft</span>
+    <button class="copy-btn" onclick="navigator.clipboard.writeText('npm install -g wormcraft').then(()=>{this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button>
   </div>
 </div>
 
@@ -307,20 +307,20 @@
     <h2>Quick start</h2>
     <p>After installing, create a config file and run your first command:</p>
     <pre><span class="cm"># Create config directory and .env</span>
-mkdir -p ~/.worm-tool
-cat &gt; ~/.worm-tool/.env &lt;&lt; EOF
-WORM_TOOL_ETH_RPC=https://mainnet.infura.io/v3/YOUR_KEY
-WORM_TOOL_SOL_RPC=https://api.mainnet-beta.solana.com
+mkdir -p ~/.wormcraft
+cat &gt; ~/.wormcraft/.env &lt;&lt; EOF
+WORMCRAFT_ETH_RPC=https://mainnet.infura.io/v3/YOUR_KEY
+WORMCRAFT_SOL_RPC=https://api.mainnet-beta.solana.com
 EOF
 
 <span class="cm"># Explore supported chains</span>
-<span class="cmd">worm-tool</span> <span class="sub">info chains</span>
+<span class="cmd">wormcraft</span> <span class="sub">info chains</span>
 
 <span class="cm"># Look up a VAA by transaction hash</span>
-<span class="cmd">worm-tool</span> <span class="sub">status</span> <span class="kw">--chain</span> ethereum <span class="kw">--tx</span> 0xabc123...
+<span class="cmd">wormcraft</span> <span class="sub">status</span> <span class="kw">--chain</span> ethereum <span class="kw">--tx</span> 0xabc123...
 
 <span class="cm"># Parse a VAA hex string</span>
-<span class="cmd">worm-tool</span> <span class="sub">parse</span> 010000000001...</pre>
+<span class="cmd">wormcraft</span> <span class="sub">parse</span> 010000000001...</pre>
   </section>
 
   <!-- Features -->
@@ -408,17 +408,17 @@ EOF
   <section id="deploy">
     <h2>Deploy pipeline</h2>
     <p>
-      <code>worm-tool deploy</code> ships your contract to every chain from a single YAML manifest.
+      <code>wormcraft deploy</code> ships your contract to every chain from a single YAML manifest.
       Deployments are deterministic — the same address on every chain — thanks to CREATE2 via
       <code>WormToolDeployer</code>.
     </p>
 
     <h3>1. Initialize a manifest</h3>
-    <pre><span class="cmd">worm-tool</span> <span class="sub">deploy init</span>
-<span class="cm"># Creates worm-tool.deploy.yaml in the current directory</span></pre>
+    <pre><span class="cmd">wormcraft</span> <span class="sub">deploy init</span>
+<span class="cm"># Creates wormcraft.deploy.yaml in the current directory</span></pre>
 
     <h3>2. Edit the manifest</h3>
-    <pre><span class="cm"># worm-tool.deploy.yaml</span>
+    <pre><span class="cm"># wormcraft.deploy.yaml</span>
 version: "1"
 contracts:
   MyToken:
@@ -430,44 +430,44 @@ contracts:
 
     <h3>3. Check &amp; preview</h3>
     <pre><span class="cm"># Run pre-deployment health checks</span>
-<span class="cmd">worm-tool</span> <span class="sub">doctor</span>
+<span class="cmd">wormcraft</span> <span class="sub">doctor</span>
 
 <span class="cm"># Preview what will be deployed (no transactions)</span>
-<span class="cmd">worm-tool</span> <span class="sub">deploy plan</span>
+<span class="cmd">wormcraft</span> <span class="sub">deploy plan</span>
 
 <span class="cm"># Diff storage layout vs previous version (upgrades)</span>
-<span class="cmd">worm-tool</span> <span class="sub">deploy diff</span> MyToken</pre>
+<span class="cmd">wormcraft</span> <span class="sub">deploy diff</span> MyToken</pre>
 
     <h3>4. Deploy</h3>
     <pre><span class="cm"># Dry-run: simulate without sending transactions</span>
-<span class="cmd">worm-tool</span> <span class="sub">deploy run</span> <span class="kw">--dry-run</span>
+<span class="cmd">wormcraft</span> <span class="sub">deploy run</span> <span class="kw">--dry-run</span>
 
 <span class="cm"># Live deploy to all chains in the manifest</span>
-<span class="cmd">worm-tool</span> <span class="sub">deploy run</span>
+<span class="cmd">wormcraft</span> <span class="sub">deploy run</span>
 
 <span class="cm"># Upgrade-safe: validates storage layout before upgrading</span>
-<span class="cmd">worm-tool</span> <span class="sub">deploy upgrade-safe</span> MyToken</pre>
+<span class="cmd">wormcraft</span> <span class="sub">deploy upgrade-safe</span> MyToken</pre>
 
     <h3>5. Verify on Etherscan</h3>
-    <pre><span class="cmd">worm-tool</span> <span class="sub">deploy verify</span> MyToken <span class="kw">--chain</span> ethereum</pre>
+    <pre><span class="cmd">wormcraft</span> <span class="sub">deploy verify</span> MyToken <span class="kw">--chain</span> ethereum</pre>
   </section>
 
   <!-- Config -->
   <section id="config">
     <h2>Configuration</h2>
     <p>
-      All config lives in <code>~/.worm-tool/.env</code>. Every variable is prefixed <code>WORM_TOOL_</code>.
+      All config lives in <code>~/.wormcraft/.env</code>. Every variable is prefixed <code>WORMCRAFT_</code>.
     </p>
     <table class="env-table">
       <tr><th>Variable</th><th>Description</th></tr>
-      <tr><td><code>WORM_TOOL_ETH_RPC</code></td><td>Ethereum JSON-RPC URL</td></tr>
-      <tr><td><code>WORM_TOOL_ARB_RPC</code></td><td>Arbitrum JSON-RPC URL</td></tr>
-      <tr><td><code>WORM_TOOL_BASE_RPC</code></td><td>Base JSON-RPC URL</td></tr>
-      <tr><td><code>WORM_TOOL_OPT_RPC</code></td><td>Optimism JSON-RPC URL</td></tr>
-      <tr><td><code>WORM_TOOL_SOL_RPC</code></td><td>Solana RPC URL</td></tr>
-      <tr><td><code>WORM_TOOL_PRIVATE_KEY</code></td><td>Deployer private key (hex, no 0x prefix)</td></tr>
-      <tr><td><code>WORM_TOOL_ETHERSCAN_KEY</code></td><td>Etherscan API key for contract verification</td></tr>
-      <tr><td><code>WORM_TOOL_NETWORK</code></td><td><code>mainnet</code> or <code>testnet</code> (default: mainnet)</td></tr>
+      <tr><td><code>WORMCRAFT_ETH_RPC</code></td><td>Ethereum JSON-RPC URL</td></tr>
+      <tr><td><code>WORMCRAFT_ARB_RPC</code></td><td>Arbitrum JSON-RPC URL</td></tr>
+      <tr><td><code>WORMCRAFT_BASE_RPC</code></td><td>Base JSON-RPC URL</td></tr>
+      <tr><td><code>WORMCRAFT_OPT_RPC</code></td><td>Optimism JSON-RPC URL</td></tr>
+      <tr><td><code>WORMCRAFT_SOL_RPC</code></td><td>Solana RPC URL</td></tr>
+      <tr><td><code>WORMCRAFT_PRIVATE_KEY</code></td><td>Deployer private key (hex, no 0x prefix)</td></tr>
+      <tr><td><code>WORMCRAFT_ETHERSCAN_KEY</code></td><td>Etherscan API key for contract verification</td></tr>
+      <tr><td><code>WORMCRAFT_NETWORK</code></td><td><code>mainnet</code> or <code>testnet</code> (default: mainnet)</td></tr>
     </table>
     <p style="margin-top:1rem">
       You can also pass <code>--testnet</code> to most commands to override the network for that invocation.
@@ -479,8 +479,8 @@ contracts:
     <h2>SDK</h2>
     <p>All CLI functionality is also available as a TypeScript library:</p>
     <pre><span class="cm"># Install the SDK</span>
-npm install @worm-tool/sdk</pre>
-    <pre><span class="kw">import</span> { getChainInfo, parseVaa, getMessageStatus } <span class="kw">from</span> <span class="str">"@worm-tool/sdk"</span>;
+npm install @wormcraft/sdk</pre>
+    <pre><span class="kw">import</span> { getChainInfo, parseVaa, getMessageStatus } <span class="kw">from</span> <span class="str">"@wormcraft/sdk"</span>;
 
 <span class="cm">// Look up chain metadata</span>
 <span class="kw">const</span> chain = getChainInfo(<span class="str">"ethereum"</span>);

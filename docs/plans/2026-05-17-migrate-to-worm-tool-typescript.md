@@ -14,28 +14,28 @@
 
 ## Current Codebase Map (What We're Replacing)
 
-| Rust File | Lines | TypeScript Equivalent |
-|-----------|-------|-----------------------|
-| `crates/wormhole-sdk/src/error.rs` | 41 | `packages/sdk/src/error.ts` |
-| `crates/wormhole-sdk/src/chain.rs` | 155 | `packages/sdk/src/chain.ts` |
-| `crates/wormhole-sdk/src/chains/evm.rs` | 691 | `packages/sdk/src/chains/evm.ts` |
-| `crates/wormhole-sdk/src/chains/solana.rs` | 233 | `packages/sdk/src/chains/solana.ts` |
-| `crates/wormhole-sdk/src/chains/{aptos,near,sui}.rs` | ~413 | `packages/sdk/src/chains/{aptos,near,sui}.ts` |
-| `crates/wormhole-sdk/src/deploy/mod.rs` | 480 | `packages/sdk/src/deploy/index.ts` |
-| `crates/wormhole-sdk/src/deploy/registry.rs` | 115 | `packages/sdk/src/deploy/registry.ts` |
-| `crates/wormhole-sdk/src/deploy/abi.rs` | 188 | `packages/sdk/src/deploy/abi.ts` |
-| `crates/wormhole-sdk/src/deploy/create2.rs` | 87 | `packages/sdk/src/deploy/create2.ts` |
-| `crates/wormhole-sdk/src/deploy/artifact.rs` | 86 | `packages/sdk/src/deploy/artifact.ts` |
-| `crates/wormhole-sdk/src/deploy/status.rs` | 76 | `packages/sdk/src/deploy/status.ts` |
-| `crates/wormhole-sdk/src/vaa/mod.rs` | 306 | `packages/sdk/src/vaa/index.ts` |
-| `crates/wormhole-sdk/src/{info,status,generate,transfer,latency,tokens}.rs` | ~1,885 | Same names under `packages/sdk/src/` |
-| `crates/wormhole-cli/src/config.rs` | 29 | `packages/cli/src/config.ts` |
-| `crates/wormhole-cli/src/output.rs` | 57 | `packages/cli/src/output.ts` |
-| `crates/wormhole-cli/src/providers/` | 228 | `packages/cli/src/providers/` |
-| `crates/wormhole-cli/src/commands/` | 1,797 | `packages/cli/src/commands/` |
-| `contracts/src/WormDeployer.sol` | 249 | `contracts/src/WormToolDeployer.sol` |
-| `contracts/src/WormOwnableProxy.sol` | 47 | `contracts/src/WormToolProxy.sol` |
-| `contracts/src/interfaces/IWormDeployer.sol` | 92 | `contracts/src/interfaces/IWormToolDeployer.sol` |
+| Rust File                                                                   | Lines  | TypeScript Equivalent                            |
+| --------------------------------------------------------------------------- | ------ | ------------------------------------------------ |
+| `crates/wormhole-sdk/src/error.rs`                                          | 41     | `packages/sdk/src/error.ts`                      |
+| `crates/wormhole-sdk/src/chain.rs`                                          | 155    | `packages/sdk/src/chain.ts`                      |
+| `crates/wormhole-sdk/src/chains/evm.rs`                                     | 691    | `packages/sdk/src/chains/evm.ts`                 |
+| `crates/wormhole-sdk/src/chains/solana.rs`                                  | 233    | `packages/sdk/src/chains/solana.ts`              |
+| `crates/wormhole-sdk/src/chains/{aptos,near,sui}.rs`                        | ~413   | `packages/sdk/src/chains/{aptos,near,sui}.ts`    |
+| `crates/wormhole-sdk/src/deploy/mod.rs`                                     | 480    | `packages/sdk/src/deploy/index.ts`               |
+| `crates/wormhole-sdk/src/deploy/registry.rs`                                | 115    | `packages/sdk/src/deploy/registry.ts`            |
+| `crates/wormhole-sdk/src/deploy/abi.rs`                                     | 188    | `packages/sdk/src/deploy/abi.ts`                 |
+| `crates/wormhole-sdk/src/deploy/create2.rs`                                 | 87     | `packages/sdk/src/deploy/create2.ts`             |
+| `crates/wormhole-sdk/src/deploy/artifact.rs`                                | 86     | `packages/sdk/src/deploy/artifact.ts`            |
+| `crates/wormhole-sdk/src/deploy/status.rs`                                  | 76     | `packages/sdk/src/deploy/status.ts`              |
+| `crates/wormhole-sdk/src/vaa/mod.rs`                                        | 306    | `packages/sdk/src/vaa/index.ts`                  |
+| `crates/wormhole-sdk/src/{info,status,generate,transfer,latency,tokens}.rs` | ~1,885 | Same names under `packages/sdk/src/`             |
+| `crates/wormhole-cli/src/config.rs`                                         | 29     | `packages/cli/src/config.ts`                     |
+| `crates/wormhole-cli/src/output.rs`                                         | 57     | `packages/cli/src/output.ts`                     |
+| `crates/wormhole-cli/src/providers/`                                        | 228    | `packages/cli/src/providers/`                    |
+| `crates/wormhole-cli/src/commands/`                                         | 1,797  | `packages/cli/src/commands/`                     |
+| `contracts/src/WormDeployer.sol`                                            | 249    | `contracts/src/WormToolDeployer.sol`             |
+| `contracts/src/WormOwnableProxy.sol`                                        | 47     | `contracts/src/WormToolProxy.sol`                |
+| `contracts/src/interfaces/IWormDeployer.sol`                                | 92     | `contracts/src/interfaces/IWormToolDeployer.sol` |
 
 ---
 
@@ -64,6 +64,7 @@ git branch --show-current
 ### Task 0.2: Scaffold Root Monorepo
 
 **Files:**
+
 - Create: `package.json` (workspace root)
 - Create: `tsconfig.base.json`
 - Create: `.nvmrc`
@@ -76,10 +77,7 @@ git branch --show-current
   "name": "worm-tool-monorepo",
   "private": true,
   "version": "0.0.1",
-  "workspaces": [
-    "packages/sdk",
-    "packages/cli"
-  ],
+  "workspaces": ["packages/sdk", "packages/cli"],
   "scripts": {
     "build": "npm run build --workspaces",
     "test": "npm run test --workspaces",
@@ -140,6 +138,7 @@ git commit -m "chore: scaffold TypeScript monorepo root"
 ### Task 0.3: Scaffold SDK Package Structure
 
 **Files:**
+
 - Create: `packages/sdk/package.json`
 - Create: `packages/sdk/tsconfig.json`
 - Create: `packages/sdk/src/index.ts` (placeholder)
@@ -201,11 +200,11 @@ git commit -m "chore: scaffold TypeScript monorepo root"
 **Step 3: Create `packages/sdk/tsup.config.ts`**
 
 ```typescript
-import { defineConfig } from 'tsup';
+import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ['src/index.ts'],
-  format: ['esm', 'cjs'],
+  entry: ["src/index.ts"],
+  format: ["esm", "cjs"],
   dts: true,
   sourcemap: true,
   clean: true,
@@ -216,7 +215,7 @@ export default defineConfig({
 **Step 4: Create placeholder `packages/sdk/src/index.ts`**
 
 ```typescript
-export const SDK_VERSION = '0.0.1';
+export const SDK_VERSION = "0.0.1";
 ```
 
 **Step 5: Commit**
@@ -231,6 +230,7 @@ git commit -m "chore: scaffold @worm-tool/sdk package structure"
 ### Task 0.4: Scaffold CLI Package Structure
 
 **Files:**
+
 - Create: `packages/cli/package.json`
 - Create: `packages/cli/tsconfig.json`
 - Create: `packages/cli/tsup.config.ts`
@@ -296,20 +296,20 @@ git commit -m "chore: scaffold @worm-tool/sdk package structure"
 **Step 3: Create `packages/cli/tsup.config.ts`**
 
 ```typescript
-import { defineConfig } from 'tsup';
+import { defineConfig } from "tsup";
 
 export default defineConfig([
   {
-    entry: { cli: 'src/main.ts' },
-    format: ['esm'],
-    banner: { js: '#!/usr/bin/env node' },
+    entry: { cli: "src/main.ts" },
+    format: ["esm"],
+    banner: { js: "#!/usr/bin/env node" },
     dts: false,
     sourcemap: true,
     clean: false,
   },
   {
-    entry: { index: 'src/index.ts' },
-    format: ['esm', 'cjs'],
+    entry: { index: "src/index.ts" },
+    format: ["esm", "cjs"],
     dts: true,
     sourcemap: true,
     clean: true,
@@ -320,7 +320,7 @@ export default defineConfig([
 **Step 4: Create placeholder `packages/cli/src/index.ts`**
 
 ```typescript
-export const CLI_VERSION = '0.0.1';
+export const CLI_VERSION = "0.0.1";
 ```
 
 **Step 5: Install all workspace dependencies**
@@ -352,6 +352,7 @@ git commit -m "chore: scaffold worm-tool CLI package structure"
 **Source:** `crates/wormhole-sdk/src/error.rs` (41 lines)
 
 **Files:**
+
 - Create: `packages/sdk/src/error.ts`
 - Test: `packages/sdk/src/error.test.ts`
 
@@ -359,38 +360,38 @@ git commit -m "chore: scaffold worm-tool CLI package structure"
 
 ```typescript
 // packages/sdk/src/error.test.ts
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "vitest";
 import {
   WormToolError,
   RpcError,
   ChainNotSupportedError,
   VaaParseError,
   ContractCallError,
-} from './error.js';
+} from "./error.js";
 
-describe('WormToolError', () => {
-  it('RpcError carries chain and message', () => {
-    const err = new RpcError('ethereum', 'connection refused');
+describe("WormToolError", () => {
+  it("RpcError carries chain and message", () => {
+    const err = new RpcError("ethereum", "connection refused");
     expect(err).toBeInstanceOf(WormToolError);
-    expect(err.chain).toBe('ethereum');
-    expect(err.message).toContain('connection refused');
+    expect(err.chain).toBe("ethereum");
+    expect(err.message).toContain("connection refused");
   });
 
-  it('ChainNotSupportedError names the chain', () => {
-    const err = new ChainNotSupportedError('cosmos');
+  it("ChainNotSupportedError names the chain", () => {
+    const err = new ChainNotSupportedError("cosmos");
     expect(err).toBeInstanceOf(WormToolError);
-    expect(err.message).toContain('cosmos');
+    expect(err.message).toContain("cosmos");
   });
 
-  it('VaaParseError wraps cause', () => {
-    const cause = new Error('bad hex');
-    const err = new VaaParseError('invalid hex input', cause);
+  it("VaaParseError wraps cause", () => {
+    const cause = new Error("bad hex");
+    const err = new VaaParseError("invalid hex input", cause);
     expect(err.cause).toBe(cause);
   });
 
-  it('ContractCallError carries address', () => {
-    const err = new ContractCallError('0xDEAD', 'revert');
-    expect(err.address).toBe('0xDEAD');
+  it("ContractCallError carries address", () => {
+    const err = new ContractCallError("0xDEAD", "revert");
+    expect(err.address).toBe("0xDEAD");
   });
 });
 ```
@@ -455,7 +456,7 @@ export class ContractCallError extends WormToolError {
 /** Private key was not found or is invalid. */
 export class PrivateKeyError extends WormToolError {
   constructor() {
-    super('Private key not found or invalid — set WORM_TOOL_PRIVATE_KEY');
+    super("Private key not found or invalid — set WORM_TOOL_EVM_PRIVATE_KEY");
   }
 }
 
@@ -478,7 +479,7 @@ cd packages/sdk && npm test -- error.test
 
 ```typescript
 // packages/sdk/src/index.ts
-export * from './error.js';
+export * from "./error.js";
 ```
 
 **Step 6: Commit**
@@ -495,6 +496,7 @@ git commit -m "feat(sdk): add WormToolError hierarchy"
 **Source:** `crates/wormhole-sdk/src/chain.rs` (155 lines)
 
 **Files:**
+
 - Create: `packages/sdk/src/chain.ts`
 - Test: `packages/sdk/src/chain.test.ts`
 
@@ -502,34 +504,44 @@ git commit -m "feat(sdk): add WormToolError hierarchy"
 
 ```typescript
 // packages/sdk/src/chain.test.ts
-import { describe, it, expect } from 'vitest';
-import type { WormToolChain, TransactionReceipt } from './chain.js';
+import { describe, it, expect } from "vitest";
+import type { WormToolChain, TransactionReceipt } from "./chain.js";
 
 class MockChain implements WormToolChain {
   readonly chainId = 2n;
-  readonly chainName = 'ethereum';
-  async getBalance(address: string): Promise<bigint> { return 1000n; }
-  async call(to: string, data: `0x${string}`): Promise<`0x${string}`> { return '0x'; }
-  async sendTransaction(to: string, data: `0x${string}`, value?: bigint): Promise<TransactionReceipt> {
-    return { txHash: '0xabc', blockNumber: 1n, success: true };
+  readonly chainName = "ethereum";
+  async getBalance(address: string): Promise<bigint> {
+    return 1000n;
+  }
+  async call(to: string, data: `0x${string}`): Promise<`0x${string}`> {
+    return "0x";
+  }
+  async sendTransaction(
+    to: string,
+    data: `0x${string}`,
+    value?: bigint,
+  ): Promise<TransactionReceipt> {
+    return { txHash: "0xabc", blockNumber: 1n, success: true };
   }
   async waitForTransaction(txHash: string): Promise<TransactionReceipt> {
     return { txHash, blockNumber: 2n, success: true };
   }
-  async getCode(address: string): Promise<`0x${string}`> { return '0x6001'; }
+  async getCode(address: string): Promise<`0x${string}`> {
+    return "0x6001";
+  }
 }
 
-describe('WormToolChain interface', () => {
-  it('mock satisfies the interface', async () => {
+describe("WormToolChain interface", () => {
+  it("mock satisfies the interface", async () => {
     const chain: WormToolChain = new MockChain();
     expect(chain.chainId).toBe(2n);
-    const bal = await chain.getBalance('0x1234');
+    const bal = await chain.getBalance("0x1234");
     expect(bal).toBe(1000n);
   });
 
-  it('sendTransaction returns a receipt', async () => {
+  it("sendTransaction returns a receipt", async () => {
     const chain = new MockChain();
-    const receipt = await chain.sendTransaction('0x1234', '0xdeadbeef');
+    const receipt = await chain.sendTransaction("0x1234", "0xdeadbeef");
     expect(receipt.success).toBe(true);
   });
 });
@@ -592,7 +604,7 @@ cd packages/sdk && npm test -- chain.test
 
 ```typescript
 // packages/sdk/src/index.ts — append
-export * from './chain.js';
+export * from "./chain.js";
 ```
 
 **Step 6: Commit**
@@ -611,12 +623,14 @@ git commit -m "feat(sdk): add WormToolChain interface and TransactionReceipt typ
 **Source:** `crates/wormhole-sdk/src/vaa/mod.rs` (306 lines)
 
 **Files:**
+
 - Create: `packages/sdk/src/vaa/index.ts`
 - Create: `packages/sdk/src/vaa/index.test.ts`
 
 **Step 1: Study the Rust source to understand the struct**
 
 Open `crates/wormhole-sdk/src/vaa/mod.rs` and note `VaaData`:
+
 - `version: u8`
 - `guardian_set_index: u32`
 - `signatures: Vec<VaaSignature>` (guardian index + 65 bytes ECDSA)
@@ -633,46 +647,46 @@ Open `crates/wormhole-sdk/src/vaa/mod.rs` and note `VaaData`:
 
 ```typescript
 // packages/sdk/src/vaa/index.test.ts
-import { describe, it, expect } from 'vitest';
-import { parseVaa, encodeVaaHex } from './index.js';
+import { describe, it, expect } from "vitest";
+import { parseVaa, encodeVaaHex } from "./index.js";
 
 // Minimal VAA hex (version=1, 0 signatures, minimal body)
 const MOCK_VAA_HEX =
-  '010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000';
+  "010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 
-describe('parseVaa', () => {
-  it('throws VaaParseError on empty input', async () => {
-    const { VaaParseError } = await import('../error.js');
-    expect(() => parseVaa('')).toThrow(VaaParseError);
+describe("parseVaa", () => {
+  it("throws VaaParseError on empty input", async () => {
+    const { VaaParseError } = await import("../error.js");
+    expect(() => parseVaa("")).toThrow(VaaParseError);
   });
 
-  it('throws VaaParseError on invalid hex', async () => {
-    const { VaaParseError } = await import('../error.js');
-    expect(() => parseVaa('0xZZZZ')).toThrow(VaaParseError);
+  it("throws VaaParseError on invalid hex", async () => {
+    const { VaaParseError } = await import("../error.js");
+    expect(() => parseVaa("0xZZZZ")).toThrow(VaaParseError);
   });
 
-  it('parses version field', () => {
+  it("parses version field", () => {
     // Build a minimal valid VAA: version=1, guardianSetIndex=0, 0 sigs, then 28 bytes of body
     const body = Buffer.alloc(28, 0);
     const sigCount = Buffer.alloc(1, 0); // 0 signatures
     const header = Buffer.alloc(5);
-    header.writeUInt8(1, 0);         // version
-    header.writeUInt32BE(0, 1);       // guardianSetIndex
+    header.writeUInt8(1, 0); // version
+    header.writeUInt32BE(0, 1); // guardianSetIndex
     const vaa = Buffer.concat([header, sigCount, body]);
-    const result = parseVaa('0x' + vaa.toString('hex'));
+    const result = parseVaa("0x" + vaa.toString("hex"));
     expect(result.version).toBe(1);
     expect(result.guardianSetIndex).toBe(0);
   });
 });
 
-describe('encodeVaaHex', () => {
-  it('round-trips a parsed VAA', () => {
+describe("encodeVaaHex", () => {
+  it("round-trips a parsed VAA", () => {
     const body = Buffer.alloc(28, 0);
     const sigCount = Buffer.alloc(1, 0);
     const header = Buffer.alloc(5);
     header.writeUInt8(1, 0);
     header.writeUInt32BE(0, 1);
-    const raw = '0x' + Buffer.concat([header, sigCount, body]).toString('hex');
+    const raw = "0x" + Buffer.concat([header, sigCount, body]).toString("hex");
     const parsed = parseVaa(raw);
     const re = encodeVaaHex(parsed);
     expect(re.toLowerCase()).toBe(raw.toLowerCase());
@@ -690,7 +704,7 @@ cd packages/sdk && npm test -- vaa
 **Step 4: Implement `packages/sdk/src/vaa/index.ts`**
 
 ```typescript
-import { VaaParseError } from '../error.js';
+import { VaaParseError } from "../error.js";
 
 export interface VaaSignature {
   guardianIndex: number;
@@ -716,10 +730,9 @@ export interface ParsedVaa {
 }
 
 function normalizeHex(input: string): Uint8Array {
-  if (!input) throw new VaaParseError('empty input');
-  const clean = input.startsWith('0x') || input.startsWith('0X')
-    ? input.slice(2)
-    : input;
+  if (!input) throw new VaaParseError("empty input");
+  const clean =
+    input.startsWith("0x") || input.startsWith("0X") ? input.slice(2) : input;
   if (!/^[0-9a-fA-F]*$/.test(clean) || clean.length % 2 !== 0) {
     throw new VaaParseError(`invalid hex: ${input.slice(0, 20)}...`);
   }
@@ -731,15 +744,18 @@ function normalizeHex(input: string): Uint8Array {
 }
 
 function toHex(bytes: Uint8Array): `0x${string}` {
-  return ('0x' + Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')) as `0x${string}`;
+  return ("0x" +
+    Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join(
+      "",
+    )) as `0x${string}`;
 }
 
 async function keccak256Bytes(data: Uint8Array): Promise<`0x${string}`> {
   // Use Web Crypto for hashing — works in Node 20+ and browsers
-  const hashBuf = await crypto.subtle.digest('SHA-256', data);
+  const hashBuf = await crypto.subtle.digest("SHA-256", data);
   // Wormhole uses keccak256, not SHA-256; use a pure-JS impl via dynamic import
   // to avoid bundling a large dep statically.
-  const { keccak_256 } = await import('@noble/hashes/sha3');
+  const { keccak_256 } = await import("@noble/hashes/sha3");
   return toHex(keccak_256(data));
 }
 
@@ -748,7 +764,7 @@ async function keccak256Bytes(data: Uint8Array): Promise<`0x${string}`> {
  * Throws {@link VaaParseError} on malformed input.
  */
 export function parseVaa(input: string): ParsedVaa {
-  if (!input) throw new VaaParseError('empty input');
+  if (!input) throw new VaaParseError("empty input");
 
   let bytes: Uint8Array;
   try {
@@ -761,35 +777,45 @@ export function parseVaa(input: string): ParsedVaa {
       for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
     }
   } catch (e) {
-    throw new VaaParseError('failed to decode input', e);
+    throw new VaaParseError("failed to decode input", e);
   }
 
   let offset = 0;
 
   const readU8 = (): number => {
-    if (offset >= bytes.length) throw new VaaParseError('unexpected end of VAA (u8)');
+    if (offset >= bytes.length)
+      throw new VaaParseError("unexpected end of VAA (u8)");
     return bytes[offset++]!;
   };
   const readU16 = (): number => {
-    if (offset + 2 > bytes.length) throw new VaaParseError('unexpected end of VAA (u16)');
+    if (offset + 2 > bytes.length)
+      throw new VaaParseError("unexpected end of VAA (u16)");
     const v = (bytes[offset]! << 8) | bytes[offset + 1]!;
     offset += 2;
     return v;
   };
   const readU32 = (): number => {
-    if (offset + 4 > bytes.length) throw new VaaParseError('unexpected end of VAA (u32)');
-    const v = ((bytes[offset]! << 24) | (bytes[offset + 1]! << 16) | (bytes[offset + 2]! << 8) | bytes[offset + 3]!) >>> 0;
+    if (offset + 4 > bytes.length)
+      throw new VaaParseError("unexpected end of VAA (u32)");
+    const v =
+      ((bytes[offset]! << 24) |
+        (bytes[offset + 1]! << 16) |
+        (bytes[offset + 2]! << 8) |
+        bytes[offset + 3]!) >>>
+      0;
     offset += 4;
     return v;
   };
   const readU64 = (): bigint => {
-    if (offset + 8 > bytes.length) throw new VaaParseError('unexpected end of VAA (u64)');
+    if (offset + 8 > bytes.length)
+      throw new VaaParseError("unexpected end of VAA (u64)");
     let v = 0n;
     for (let i = 0; i < 8; i++) v = (v << 8n) | BigInt(bytes[offset++]!);
     return v;
   };
   const readBytes = (n: number): Uint8Array => {
-    if (offset + n > bytes.length) throw new VaaParseError(`unexpected end of VAA (${n} bytes)`);
+    if (offset + n > bytes.length)
+      throw new VaaParseError(`unexpected end of VAA (${n} bytes)`);
     const slice = bytes.slice(offset, offset + n);
     offset += n;
     return slice;
@@ -824,10 +850,10 @@ export function parseVaa(input: string): ParsedVaa {
     let hash: `0x${string}`;
     try {
       // dynamic require for CJS compat
-      const { keccak_256 } = await import('@noble/hashes/sha3') as any;
+      const { keccak_256 } = (await import("@noble/hashes/sha3")) as any;
       hash = toHex(keccak_256(bodyBytes));
     } catch {
-      hash = '0x' + '00'.repeat(32) as `0x${string}`;
+      hash = ("0x" + "00".repeat(32)) as `0x${string}`;
     }
 
     return {
@@ -845,7 +871,7 @@ export function parseVaa(input: string): ParsedVaa {
     };
   } catch (e) {
     if (e instanceof VaaParseError) throw e;
-    throw new VaaParseError('malformed VAA binary', e);
+    throw new VaaParseError("malformed VAA binary", e);
   }
 }
 ```
@@ -866,16 +892,26 @@ export function encodeVaaHex(vaa: ParsedVaa): `0x${string}` {
   const parts: number[] = [];
 
   const writeU8 = (v: number) => parts.push(v & 0xff);
-  const writeU16 = (v: number) => { parts.push((v >> 8) & 0xff); parts.push(v & 0xff); };
+  const writeU16 = (v: number) => {
+    parts.push((v >> 8) & 0xff);
+    parts.push(v & 0xff);
+  };
   const writeU32 = (v: number) => {
-    parts.push((v >>> 24) & 0xff, (v >>> 16) & 0xff, (v >>> 8) & 0xff, v & 0xff);
+    parts.push(
+      (v >>> 24) & 0xff,
+      (v >>> 16) & 0xff,
+      (v >>> 8) & 0xff,
+      v & 0xff,
+    );
   };
   const writeU64 = (v: bigint) => {
-    for (let i = 7; i >= 0; i--) parts.push(Number((v >> BigInt(i * 8)) & 0xffn));
+    for (let i = 7; i >= 0; i--)
+      parts.push(Number((v >> BigInt(i * 8)) & 0xffn));
   };
   const writeHex = (h: string) => {
-    const clean = h.startsWith('0x') ? h.slice(2) : h;
-    for (let i = 0; i < clean.length; i += 2) parts.push(parseInt(clean.slice(i, i + 2), 16));
+    const clean = h.startsWith("0x") ? h.slice(2) : h;
+    for (let i = 0; i < clean.length; i += 2)
+      parts.push(parseInt(clean.slice(i, i + 2), 16));
   };
 
   writeU8(vaa.version);
@@ -893,7 +929,10 @@ export function encodeVaaHex(vaa: ParsedVaa): `0x${string}` {
   writeU8(vaa.consistencyLevel);
   writeHex(vaa.payload);
 
-  return ('0x' + parts.map(b => b.toString(16).padStart(2, '0')).join('')) as `0x${string}`;
+  return ("0x" +
+    parts
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")) as `0x${string}`;
 }
 ```
 
@@ -908,7 +947,7 @@ cd packages/sdk && npm test -- vaa
 
 ```typescript
 // packages/sdk/src/index.ts — append
-export * from './vaa/index.js';
+export * from "./vaa/index.js";
 ```
 
 **Step 9: Commit**
@@ -927,6 +966,7 @@ git commit -m "feat(sdk): port VAA parser and encoder from Rust"
 **Source:** `crates/wormhole-sdk/src/deploy/registry.rs` (115 lines)
 
 **Files:**
+
 - Create: `packages/sdk/src/deploy/registry.ts`
 - Test: `packages/sdk/src/deploy/registry.test.ts`
 
@@ -934,31 +974,31 @@ git commit -m "feat(sdk): port VAA parser and encoder from Rust"
 
 ```typescript
 // packages/sdk/src/deploy/registry.test.ts
-import { describe, it, expect } from 'vitest';
-import { getChainById, getChainByName, CHAIN_REGISTRY } from './registry.js';
+import { describe, it, expect } from "vitest";
+import { getChainById, getChainByName, CHAIN_REGISTRY } from "./registry.js";
 
-describe('chain registry', () => {
-  it('looks up Ethereum by wormhole chain ID 2', () => {
+describe("chain registry", () => {
+  it("looks up Ethereum by wormhole chain ID 2", () => {
     const chain = getChainById(2);
     expect(chain).toBeDefined();
-    expect(chain!.name).toBe('ethereum');
+    expect(chain!.name).toBe("ethereum");
     expect(chain!.wormholeChainId).toBe(2);
   });
 
-  it('looks up Solana by wormhole chain ID 1', () => {
+  it("looks up Solana by wormhole chain ID 1", () => {
     const chain = getChainById(1);
-    expect(chain!.name).toBe('solana');
+    expect(chain!.name).toBe("solana");
   });
 
-  it('returns undefined for unknown chain ID', () => {
+  it("returns undefined for unknown chain ID", () => {
     expect(getChainById(9999)).toBeUndefined();
   });
 
-  it('looks up by name case-insensitively', () => {
-    expect(getChainByName('Ethereum')).toEqual(getChainByName('ethereum'));
+  it("looks up by name case-insensitively", () => {
+    expect(getChainByName("Ethereum")).toEqual(getChainByName("ethereum"));
   });
 
-  it('has at least 10 chains', () => {
+  it("has at least 10 chains", () => {
     expect(CHAIN_REGISTRY.length).toBeGreaterThanOrEqual(10);
   });
 });
@@ -982,30 +1022,50 @@ export interface ChainEntry {
 }
 
 export const CHAIN_REGISTRY: ChainEntry[] = [
-  { wormholeChainId: 1,  name: 'solana' },
-  { wormholeChainId: 2,  name: 'ethereum',    evmChainId: 1,      wormholeCore: '0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B' },
-  { wormholeChainId: 4,  name: 'bsc',         evmChainId: 56,     wormholeCore: '0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B' },
-  { wormholeChainId: 5,  name: 'polygon',     evmChainId: 137,    wormholeCore: '0x7A4B5a56153eda34EB8D93Bc0a5e3A3C3e3e4Bd6' },
-  { wormholeChainId: 6,  name: 'avalanche',   evmChainId: 43114 },
-  { wormholeChainId: 10, name: 'fantom',      evmChainId: 250 },
-  { wormholeChainId: 13, name: 'klaytn',      evmChainId: 8217 },
-  { wormholeChainId: 14, name: 'celo',        evmChainId: 42220 },
-  { wormholeChainId: 16, name: 'moonbeam',    evmChainId: 1284 },
-  { wormholeChainId: 22, name: 'aptos' },
-  { wormholeChainId: 23, name: 'arbitrum',    evmChainId: 42161 },
-  { wormholeChainId: 24, name: 'optimism',    evmChainId: 10 },
-  { wormholeChainId: 30, name: 'base',        evmChainId: 8453 },
+  { wormholeChainId: 1, name: "solana" },
+  {
+    wormholeChainId: 2,
+    name: "ethereum",
+    evmChainId: 1,
+    wormholeCore: "0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B",
+  },
+  {
+    wormholeChainId: 4,
+    name: "bsc",
+    evmChainId: 56,
+    wormholeCore: "0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B",
+  },
+  {
+    wormholeChainId: 5,
+    name: "polygon",
+    evmChainId: 137,
+    wormholeCore: "0x7A4B5a56153eda34EB8D93Bc0a5e3A3C3e3e4Bd6",
+  },
+  { wormholeChainId: 6, name: "avalanche", evmChainId: 43114 },
+  { wormholeChainId: 10, name: "fantom", evmChainId: 250 },
+  { wormholeChainId: 13, name: "klaytn", evmChainId: 8217 },
+  { wormholeChainId: 14, name: "celo", evmChainId: 42220 },
+  { wormholeChainId: 16, name: "moonbeam", evmChainId: 1284 },
+  { wormholeChainId: 22, name: "aptos" },
+  { wormholeChainId: 23, name: "arbitrum", evmChainId: 42161 },
+  { wormholeChainId: 24, name: "optimism", evmChainId: 10 },
+  { wormholeChainId: 30, name: "base", evmChainId: 8453 },
   // Testnets
-  { wormholeChainId: 2,  name: 'sepolia',     evmChainId: 11155111, isTestnet: true },
-  { wormholeChainId: 4,  name: 'bsc-testnet', evmChainId: 97,       isTestnet: true },
+  {
+    wormholeChainId: 2,
+    name: "sepolia",
+    evmChainId: 11155111,
+    isTestnet: true,
+  },
+  { wormholeChainId: 4, name: "bsc-testnet", evmChainId: 97, isTestnet: true },
 ];
 
 export function getChainById(wormholeChainId: number): ChainEntry | undefined {
-  return CHAIN_REGISTRY.find(c => c.wormholeChainId === wormholeChainId);
+  return CHAIN_REGISTRY.find((c) => c.wormholeChainId === wormholeChainId);
 }
 
 export function getChainByName(name: string): ChainEntry | undefined {
-  return CHAIN_REGISTRY.find(c => c.name === name.toLowerCase());
+  return CHAIN_REGISTRY.find((c) => c.name === name.toLowerCase());
 }
 ```
 
@@ -1030,6 +1090,7 @@ git commit -m "feat(sdk): add chain registry with wormhole chain IDs"
 **Source:** `crates/wormhole-sdk/src/deploy/artifact.rs` (86 lines)
 
 **Files:**
+
 - Create: `packages/sdk/src/deploy/artifact.ts`
 - Test: `packages/sdk/src/deploy/artifact.test.ts`
 
@@ -1037,35 +1098,38 @@ git commit -m "feat(sdk): add chain registry with wormhole chain IDs"
 
 ```typescript
 // packages/sdk/src/deploy/artifact.test.ts
-import { describe, it, expect } from 'vitest';
-import { extractBytecode } from './artifact.js';
+import { describe, it, expect } from "vitest";
+import { extractBytecode } from "./artifact.js";
 
-describe('extractBytecode', () => {
-  it('extracts bytecode from a Foundry artifact', () => {
+describe("extractBytecode", () => {
+  it("extracts bytecode from a Foundry artifact", () => {
     const artifact = {
-      bytecode: { object: '0x6001600201' },
+      bytecode: { object: "0x6001600201" },
       abi: [],
     };
-    expect(extractBytecode(artifact)).toBe('0x6001600201');
+    expect(extractBytecode(artifact)).toBe("0x6001600201");
   });
 
-  it('extracts bytecode from a Hardhat artifact', () => {
+  it("extracts bytecode from a Hardhat artifact", () => {
     const artifact = {
-      bytecode: '0xdeadbeef',
+      bytecode: "0xdeadbeef",
       abi: [],
     };
-    expect(extractBytecode(artifact)).toBe('0xdeadbeef');
+    expect(extractBytecode(artifact)).toBe("0xdeadbeef");
   });
 
-  it('throws ArtifactParseError on missing bytecode', async () => {
-    const { ArtifactParseError } = await import('../error.js');
+  it("throws ArtifactParseError on missing bytecode", async () => {
+    const { ArtifactParseError } = await import("../error.js");
     expect(() => extractBytecode({ abi: [] })).toThrow(ArtifactParseError);
   });
 
-  it('throws ArtifactParseError on link references (unlinked libs)', async () => {
-    const { ArtifactParseError } = await import('../error.js');
+  it("throws ArtifactParseError on link references (unlinked libs)", async () => {
+    const { ArtifactParseError } = await import("../error.js");
     const artifact = {
-      bytecode: { object: '0x__$abc$__6001', linkReferences: { 'Lib.sol': {} } },
+      bytecode: {
+        object: "0x__$abc$__6001",
+        linkReferences: { "Lib.sol": {} },
+      },
       abi: [],
     };
     expect(() => extractBytecode(artifact)).toThrow(ArtifactParseError);
@@ -1076,7 +1140,7 @@ describe('extractBytecode', () => {
 **Step 2: Implement `packages/sdk/src/deploy/artifact.ts`**
 
 ```typescript
-import { ArtifactParseError } from '../error.js';
+import { ArtifactParseError } from "../error.js";
 
 interface FoundryBytecodeField {
   object: string;
@@ -1090,28 +1154,43 @@ interface ArtifactLike {
 }
 
 /** Extract deployable bytecode from a Hardhat or Foundry artifact JSON. */
-export function extractBytecode(artifact: unknown, path = '<artifact>'): `0x${string}` {
+export function extractBytecode(
+  artifact: unknown,
+  path = "<artifact>",
+): `0x${string}` {
   const a = artifact as ArtifactLike;
 
   if (!a.bytecode) {
-    throw new ArtifactParseError(path, new Error('no bytecode field'));
+    throw new ArtifactParseError(path, new Error("no bytecode field"));
   }
 
   let raw: string;
-  if (typeof a.bytecode === 'string') {
+  if (typeof a.bytecode === "string") {
     raw = a.bytecode;
-  } else if (typeof a.bytecode === 'object' && typeof a.bytecode.object === 'string') {
-    if (a.bytecode.linkReferences && Object.keys(a.bytecode.linkReferences).length > 0) {
-      throw new ArtifactParseError(path, new Error('bytecode has unresolved link references'));
+  } else if (
+    typeof a.bytecode === "object" &&
+    typeof a.bytecode.object === "string"
+  ) {
+    if (
+      a.bytecode.linkReferences &&
+      Object.keys(a.bytecode.linkReferences).length > 0
+    ) {
+      throw new ArtifactParseError(
+        path,
+        new Error("bytecode has unresolved link references"),
+      );
     }
     raw = a.bytecode.object;
   } else {
-    throw new ArtifactParseError(path, new Error('unrecognised bytecode format'));
+    throw new ArtifactParseError(
+      path,
+      new Error("unrecognised bytecode format"),
+    );
   }
 
-  const hex = raw.startsWith('0x') ? raw : '0x' + raw;
-  if (hex === '0x' || hex.length < 4) {
-    throw new ArtifactParseError(path, new Error('bytecode is empty'));
+  const hex = raw.startsWith("0x") ? raw : "0x" + raw;
+  if (hex === "0x" || hex.length < 4) {
+    throw new ArtifactParseError(path, new Error("bytecode is empty"));
   }
   return hex as `0x${string}`;
 }
@@ -1137,6 +1216,7 @@ git commit -m "feat(sdk): port artifact bytecode extractor (Hardhat + Foundry)"
 **Source:** `crates/wormhole-sdk/src/deploy/create2.rs` (87 lines)
 
 **Files:**
+
 - Create: `packages/sdk/src/deploy/create2.ts`
 - Test: `packages/sdk/src/deploy/create2.test.ts`
 
@@ -1144,23 +1224,33 @@ git commit -m "feat(sdk): port artifact bytecode extractor (Hardhat + Foundry)"
 
 ```typescript
 // packages/sdk/src/deploy/create2.test.ts
-import { describe, it, expect } from 'vitest';
-import { computeCreate2Address } from './create2.js';
+import { describe, it, expect } from "vitest";
+import { computeCreate2Address } from "./create2.js";
 
-describe('computeCreate2Address', () => {
-  it('matches EIP-1014 known vector', () => {
+describe("computeCreate2Address", () => {
+  it("matches EIP-1014 known vector", () => {
     // from https://eips.ethereum.org/EIPS/eip-1014 example
-    const deployer = '0x0000000000000000000000000000000000000000';
-    const salt = '0x0000000000000000000000000000000000000000000000000000000000000000';
-    const initCodeHash = '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'; // keccak(0x)
+    const deployer = "0x0000000000000000000000000000000000000000";
+    const salt =
+      "0x0000000000000000000000000000000000000000000000000000000000000000";
+    const initCodeHash =
+      "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"; // keccak(0x)
     const result = computeCreate2Address(deployer, salt, initCodeHash);
     // known result: 0xe33c0C7F7df4809055C3ebA6c09CFe4BaF1BD9e0 (lower-cased)
-    expect(result.toLowerCase()).toBe('0xe33c0c7f7df4809055c3eba6c09cfe4baf1bd9e0');
+    expect(result.toLowerCase()).toBe(
+      "0xe33c0c7f7df4809055c3eba6c09cfe4baf1bd9e0",
+    );
   });
 
-  it('throws on invalid deployer address', async () => {
-    const { WormToolError } = await import('../error.js');
-    expect(() => computeCreate2Address('notanaddress', '0x' + '00'.repeat(32), '0x' + '00'.repeat(32))).toThrow();
+  it("throws on invalid deployer address", async () => {
+    const { WormToolError } = await import("../error.js");
+    expect(() =>
+      computeCreate2Address(
+        "notanaddress",
+        "0x" + "00".repeat(32),
+        "0x" + "00".repeat(32),
+      ),
+    ).toThrow();
   });
 });
 ```
@@ -1168,7 +1258,7 @@ describe('computeCreate2Address', () => {
 **Step 2: Implement `packages/sdk/src/deploy/create2.ts`**
 
 ```typescript
-import { keccak_256 } from '@noble/hashes/sha3';
+import { keccak_256 } from "@noble/hashes/sha3";
 
 /**
  * Compute the deterministic CREATE2 address per EIP-1014.
@@ -1183,19 +1273,25 @@ export function computeCreate2Address(
   initCodeHash: string,
 ): `0x${string}` {
   const fromHex = (h: string): Uint8Array => {
-    const clean = h.startsWith('0x') ? h.slice(2) : h;
+    const clean = h.startsWith("0x") ? h.slice(2) : h;
     const arr = new Uint8Array(clean.length / 2);
-    for (let i = 0; i < arr.length; i++) arr[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
+    for (let i = 0; i < arr.length; i++)
+      arr[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
     return arr;
   };
   const toHex = (b: Uint8Array): `0x${string}` =>
-    ('0x' + Array.from(b, x => x.toString(16).padStart(2, '0')).join('')) as `0x${string}`;
+    ("0x" +
+      Array.from(b, (x) => x.toString(16).padStart(2, "0")).join(
+        "",
+      )) as `0x${string}`;
 
   const deployerBytes = fromHex(deployer);
-  if (deployerBytes.length !== 20) throw new Error(`deployer must be 20 bytes, got ${deployerBytes.length}`);
+  if (deployerBytes.length !== 20)
+    throw new Error(`deployer must be 20 bytes, got ${deployerBytes.length}`);
 
   const saltBytes = fromHex(salt);
-  if (saltBytes.length !== 32) throw new Error(`salt must be 32 bytes, got ${saltBytes.length}`);
+  if (saltBytes.length !== 32)
+    throw new Error(`salt must be 32 bytes, got ${saltBytes.length}`);
 
   const hashBytes = fromHex(initCodeHash);
   if (hashBytes.length !== 32) throw new Error(`initCodeHash must be 32 bytes`);
@@ -1232,6 +1328,7 @@ git commit -m "feat(sdk): port CREATE2 address calculator (EIP-1014)"
 **Source:** `crates/wormhole-sdk/src/chains/evm.rs` (691 lines)
 
 **Files:**
+
 - Create: `packages/sdk/src/chains/evm.ts`
 - Test: `packages/sdk/src/chains/evm.test.ts`
 
@@ -1245,19 +1342,27 @@ cd packages/sdk && npm install viem
 
 ```typescript
 // packages/sdk/src/chains/evm.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { EvmChain } from './evm.js';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { EvmChain } from "./evm.js";
 
-describe('EvmChain', () => {
-  it('constructs with rpc url and chain id', () => {
-    const chain = new EvmChain({ rpcUrl: 'http://localhost:8545', wormholeChainId: 2n, evmChainId: 1 });
+describe("EvmChain", () => {
+  it("constructs with rpc url and chain id", () => {
+    const chain = new EvmChain({
+      rpcUrl: "http://localhost:8545",
+      wormholeChainId: 2n,
+      evmChainId: 1,
+    });
     expect(chain.chainId).toBe(2n);
-    expect(chain.chainName).toBe('ethereum');
+    expect(chain.chainName).toBe("ethereum");
   });
 
   it('chainName defaults to "evm-{wormholeChainId}" for unknown chains', () => {
-    const chain = new EvmChain({ rpcUrl: 'http://localhost:8545', wormholeChainId: 999n, evmChainId: 1337 });
-    expect(chain.chainName).toBe('evm-999');
+    const chain = new EvmChain({
+      rpcUrl: "http://localhost:8545",
+      wormholeChainId: 999n,
+      evmChainId: 1337,
+    });
+    expect(chain.chainName).toBe("evm-999");
   });
 });
 ```
@@ -1272,11 +1377,11 @@ import {
   type PublicClient,
   type WalletClient,
   type Chain as ViemChain,
-} from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import type { WormToolChain, TransactionReceipt } from '../chain.js';
-import { RpcError, PrivateKeyError } from '../error.js';
-import { getChainById } from '../deploy/registry.js';
+} from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import type { WormToolChain, TransactionReceipt } from "../chain.js";
+import { RpcError, PrivateKeyError } from "../error.js";
+import { getChainById } from "../deploy/registry.js";
 
 export interface EvmChainConfig {
   rpcUrl: string;
@@ -1298,19 +1403,33 @@ export class EvmChain implements WormToolChain {
     const entry = getChainById(Number(config.wormholeChainId));
     this.chainName = entry?.name ?? `evm-${config.wormholeChainId}`;
 
-    const viemChain = { id: config.evmChainId, name: this.chainName, nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 }, rpcUrls: { default: { http: [config.rpcUrl] } } } satisfies ViemChain;
+    const viemChain = {
+      id: config.evmChainId,
+      name: this.chainName,
+      nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+      rpcUrls: { default: { http: [config.rpcUrl] } },
+    } satisfies ViemChain;
 
-    this.publicClient = createPublicClient({ chain: viemChain, transport: http(config.rpcUrl) });
+    this.publicClient = createPublicClient({
+      chain: viemChain,
+      transport: http(config.rpcUrl),
+    });
 
     if (config.privateKey) {
       const account = privateKeyToAccount(config.privateKey);
-      this.walletClient = createWalletClient({ account, chain: viemChain, transport: http(config.rpcUrl) });
+      this.walletClient = createWalletClient({
+        account,
+        chain: viemChain,
+        transport: http(config.rpcUrl),
+      });
     }
   }
 
   async getBalance(address: string): Promise<bigint> {
     try {
-      return await this.publicClient.getBalance({ address: address as `0x${string}` });
+      return await this.publicClient.getBalance({
+        address: address as `0x${string}`,
+      });
     } catch (e) {
       throw new RpcError(this.chainName, `getBalance failed: ${String(e)}`, e);
     }
@@ -1318,41 +1437,68 @@ export class EvmChain implements WormToolChain {
 
   async call(to: string, data: `0x${string}`): Promise<`0x${string}`> {
     try {
-      const result = await this.publicClient.call({ to: to as `0x${string}`, data });
-      return (result.data ?? '0x') as `0x${string}`;
+      const result = await this.publicClient.call({
+        to: to as `0x${string}`,
+        data,
+      });
+      return (result.data ?? "0x") as `0x${string}`;
     } catch (e) {
-      throw new RpcError(this.chainName, `call to ${to} failed: ${String(e)}`, e);
+      throw new RpcError(
+        this.chainName,
+        `call to ${to} failed: ${String(e)}`,
+        e,
+      );
     }
   }
 
-  async sendTransaction(to: string, data: `0x${string}`, value?: bigint): Promise<TransactionReceipt> {
+  async sendTransaction(
+    to: string,
+    data: `0x${string}`,
+    value?: bigint,
+  ): Promise<TransactionReceipt> {
     if (!this.walletClient) throw new PrivateKeyError();
     try {
-      const hash = await this.walletClient.sendTransaction({ to: to as `0x${string}`, data, value });
+      const hash = await this.walletClient.sendTransaction({
+        to: to as `0x${string}`,
+        data,
+        value,
+      });
       return this.waitForTransaction(hash);
     } catch (e) {
-      throw new RpcError(this.chainName, `sendTransaction failed: ${String(e)}`, e);
+      throw new RpcError(
+        this.chainName,
+        `sendTransaction failed: ${String(e)}`,
+        e,
+      );
     }
   }
 
   async waitForTransaction(txHash: string): Promise<TransactionReceipt> {
     try {
-      const receipt = await this.publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` });
+      const receipt = await this.publicClient.waitForTransactionReceipt({
+        hash: txHash as `0x${string}`,
+      });
       return {
         txHash: receipt.transactionHash,
         blockNumber: receipt.blockNumber,
-        success: receipt.status === 'success',
+        success: receipt.status === "success",
         gasUsed: receipt.gasUsed,
       };
     } catch (e) {
-      throw new RpcError(this.chainName, `waitForTransaction failed: ${String(e)}`, e);
+      throw new RpcError(
+        this.chainName,
+        `waitForTransaction failed: ${String(e)}`,
+        e,
+      );
     }
   }
 
   async getCode(address: string): Promise<`0x${string}`> {
     try {
-      const code = await this.publicClient.getCode({ address: address as `0x${string}` });
-      return (code ?? '0x') as `0x${string}`;
+      const code = await this.publicClient.getCode({
+        address: address as `0x${string}`,
+      });
+      return (code ?? "0x") as `0x${string}`;
     } catch (e) {
       throw new RpcError(this.chainName, `getCode failed: ${String(e)}`, e);
     }
@@ -1380,6 +1526,7 @@ git commit -m "feat(sdk): add EvmChain adapter (viem v2)"
 **Source:** `crates/wormhole-sdk/src/chains/solana.rs` (233 lines)
 
 **Files:**
+
 - Create: `packages/sdk/src/chains/solana.ts`
 - Test: `packages/sdk/src/chains/solana.test.ts`
 
@@ -1393,19 +1540,19 @@ cd packages/sdk && npm install @solana/web3.js
 
 ```typescript
 // packages/sdk/src/chains/solana.test.ts
-import { describe, it, expect } from 'vitest';
-import { SolanaChain } from './solana.js';
+import { describe, it, expect } from "vitest";
+import { SolanaChain } from "./solana.js";
 
-describe('SolanaChain', () => {
-  it('has correct wormhole chain ID (1)', () => {
-    const chain = new SolanaChain({ rpcUrl: 'https://api.devnet.solana.com' });
+describe("SolanaChain", () => {
+  it("has correct wormhole chain ID (1)", () => {
+    const chain = new SolanaChain({ rpcUrl: "https://api.devnet.solana.com" });
     expect(chain.chainId).toBe(1n);
-    expect(chain.chainName).toBe('solana');
+    expect(chain.chainName).toBe("solana");
   });
 
-  it('call() throws — Solana has no eth_call equivalent', async () => {
-    const chain = new SolanaChain({ rpcUrl: 'https://api.devnet.solana.com' });
-    await expect(chain.call('addr', '0x')).rejects.toThrow('not supported');
+  it("call() throws — Solana has no eth_call equivalent", async () => {
+    const chain = new SolanaChain({ rpcUrl: "https://api.devnet.solana.com" });
+    await expect(chain.call("addr", "0x")).rejects.toThrow("not supported");
   });
 });
 ```
@@ -1413,9 +1560,9 @@ describe('SolanaChain', () => {
 **Step 3: Implement `packages/sdk/src/chains/solana.ts`**
 
 ```typescript
-import { Connection, PublicKey } from '@solana/web3.js';
-import type { WormToolChain, TransactionReceipt } from '../chain.js';
-import { RpcError } from '../error.js';
+import { Connection, PublicKey } from "@solana/web3.js";
+import type { WormToolChain, TransactionReceipt } from "../chain.js";
+import { RpcError } from "../error.js";
 
 export interface SolanaChainConfig {
   rpcUrl: string;
@@ -1423,12 +1570,12 @@ export interface SolanaChainConfig {
 
 export class SolanaChain implements WormToolChain {
   readonly chainId = 1n;
-  readonly chainName = 'solana';
+  readonly chainName = "solana";
 
   private readonly connection: Connection;
 
   constructor(config: SolanaChainConfig) {
-    this.connection = new Connection(config.rpcUrl, 'confirmed');
+    this.connection = new Connection(config.rpcUrl, "confirmed");
   }
 
   async getBalance(address: string): Promise<bigint> {
@@ -1437,21 +1584,33 @@ export class SolanaChain implements WormToolChain {
       const lamports = await this.connection.getBalance(pk);
       return BigInt(lamports);
     } catch (e) {
-      throw new RpcError('solana', `getBalance failed: ${String(e)}`, e);
+      throw new RpcError("solana", `getBalance failed: ${String(e)}`, e);
     }
   }
 
   async call(_to: string, _data: `0x${string}`): Promise<`0x${string}`> {
-    throw new RpcError('solana', 'eth_call not supported on Solana — use program calls directly');
+    throw new RpcError(
+      "solana",
+      "eth_call not supported on Solana — use program calls directly",
+    );
   }
 
-  async sendTransaction(_to: string, _data: `0x${string}`, _value?: bigint): Promise<TransactionReceipt> {
-    throw new RpcError('solana', 'sendTransaction not yet implemented for Solana');
+  async sendTransaction(
+    _to: string,
+    _data: `0x${string}`,
+    _value?: bigint,
+  ): Promise<TransactionReceipt> {
+    throw new RpcError(
+      "solana",
+      "sendTransaction not yet implemented for Solana",
+    );
   }
 
   async waitForTransaction(txHash: string): Promise<TransactionReceipt> {
     try {
-      const sig = await this.connection.getSignatureStatus(txHash, { searchTransactionHistory: true });
+      const sig = await this.connection.getSignatureStatus(txHash, {
+        searchTransactionHistory: true,
+      });
       const status = sig.value;
       return {
         txHash,
@@ -1459,12 +1618,19 @@ export class SolanaChain implements WormToolChain {
         success: status?.err == null,
       };
     } catch (e) {
-      throw new RpcError('solana', `waitForTransaction failed: ${String(e)}`, e);
+      throw new RpcError(
+        "solana",
+        `waitForTransaction failed: ${String(e)}`,
+        e,
+      );
     }
   }
 
   async getCode(_address: string): Promise<`0x${string}`> {
-    throw new RpcError('solana', 'getCode not applicable to Solana — programs have a different structure');
+    throw new RpcError(
+      "solana",
+      "getCode not applicable to Solana — programs have a different structure",
+    );
   }
 }
 ```
@@ -1478,6 +1644,7 @@ cd packages/sdk && npm test -- chains/solana
 **Step 5: Create stub adapters for Aptos, NEAR, Sui**
 
 Following the same pattern, create:
+
 - `packages/sdk/src/chains/aptos.ts` — `AptosChain` with `chainId = 22n`
 - `packages/sdk/src/chains/near.ts` — `NearChain` with `chainId = 15n`
 - `packages/sdk/src/chains/sui.ts` — `SuiChain` with `chainId = 21n`
@@ -1487,11 +1654,11 @@ Each throws `RpcError('not yet implemented')` for `sendTransaction` and `call`.
 **Step 6: Create `packages/sdk/src/chains/index.ts`**
 
 ```typescript
-export { EvmChain } from './evm.js';
-export { SolanaChain } from './solana.js';
-export { AptosChain } from './aptos.js';
-export { NearChain } from './near.js';
-export { SuiChain } from './sui.js';
+export { EvmChain } from "./evm.js";
+export { SolanaChain } from "./solana.js";
+export { AptosChain } from "./aptos.js";
+export { NearChain } from "./near.js";
+export { SuiChain } from "./sui.js";
 ```
 
 **Step 7: Commit**
@@ -1510,6 +1677,7 @@ git commit -m "feat(sdk): add Solana, Aptos, NEAR, Sui chain adapters"
 **Source:** `crates/wormhole-sdk/src/deploy/abi.rs` (188 lines)
 
 **Files:**
+
 - Create: `packages/sdk/src/deploy/abi.ts`
 - Test: `packages/sdk/src/deploy/abi.test.ts`
 
@@ -1517,30 +1685,34 @@ git commit -m "feat(sdk): add Solana, Aptos, NEAR, Sui chain adapters"
 
 ```typescript
 // packages/sdk/src/deploy/abi.test.ts
-import { describe, it, expect } from 'vitest';
-import { encodeDeployMessage, encodeCallMessage, encodeUpgradeMessage } from './abi.js';
+import { describe, it, expect } from "vitest";
+import {
+  encodeDeployMessage,
+  encodeCallMessage,
+  encodeUpgradeMessage,
+} from "./abi.js";
 
-describe('encodeDeployMessage', () => {
-  it('produces a non-empty hex string', () => {
+describe("encodeDeployMessage", () => {
+  it("produces a non-empty hex string", () => {
     const encoded = encodeDeployMessage({
-      bytecode: '0x6001',
-      constructorArgs: '0x',
-      salt: '0x' + '00'.repeat(32),
+      bytecode: "0x6001",
+      constructorArgs: "0x",
+      salt: "0x" + "00".repeat(32),
       targetChains: [2, 4],
     });
-    expect(encoded.startsWith('0x')).toBe(true);
+    expect(encoded.startsWith("0x")).toBe(true);
     expect(encoded.length).toBeGreaterThan(2);
   });
 });
 
-describe('encodeCallMessage', () => {
-  it('produces non-empty hex', () => {
+describe("encodeCallMessage", () => {
+  it("produces non-empty hex", () => {
     const encoded = encodeCallMessage({
-      target: '0x' + 'ab'.repeat(20),
-      calldata: '0xdeadbeef',
+      target: "0x" + "ab".repeat(20),
+      calldata: "0xdeadbeef",
       targetChains: [2],
     });
-    expect(encoded.startsWith('0x')).toBe(true);
+    expect(encoded.startsWith("0x")).toBe(true);
   });
 });
 ```
@@ -1548,7 +1720,7 @@ describe('encodeCallMessage', () => {
 **Step 2: Implement `packages/sdk/src/deploy/abi.ts` using viem's ABI encoder**
 
 ```typescript
-import { encodeAbiParameters, parseAbiParameters } from 'viem';
+import { encodeAbiParameters, parseAbiParameters } from "viem";
 
 export interface DeployMessageParams {
   bytecode: `0x${string}`;
@@ -1572,8 +1744,16 @@ export interface UpgradeMessageParams {
 /** MSG_DEPLOY = 0x01 */
 export function encodeDeployMessage(p: DeployMessageParams): `0x${string}` {
   const encoded = encodeAbiParameters(
-    parseAbiParameters('uint8 msgType, bytes bytecode, bytes constructorArgs, bytes32 salt, uint16[] targetChains'),
-    [1, p.bytecode, p.constructorArgs, p.salt as `0x${string}`, p.targetChains.map(c => c)],
+    parseAbiParameters(
+      "uint8 msgType, bytes bytecode, bytes constructorArgs, bytes32 salt, uint16[] targetChains",
+    ),
+    [
+      1,
+      p.bytecode,
+      p.constructorArgs,
+      p.salt as `0x${string}`,
+      p.targetChains.map((c) => c),
+    ],
   );
   return encoded;
 }
@@ -1581,16 +1761,20 @@ export function encodeDeployMessage(p: DeployMessageParams): `0x${string}` {
 /** MSG_CALL = 0x02 */
 export function encodeCallMessage(p: CallMessageParams): `0x${string}` {
   return encodeAbiParameters(
-    parseAbiParameters('uint8 msgType, address target, bytes calldata_, uint16[] targetChains'),
-    [2, p.target, p.calldata, p.targetChains.map(c => c)],
+    parseAbiParameters(
+      "uint8 msgType, address target, bytes calldata_, uint16[] targetChains",
+    ),
+    [2, p.target, p.calldata, p.targetChains.map((c) => c)],
   );
 }
 
 /** MSG_UPGRADE = 0x03 */
 export function encodeUpgradeMessage(p: UpgradeMessageParams): `0x${string}` {
   return encodeAbiParameters(
-    parseAbiParameters('uint8 msgType, address proxy, address newImpl, uint16[] targetChains'),
-    [3, p.proxy, p.newImpl, p.targetChains.map(c => c)],
+    parseAbiParameters(
+      "uint8 msgType, address proxy, address newImpl, uint16[] targetChains",
+    ),
+    [3, p.proxy, p.newImpl, p.targetChains.map((c) => c)],
   );
 }
 ```
@@ -1615,6 +1799,7 @@ git commit -m "feat(sdk): port WormToolDeployer ABI encoder (deploy/call/upgrade
 **Source:** `crates/wormhole-sdk/src/deploy/status.rs` (76 lines)
 
 **Files:**
+
 - Create: `packages/sdk/src/deploy/status.ts`
 - Test: `packages/sdk/src/deploy/status.test.ts`
 
@@ -1622,12 +1807,13 @@ git commit -m "feat(sdk): port WormToolDeployer ABI encoder (deploy/call/upgrade
 
 ```typescript
 // packages/sdk/src/deploy/status.test.ts
-import { describe, it, expect, vi } from 'vitest';
-import { checkContractDeployed } from './status.js';
-import type { WormToolChain } from '../chain.js';
+import { describe, it, expect, vi } from "vitest";
+import { checkContractDeployed } from "./status.js";
+import type { WormToolChain } from "../chain.js";
 
 const makeChain = (code: string): WormToolChain => ({
-  chainId: 2n, chainName: 'ethereum',
+  chainId: 2n,
+  chainName: "ethereum",
   getBalance: vi.fn(),
   call: vi.fn(),
   sendTransaction: vi.fn(),
@@ -1635,16 +1821,16 @@ const makeChain = (code: string): WormToolChain => ({
   getCode: vi.fn().mockResolvedValue(code as `0x${string}`),
 });
 
-describe('checkContractDeployed', () => {
-  it('returns true if getCode returns non-empty bytecode', async () => {
-    const chain = makeChain('0x6001');
-    const result = await checkContractDeployed(chain, '0x' + 'ab'.repeat(20));
+describe("checkContractDeployed", () => {
+  it("returns true if getCode returns non-empty bytecode", async () => {
+    const chain = makeChain("0x6001");
+    const result = await checkContractDeployed(chain, "0x" + "ab".repeat(20));
     expect(result).toBe(true);
   });
 
-  it('returns false if getCode returns empty bytecode', async () => {
-    const chain = makeChain('0x');
-    const result = await checkContractDeployed(chain, '0x' + 'ab'.repeat(20));
+  it("returns false if getCode returns empty bytecode", async () => {
+    const chain = makeChain("0x");
+    const result = await checkContractDeployed(chain, "0x" + "ab".repeat(20));
     expect(result).toBe(false);
   });
 });
@@ -1653,7 +1839,7 @@ describe('checkContractDeployed', () => {
 **Step 2: Implement `packages/sdk/src/deploy/status.ts`**
 
 ```typescript
-import type { WormToolChain } from '../chain.js';
+import type { WormToolChain } from "../chain.js";
 
 /** Returns true if a contract is deployed at the given address. */
 export async function checkContractDeployed(
@@ -1661,7 +1847,7 @@ export async function checkContractDeployed(
   address: string,
 ): Promise<boolean> {
   const code = await chain.getCode(address);
-  return code !== '0x' && code.length > 2;
+  return code !== "0x" && code.length > 2;
 }
 ```
 
@@ -1685,6 +1871,7 @@ git commit -m "feat(sdk): add checkContractDeployed helper"
 **Source:** `crates/wormhole-sdk/src/deploy/mod.rs` (480 lines)
 
 **Files:**
+
 - Create: `packages/sdk/src/deploy/index.ts`
 - Test: `packages/sdk/src/deploy/index.test.ts`
 
@@ -1692,30 +1879,43 @@ git commit -m "feat(sdk): add checkContractDeployed helper"
 
 ```typescript
 // packages/sdk/src/deploy/index.test.ts
-import { describe, it, expect, vi } from 'vitest';
-import { deployAcrossChains } from './index.js';
-import type { WormToolChain, TransactionReceipt } from '../chain.js';
+import { describe, it, expect, vi } from "vitest";
+import { deployAcrossChains } from "./index.js";
+import type { WormToolChain, TransactionReceipt } from "../chain.js";
 
 const makeMockChain = (id: bigint, name: string): WormToolChain => ({
-  chainId: id, chainName: name,
+  chainId: id,
+  chainName: name,
   getBalance: vi.fn().mockResolvedValue(1000n),
-  call: vi.fn().mockResolvedValue('0x'),
-  sendTransaction: vi.fn().mockResolvedValue({ txHash: '0xabc', blockNumber: 1n, success: true } satisfies TransactionReceipt),
-  waitForTransaction: vi.fn().mockResolvedValue({ txHash: '0xabc', blockNumber: 1n, success: true } satisfies TransactionReceipt),
-  getCode: vi.fn().mockResolvedValue('0x'),
+  call: vi.fn().mockResolvedValue("0x"),
+  sendTransaction: vi
+    .fn()
+    .mockResolvedValue({
+      txHash: "0xabc",
+      blockNumber: 1n,
+      success: true,
+    } satisfies TransactionReceipt),
+  waitForTransaction: vi
+    .fn()
+    .mockResolvedValue({
+      txHash: "0xabc",
+      blockNumber: 1n,
+      success: true,
+    } satisfies TransactionReceipt),
+  getCode: vi.fn().mockResolvedValue("0x"),
 });
 
-describe('deployAcrossChains', () => {
-  it('dispatches a deploy transaction on each chain', async () => {
-    const ethereum = makeMockChain(2n, 'ethereum');
-    const bsc = makeMockChain(4n, 'bsc');
+describe("deployAcrossChains", () => {
+  it("dispatches a deploy transaction on each chain", async () => {
+    const ethereum = makeMockChain(2n, "ethereum");
+    const bsc = makeMockChain(4n, "bsc");
 
     const results = await deployAcrossChains({
       chains: [ethereum, bsc],
-      bytecode: '0x6001',
-      constructorArgs: '0x',
-      salt: '0x' + '00'.repeat(32),
-      wormToolDeployerAddress: '0x' + 'de'.repeat(20),
+      bytecode: "0x6001",
+      constructorArgs: "0x",
+      salt: "0x" + "00".repeat(32),
+      wormToolDeployerAddress: "0x" + "de".repeat(20),
     });
 
     expect(results).toHaveLength(2);
@@ -1728,8 +1928,12 @@ describe('deployAcrossChains', () => {
 **Step 2: Implement `packages/sdk/src/deploy/index.ts`**
 
 ```typescript
-import type { WormToolChain, TransactionReceipt } from '../chain.js';
-import { encodeDeployMessage, encodeCallMessage, encodeUpgradeMessage } from './abi.js';
+import type { WormToolChain, TransactionReceipt } from "../chain.js";
+import {
+  encodeDeployMessage,
+  encodeCallMessage,
+  encodeUpgradeMessage,
+} from "./abi.js";
 
 export interface DeployAcrossChainsParams {
   chains: WormToolChain[];
@@ -1748,13 +1952,27 @@ export interface ChainDeployResult {
 export async function deployAcrossChains(
   params: DeployAcrossChainsParams,
 ): Promise<ChainDeployResult[]> {
-  const { chains, bytecode, constructorArgs = '0x', salt, wormToolDeployerAddress } = params;
-  const chainIds = chains.map(c => Number(c.chainId));
-  const data = encodeDeployMessage({ bytecode, constructorArgs, salt, targetChains: chainIds });
+  const {
+    chains,
+    bytecode,
+    constructorArgs = "0x",
+    salt,
+    wormToolDeployerAddress,
+  } = params;
+  const chainIds = chains.map((c) => Number(c.chainId));
+  const data = encodeDeployMessage({
+    bytecode,
+    constructorArgs,
+    salt,
+    targetChains: chainIds,
+  });
 
   const results = await Promise.all(
     chains.map(async (chain): Promise<ChainDeployResult> => {
-      const receipt = await chain.sendTransaction(wormToolDeployerAddress, data);
+      const receipt = await chain.sendTransaction(
+        wormToolDeployerAddress,
+        data,
+      );
       return { chain: chain.chainName, chainId: chain.chainId, receipt };
     }),
   );
@@ -1772,12 +1990,15 @@ export async function callAcrossChains(
   params: CallAcrossChainsParams,
 ): Promise<ChainDeployResult[]> {
   const { chains, target, calldata, wormToolDeployerAddress } = params;
-  const chainIds = chains.map(c => Number(c.chainId));
+  const chainIds = chains.map((c) => Number(c.chainId));
   const data = encodeCallMessage({ target, calldata, targetChains: chainIds });
 
   return Promise.all(
     chains.map(async (chain): Promise<ChainDeployResult> => {
-      const receipt = await chain.sendTransaction(wormToolDeployerAddress, data);
+      const receipt = await chain.sendTransaction(
+        wormToolDeployerAddress,
+        data,
+      );
       return { chain: chain.chainName, chainId: chain.chainId, receipt };
     }),
   );
@@ -1794,12 +2015,15 @@ export async function upgradeAcrossChains(
   params: UpgradeAcrossChainsParams,
 ): Promise<ChainDeployResult[]> {
   const { chains, proxy, newImpl, wormToolDeployerAddress } = params;
-  const chainIds = chains.map(c => Number(c.chainId));
+  const chainIds = chains.map((c) => Number(c.chainId));
   const data = encodeUpgradeMessage({ proxy, newImpl, targetChains: chainIds });
 
   return Promise.all(
     chains.map(async (chain): Promise<ChainDeployResult> => {
-      const receipt = await chain.sendTransaction(wormToolDeployerAddress, data);
+      const receipt = await chain.sendTransaction(
+        wormToolDeployerAddress,
+        data,
+      );
       return { chain: chain.chainName, chainId: chain.chainId, receipt };
     }),
   );
@@ -1816,11 +2040,11 @@ cd packages/sdk && npm test -- deploy/index
 
 ```typescript
 // packages/sdk/src/deploy/index.ts — add at top
-export { extractBytecode } from './artifact.js';
-export { computeCreate2Address } from './create2.js';
-export { getChainById, getChainByName, CHAIN_REGISTRY } from './registry.js';
-export { checkContractDeployed } from './status.js';
-export * from './abi.js';
+export { extractBytecode } from "./artifact.js";
+export { computeCreate2Address } from "./create2.js";
+export { getChainById, getChainByName, CHAIN_REGISTRY } from "./registry.js";
+export { checkContractDeployed } from "./status.js";
+export * from "./abi.js";
 // ... keep deploy function exports
 ```
 
@@ -1840,10 +2064,12 @@ git commit -m "feat(sdk): deploy orchestration — deployAcrossChains, callAcros
 **Source:** `crates/wormhole-sdk/src/status.rs` (397 lines)
 
 **Files:**
+
 - Create: `packages/sdk/src/status.ts`
 - Test: `packages/sdk/src/status.test.ts`
 
 **Implementation notes:**
+
 - Port `MessageStatus` enum: `Pending`, `Signed`, `Relayed`
 - `fetchMessageStatus(txHash, emitterChain, sequence)` — queries Wormhole Guardian REST API
 - Guardian API base: `https://api.wormholescan.io`
@@ -1853,27 +2079,38 @@ git commit -m "feat(sdk): deploy orchestration — deployAcrossChains, callAcros
 
 ```typescript
 // packages/sdk/src/status.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MessageStatus, getMessageStatus } from './status.js';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { MessageStatus, getMessageStatus } from "./status.js";
 
 global.fetch = vi.fn();
 
-describe('getMessageStatus', () => {
+describe("getMessageStatus", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('returns Signed when wormholescan returns signedVAA', async () => {
+  it("returns Signed when wormholescan returns signedVAA", async () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ vaaBytes: 'AQID' }),
+      json: async () => ({ vaaBytes: "AQID" }),
     });
 
-    const result = await getMessageStatus({ emitterChain: 2, emitterAddress: '0x' + '00'.repeat(32), sequence: 1n });
+    const result = await getMessageStatus({
+      emitterChain: 2,
+      emitterAddress: "0x" + "00".repeat(32),
+      sequence: 1n,
+    });
     expect(result.status).toBe(MessageStatus.Signed);
   });
 
-  it('returns Pending when 404', async () => {
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: false, status: 404 });
-    const result = await getMessageStatus({ emitterChain: 2, emitterAddress: '0x' + '00'.repeat(32), sequence: 1n });
+  it("returns Pending when 404", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+    });
+    const result = await getMessageStatus({
+      emitterChain: 2,
+      emitterAddress: "0x" + "00".repeat(32),
+      sequence: 1n,
+    });
     expect(result.status).toBe(MessageStatus.Pending);
   });
 });
@@ -1882,19 +2119,19 @@ describe('getMessageStatus', () => {
 **Step 2: Implement `packages/sdk/src/status.ts`**
 
 ```typescript
-const WORMHOLESCAN_BASE = 'https://api.wormholescan.io';
+const WORMHOLESCAN_BASE = "https://api.wormholescan.io";
 
 export enum MessageStatus {
-  Pending = 'pending',
-  Signed = 'signed',
-  Relayed = 'relayed',
+  Pending = "pending",
+  Signed = "signed",
+  Relayed = "relayed",
 }
 
 export interface MessageStatusParams {
   emitterChain: number;
   emitterAddress: string;
   sequence: bigint;
-  network?: 'mainnet' | 'testnet';
+  network?: "mainnet" | "testnet";
 }
 
 export interface MessageStatusResult {
@@ -1903,9 +2140,19 @@ export interface MessageStatusResult {
   txHash?: string;
 }
 
-export async function getMessageStatus(params: MessageStatusParams): Promise<MessageStatusResult> {
-  const { emitterChain, emitterAddress, sequence, network = 'mainnet' } = params;
-  const base = network === 'testnet' ? 'https://api.testnet.wormholescan.io' : WORMHOLESCAN_BASE;
+export async function getMessageStatus(
+  params: MessageStatusParams,
+): Promise<MessageStatusResult> {
+  const {
+    emitterChain,
+    emitterAddress,
+    sequence,
+    network = "mainnet",
+  } = params;
+  const base =
+    network === "testnet"
+      ? "https://api.testnet.wormholescan.io"
+      : WORMHOLESCAN_BASE;
   const url = `${base}/api/v1/vaas/${emitterChain}/${emitterAddress}/${sequence}`;
 
   const response = await fetch(url);
@@ -1915,7 +2162,10 @@ export async function getMessageStatus(params: MessageStatusParams): Promise<Mes
     throw new Error(`Guardian API error: ${response.status}`);
   }
 
-  const data = await response.json() as { vaaBytes?: string; data?: { txHash?: string } };
+  const data = (await response.json()) as {
+    vaaBytes?: string;
+    data?: { txHash?: string };
+  };
   return {
     status: MessageStatus.Signed,
     vaaBytes: data.vaaBytes,
@@ -1944,10 +2194,12 @@ git commit -m "feat(sdk): add getMessageStatus (wormholescan API)"
 **Source:** `crates/wormhole-sdk/src/info.rs` (358 lines)
 
 **Files:**
+
 - Create: `packages/sdk/src/info.ts`
 - Test: `packages/sdk/src/info.test.ts`
 
 **Port these functions:**
+
 - `getChainInfo(chain)` — returns RPC metadata, guardian set, finality
 - `getGuardianSet(wormholeCore, chain)` — on-chain guardian set query
 
@@ -1955,13 +2207,17 @@ git commit -m "feat(sdk): add getMessageStatus (wormholescan API)"
 
 ```typescript
 // packages/sdk/src/info.test.ts
-import { describe, it, expect } from 'vitest';
-import { buildChainInfoSummary } from './info.js';
+import { describe, it, expect } from "vitest";
+import { buildChainInfoSummary } from "./info.js";
 
-describe('buildChainInfoSummary', () => {
-  it('returns chain name and id', () => {
-    const summary = buildChainInfoSummary({ chainId: 2, chainName: 'ethereum', rpcUrl: 'http://localhost:8545' });
-    expect(summary.name).toBe('ethereum');
+describe("buildChainInfoSummary", () => {
+  it("returns chain name and id", () => {
+    const summary = buildChainInfoSummary({
+      chainId: 2,
+      chainName: "ethereum",
+      rpcUrl: "http://localhost:8545",
+    });
+    expect(summary.name).toBe("ethereum");
     expect(summary.wormholeChainId).toBe(2);
   });
 });
@@ -1984,12 +2240,12 @@ export interface ChainInfoSummary {
 }
 
 const FINALITY_MAP: Record<number, string> = {
-  1: 'confirmed (32 slots)',
-  2: 'finalized (15 min)',
-  4: 'finalized (15 min)',
-  23: 'safe (2 min)',
-  24: 'safe (2 min)',
-  30: 'safe (2 min)',
+  1: "confirmed (32 slots)",
+  2: "finalized (15 min)",
+  4: "finalized (15 min)",
+  23: "safe (2 min)",
+  24: "safe (2 min)",
+  30: "safe (2 min)",
 };
 
 export function buildChainInfoSummary(input: ChainInfoInput): ChainInfoSummary {
@@ -1997,7 +2253,7 @@ export function buildChainInfoSummary(input: ChainInfoInput): ChainInfoSummary {
     name: input.chainName,
     wormholeChainId: input.chainId,
     rpcUrl: input.rpcUrl,
-    finality: FINALITY_MAP[input.chainId] ?? 'unknown',
+    finality: FINALITY_MAP[input.chainId] ?? "unknown",
   };
 }
 ```
@@ -2011,6 +2267,7 @@ cd packages/sdk && npm test -- src/info
 **Step 4: Port remaining feature modules**
 
 Following the same TDD pattern, port:
+
 - `packages/sdk/src/transfer.ts` — Token Bridge transfer initiation
 - `packages/sdk/src/tokens.ts` — Token Bridge asset queries
 - `packages/sdk/src/latency.ts` — Guardian signing latency
@@ -2030,23 +2287,24 @@ git commit -m "feat(sdk): port info, transfer, tokens, latency, generate modules
 ### Task 5.3: SDK Barrel Export
 
 **Files:**
+
 - Modify: `packages/sdk/src/index.ts`
 
 **Step 1: Wire up all exports**
 
 ```typescript
 // packages/sdk/src/index.ts — final version
-export * from './error.js';
-export * from './chain.js';
-export * from './vaa/index.js';
-export * from './chains/index.js';
-export * from './deploy/index.js';
-export * from './status.js';
-export * from './info.js';
-export * from './transfer.js';
-export * from './tokens.js';
-export * from './latency.js';
-export * from './generate.js';
+export * from "./error.js";
+export * from "./chain.js";
+export * from "./vaa/index.js";
+export * from "./chains/index.js";
+export * from "./deploy/index.js";
+export * from "./status.js";
+export * from "./info.js";
+export * from "./transfer.js";
+export * from "./tokens.js";
+export * from "./latency.js";
+export * from "./generate.js";
 ```
 
 **Step 2: Build the SDK**
@@ -2079,6 +2337,7 @@ git commit -m "feat(sdk): finalize barrel exports and build"
 **Source:** `crates/wormhole-cli/src/config.rs` (29 lines)
 
 **Files:**
+
 - Create: `packages/cli/src/config.ts`
 - Test: `packages/cli/src/config.test.ts`
 
@@ -2086,20 +2345,20 @@ git commit -m "feat(sdk): finalize barrel exports and build"
 
 ```typescript
 // packages/cli/src/config.test.ts
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { loadConfig } from './config.js';
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { loadConfig } from "./config.js";
 
 afterEach(() => vi.unstubAllEnvs());
 
-describe('loadConfig', () => {
-  it('reads WORM_TOOL_PRIVATE_KEY from env', () => {
-    vi.stubEnv('WORM_TOOL_PRIVATE_KEY', '0xdeadbeef');
+describe("loadConfig", () => {
+  it("reads WORM_TOOL_EVM_PRIVATE_KEY from env", () => {
+    vi.stubEnv("WORM_TOOL_EVM_PRIVATE_KEY", "0xdeadbeef");
     const config = loadConfig();
-    expect(config.privateKey).toBe('0xdeadbeef');
+    expect(config.privateKey).toBe("0xdeadbeef");
   });
 
-  it('returns undefined for missing keys', () => {
-    vi.stubEnv('WORM_TOOL_PRIVATE_KEY', '');
+  it("returns undefined for missing keys", () => {
+    vi.stubEnv("WORM_TOOL_EVM_PRIVATE_KEY", "");
     const config = loadConfig();
     expect(config.privateKey).toBeUndefined();
   });
@@ -2109,21 +2368,24 @@ describe('loadConfig', () => {
 **Step 2: Implement `packages/cli/src/config.ts`**
 
 ```typescript
-import { config as loadDotenv } from 'dotenv';
-import { resolve } from 'path';
-import { homedir } from 'os';
+import { config as loadDotenv } from "dotenv";
+import { resolve } from "path";
+import { homedir } from "os";
 
 export interface WormToolConfig {
   privateKey?: `0x${string}`;
   rpcUrls: Record<string, string>;
-  network: 'mainnet' | 'testnet';
+  network: "mainnet" | "testnet";
 }
 
 /** Loads config from ~/.worm-tool/.env, then process.env (process.env wins). */
 export function loadConfig(): WormToolConfig {
-  loadDotenv({ path: resolve(homedir(), '.worm-tool', '.env'), override: false });
+  loadDotenv({
+    path: resolve(homedir(), ".worm-tool", ".env"),
+    override: false,
+  });
 
-  const pk = process.env['WORM_TOOL_PRIVATE_KEY'];
+  const pk = process.env["WORM_TOOL_EVM_PRIVATE_KEY"];
 
   const rpcUrls: Record<string, string> = {};
   for (const [key, value] of Object.entries(process.env)) {
@@ -2134,7 +2396,8 @@ export function loadConfig(): WormToolConfig {
   return {
     privateKey: pk ? (pk as `0x${string}`) : undefined,
     rpcUrls,
-    network: (process.env['WORM_TOOL_NETWORK'] as 'mainnet' | 'testnet') ?? 'mainnet',
+    network:
+      (process.env["WORM_TOOL_NETWORK"] as "mainnet" | "testnet") ?? "mainnet",
   };
 }
 ```
@@ -2159,6 +2422,7 @@ git commit -m "feat(cli): add config loader (~/.worm-tool/.env)"
 **Source:** `crates/wormhole-cli/src/output.rs` (57 lines)
 
 **Files:**
+
 - Create: `packages/cli/src/output.ts`
 - Test: `packages/cli/src/output.test.ts`
 
@@ -2166,24 +2430,30 @@ git commit -m "feat(cli): add config loader (~/.worm-tool/.env)"
 
 ```typescript
 // packages/cli/src/output.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { printJson, printError } from './output.js';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { printJson, printError } from "./output.js";
 
-beforeEach(() => vi.spyOn(console, 'log').mockImplementation(() => {}));
+beforeEach(() => vi.spyOn(console, "log").mockImplementation(() => {}));
 afterEach(() => vi.restoreAllMocks());
 
-describe('printJson', () => {
-  it('outputs pretty JSON to stdout', () => {
-    printJson({ key: 'value' });
-    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('"key": "value"'));
+describe("printJson", () => {
+  it("outputs pretty JSON to stdout", () => {
+    printJson({ key: "value" });
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining('"key": "value"'),
+    );
   });
 });
 
-describe('printError', () => {
-  it('outputs to stderr', () => {
-    const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-    printError('something failed');
-    expect(spy).toHaveBeenCalledWith(expect.stringContaining('something failed'));
+describe("printError", () => {
+  it("outputs to stderr", () => {
+    const spy = vi
+      .spyOn(process.stderr, "write")
+      .mockImplementation(() => true);
+    printError("something failed");
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining("something failed"),
+    );
     spy.mockRestore();
   });
 });
@@ -2197,7 +2467,7 @@ export function printJson(data: unknown): void {
 }
 
 export function printError(message: string, err?: unknown): void {
-  const detail = err instanceof Error ? `: ${err.message}` : '';
+  const detail = err instanceof Error ? `: ${err.message}` : "";
   process.stderr.write(`Error: ${message}${detail}\n`);
 }
 
@@ -2226,24 +2496,32 @@ git commit -m "feat(cli): add output formatter (printJson, printError)"
 **Source:** `crates/wormhole-cli/src/providers/evm.rs` (82 lines)
 
 **Files:**
+
 - Create: `packages/cli/src/providers/evm.ts`
 - Create: `packages/cli/src/providers/index.ts`
 
 **Step 1: Implement `packages/cli/src/providers/evm.ts`**
 
 ```typescript
-import { EvmChain } from '@worm-tool/sdk';
-import type { WormToolConfig } from '../config.js';
-import { getChainByName } from '@worm-tool/sdk';
-import { ChainNotSupportedError } from '@worm-tool/sdk';
+import { EvmChain } from "@worm-tool/sdk";
+import type { WormToolConfig } from "../config.js";
+import { getChainByName } from "@worm-tool/sdk";
+import { ChainNotSupportedError } from "@worm-tool/sdk";
 
-export function createEvmChain(chainName: string, config: WormToolConfig): EvmChain {
+export function createEvmChain(
+  chainName: string,
+  config: WormToolConfig,
+): EvmChain {
   const entry = getChainByName(chainName);
   if (!entry) throw new ChainNotSupportedError(chainName);
-  if (!entry.evmChainId) throw new ChainNotSupportedError(`${chainName} is not an EVM chain`);
+  if (!entry.evmChainId)
+    throw new ChainNotSupportedError(`${chainName} is not an EVM chain`);
 
   const rpcUrl = config.rpcUrls[chainName] ?? entry.defaultRpc;
-  if (!rpcUrl) throw new Error(`No RPC URL for ${chainName} — set WORM_TOOL_RPC_${chainName.toUpperCase()}`);
+  if (!rpcUrl)
+    throw new Error(
+      `No RPC URL for ${chainName} — set WORM_TOOL_RPC_${chainName.toUpperCase()}`,
+    );
 
   return new EvmChain({
     rpcUrl,
@@ -2258,7 +2536,7 @@ export function createEvmChain(chainName: string, config: WormToolConfig): EvmCh
 
 ```typescript
 // packages/cli/src/providers/index.ts
-export { createEvmChain } from './evm.js';
+export { createEvmChain } from "./evm.js";
 ```
 
 **Step 3: Commit**
@@ -2275,33 +2553,34 @@ git commit -m "feat(cli): add createEvmChain provider factory"
 **Source:** `crates/wormhole-cli/src/main.rs` (74 lines)
 
 **Files:**
+
 - Create: `packages/cli/src/main.ts`
 - Modify: `packages/cli/src/index.ts`
 
 **Step 1: Implement `packages/cli/src/main.ts`**
 
 ```typescript
-import { Command } from 'commander';
-import { registerStatusCommand } from './commands/status.js';
-import { registerInfoCommand } from './commands/info.js';
-import { registerDeployCommand } from './commands/deploy.js';
-import { registerTransferCommand } from './commands/transfer.js';
-import { registerTokensCommand } from './commands/tokens.js';
-import { registerParseCommand } from './commands/parse.js';
-import { registerGenerateCommand } from './commands/generate.js';
-import { registerLatencyCommand } from './commands/latency.js';
-import { registerSubmitCommand } from './commands/submit.js';
-import { registerRedeemCommand } from './commands/redeem.js';
-import { printError } from './output.js';
+import { Command } from "commander";
+import { registerStatusCommand } from "./commands/status.js";
+import { registerInfoCommand } from "./commands/info.js";
+import { registerDeployCommand } from "./commands/deploy.js";
+import { registerTransferCommand } from "./commands/transfer.js";
+import { registerTokensCommand } from "./commands/tokens.js";
+import { registerParseCommand } from "./commands/parse.js";
+import { registerGenerateCommand } from "./commands/generate.js";
+import { registerLatencyCommand } from "./commands/latency.js";
+import { registerSubmitCommand } from "./commands/submit.js";
+import { registerRedeemCommand } from "./commands/redeem.js";
+import { printError } from "./output.js";
 
 const program = new Command();
 
 program
-  .name('worm-tool')
-  .description('CLI for Wormhole cross-chain protocol interactions')
-  .version(process.env['npm_package_version'] ?? '0.0.1')
-  .option('--json', 'force JSON output')
-  .option('--network <network>', 'mainnet or testnet', 'mainnet');
+  .name("worm-tool")
+  .description("CLI for Wormhole cross-chain protocol interactions")
+  .version(process.env["npm_package_version"] ?? "0.0.1")
+  .option("--json", "force JSON output")
+  .option("--network <network>", "mainnet or testnet", "mainnet");
 
 registerStatusCommand(program);
 registerInfoCommand(program);
@@ -2315,7 +2594,7 @@ registerSubmitCommand(program);
 registerRedeemCommand(program);
 
 program.parseAsync(process.argv).catch((err: unknown) => {
-  printError('Unexpected error', err);
+  printError("Unexpected error", err);
   process.exit(1);
 });
 ```
@@ -2335,20 +2614,20 @@ Each command file follows this pattern:
 
 ```typescript
 // packages/cli/src/commands/parse.ts
-import { Command } from 'commander';
-import { parseVaa } from '@worm-tool/sdk';
-import { printJson, printError } from '../output.js';
+import { Command } from "commander";
+import { parseVaa } from "@worm-tool/sdk";
+import { printJson, printError } from "../output.js";
 
 export function registerParseCommand(program: Command): void {
   program
-    .command('parse <vaa>')
-    .description('Parse a VAA from hex or base64')
+    .command("parse <vaa>")
+    .description("Parse a VAA from hex or base64")
     .action(async (vaa: string) => {
       try {
         const parsed = parseVaa(vaa);
         printJson(parsed);
       } catch (err) {
-        printError('Failed to parse VAA', err);
+        printError("Failed to parse VAA", err);
         process.exit(1);
       }
     });
@@ -2366,6 +2645,7 @@ Implement the pattern above. Test: run `worm-tool parse 0x01...` and verify JSON
 **Source:** `crates/wormhole-cli/src/commands/status.rs` (82 lines)
 
 Options:
+
 - `--chain <id>` — emitter chain ID
 - `--address <hex>` — emitter address
 - `--sequence <n>` — message sequence
@@ -2390,6 +2670,7 @@ git commit -m "feat(cli): add info command"
 **Source:** `crates/wormhole-cli/src/commands/deploy.rs` (647 lines)
 
 This is the most complex command. It has 5 subcommands:
+
 - `deploy multi` — deploy bytecode across chains
 - `deploy address` — compute CREATE2 address
 - `deploy call` — call a function across chains
@@ -2400,66 +2681,109 @@ Use Commander's `.addCommand()` to nest subcommands:
 
 ```typescript
 // packages/cli/src/commands/deploy.ts
-import { Command } from 'commander';
-import { deployAcrossChains, computeCreate2Address, extractBytecode, callAcrossChains, upgradeAcrossChains, checkContractDeployed } from '@worm-tool/sdk';
-import { loadConfig } from '../config.js';
-import { createEvmChain } from '../providers/evm.js';
-import { printJson, printError } from '../output.js';
-import { readFile } from 'fs/promises';
+import { Command } from "commander";
+import {
+  deployAcrossChains,
+  computeCreate2Address,
+  extractBytecode,
+  callAcrossChains,
+  upgradeAcrossChains,
+  checkContractDeployed,
+} from "@worm-tool/sdk";
+import { loadConfig } from "../config.js";
+import { createEvmChain } from "../providers/evm.js";
+import { printJson, printError } from "../output.js";
+import { readFile } from "fs/promises";
 
 export function registerDeployCommand(program: Command): void {
-  const deploy = new Command('deploy').description('Cross-chain contract deployment');
+  const deploy = new Command("deploy").description(
+    "Cross-chain contract deployment",
+  );
 
-  deploy.command('multi')
-    .description('Deploy bytecode across multiple chains via WormToolDeployer')
-    .requiredOption('--artifact <path>', 'Path to Hardhat/Foundry artifact JSON')
-    .requiredOption('--chains <chains>', 'Comma-separated chain names (e.g. ethereum,bsc)')
-    .option('--salt <hex>', 'CREATE2 salt (32 bytes hex)', '0x' + '00'.repeat(32))
+  deploy
+    .command("multi")
+    .description("Deploy bytecode across multiple chains via WormToolDeployer")
+    .requiredOption(
+      "--artifact <path>",
+      "Path to Hardhat/Foundry artifact JSON",
+    )
+    .requiredOption(
+      "--chains <chains>",
+      "Comma-separated chain names (e.g. ethereum,bsc)",
+    )
+    .option(
+      "--salt <hex>",
+      "CREATE2 salt (32 bytes hex)",
+      "0x" + "00".repeat(32),
+    )
     .action(async (opts) => {
       try {
         const config = loadConfig();
-        const artifact = JSON.parse(await readFile(opts.artifact, 'utf8'));
+        const artifact = JSON.parse(await readFile(opts.artifact, "utf8"));
         const bytecode = extractBytecode(artifact, opts.artifact);
-        const chainNames = (opts.chains as string).split(',');
-        const chains = chainNames.map(n => createEvmChain(n.trim(), config));
-        const deployer = config.rpcUrls['worm_tool_deployer'] ?? (() => { throw new Error('Set WORM_TOOL_DEPLOYER_ADDRESS'); })();
-        const results = await deployAcrossChains({ chains, bytecode, salt: opts.salt, wormToolDeployerAddress: deployer });
+        const chainNames = (opts.chains as string).split(",");
+        const chains = chainNames.map((n) => createEvmChain(n.trim(), config));
+        const deployer =
+          config.rpcUrls["worm_tool_deployer"] ??
+          (() => {
+            throw new Error("Set WORM_TOOL_DEPLOYER_ADDRESS");
+          })();
+        const results = await deployAcrossChains({
+          chains,
+          bytecode,
+          salt: opts.salt,
+          wormToolDeployerAddress: deployer,
+        });
         printJson(results);
       } catch (err) {
-        printError('Deploy failed', err);
+        printError("Deploy failed", err);
         process.exit(1);
       }
     });
 
-  deploy.command('address')
-    .description('Compute CREATE2 deployment address')
-    .requiredOption('--deployer <address>', 'Deployer contract address')
-    .requiredOption('--salt <hex>', 'Salt (32 bytes)')
-    .requiredOption('--init-code-hash <hex>', 'keccak256 of init bytecode')
+  deploy
+    .command("address")
+    .description("Compute CREATE2 deployment address")
+    .requiredOption("--deployer <address>", "Deployer contract address")
+    .requiredOption("--salt <hex>", "Salt (32 bytes)")
+    .requiredOption("--init-code-hash <hex>", "keccak256 of init bytecode")
     .action((opts) => {
-      const address = computeCreate2Address(opts.deployer, opts.salt, opts.initCodeHash);
+      const address = computeCreate2Address(
+        opts.deployer,
+        opts.salt,
+        opts.initCodeHash,
+      );
       printJson({ address });
     });
 
-  deploy.command('call')
-    .description('Call a function across chains')
-    .requiredOption('--target <address>', 'Target contract address')
-    .requiredOption('--calldata <hex>', 'ABI-encoded calldata')
-    .requiredOption('--chains <chains>', 'Comma-separated chain names')
-    .action(async (opts) => { /* similar to multi */ });
+  deploy
+    .command("call")
+    .description("Call a function across chains")
+    .requiredOption("--target <address>", "Target contract address")
+    .requiredOption("--calldata <hex>", "ABI-encoded calldata")
+    .requiredOption("--chains <chains>", "Comma-separated chain names")
+    .action(async (opts) => {
+      /* similar to multi */
+    });
 
-  deploy.command('upgrade')
-    .description('Upgrade a proxy contract across chains')
-    .requiredOption('--proxy <address>', 'Proxy address')
-    .requiredOption('--new-impl <address>', 'New implementation address')
-    .requiredOption('--chains <chains>', 'Comma-separated chain names')
-    .action(async (opts) => { /* similar pattern */ });
+  deploy
+    .command("upgrade")
+    .description("Upgrade a proxy contract across chains")
+    .requiredOption("--proxy <address>", "Proxy address")
+    .requiredOption("--new-impl <address>", "New implementation address")
+    .requiredOption("--chains <chains>", "Comma-separated chain names")
+    .action(async (opts) => {
+      /* similar pattern */
+    });
 
-  deploy.command('status')
-    .description('Check if a contract is deployed')
-    .requiredOption('--address <address>', 'Contract address to check')
-    .requiredOption('--chains <chains>', 'Comma-separated chain names')
-    .action(async (opts) => { /* checkContractDeployed */ });
+  deploy
+    .command("status")
+    .description("Check if a contract is deployed")
+    .requiredOption("--address <address>", "Contract address to check")
+    .requiredOption("--chains <chains>", "Comma-separated chain names")
+    .action(async (opts) => {
+      /* checkContractDeployed */
+    });
 
   program.addCommand(deploy);
 }
@@ -2473,19 +2797,19 @@ git commit -m "feat(cli): add deploy command group (multi/address/call/upgrade/s
 
 Port each in its own commit:
 
-| Command | Source | Commit message |
-|---------|--------|----------------|
+| Command    | Source                 | Commit message                    |
+| ---------- | ---------------------- | --------------------------------- |
 | `transfer` | `commands/transfer.rs` | `feat(cli): add transfer command` |
-| `tokens` | `commands/tokens.rs` | `feat(cli): add tokens command` |
-| `latency` | `commands/latency.rs` | `feat(cli): add latency command` |
-| `submit` | `commands/submit.rs` | `feat(cli): add submit command` |
-| `redeem` | `commands/redeem.rs` | `feat(cli): add redeem command` |
+| `tokens`   | `commands/tokens.rs`   | `feat(cli): add tokens command`   |
+| `latency`  | `commands/latency.rs`  | `feat(cli): add latency command`  |
+| `submit`   | `commands/submit.rs`   | `feat(cli): add submit command`   |
+| `redeem`   | `commands/redeem.rs`   | `feat(cli): add redeem command`   |
 | `generate` | `commands/generate.rs` | `feat(cli): add generate command` |
-| `evm` | `commands/evm.rs` | `feat(cli): add evm command` |
-| `solana` | `commands/solana.rs` | `feat(cli): add solana command` |
-| `aptos` | `commands/aptos.rs` | `feat(cli): add aptos command` |
-| `near` | `commands/near.rs` | `feat(cli): add near command` |
-| `sui` | `commands/sui.rs` | `feat(cli): add sui command` |
+| `evm`      | `commands/evm.rs`      | `feat(cli): add evm command`      |
+| `solana`   | `commands/solana.rs`   | `feat(cli): add solana command`   |
+| `aptos`    | `commands/aptos.rs`    | `feat(cli): add aptos command`    |
+| `near`     | `commands/near.rs`     | `feat(cli): add near command`     |
+| `sui`      | `commands/sui.rs`      | `feat(cli): add sui command`      |
 
 ### Task 7.6: Build CLI and Smoke Test
 
@@ -2522,6 +2846,7 @@ git commit -m "feat(cli): build passes and all commands registered"
 ### Task 8.1: Rename Solidity Contracts
 
 **Files to modify:**
+
 - Rename: `contracts/src/WormDeployer.sol` → `contracts/src/WormToolDeployer.sol`
 - Rename: `contracts/src/WormOwnableProxy.sol` → `contracts/src/WormToolProxy.sol`
 - Rename: `contracts/src/interfaces/IWormDeployer.sol` → `contracts/src/interfaces/IWormToolDeployer.sol`
@@ -2543,6 +2868,7 @@ mv test/WormOwnableProxy.t.sol test/WormToolProxy.t.sol
 **Step 2: Find and replace inside Solidity files**
 
 All occurrences of:
+
 - `WormDeployer` → `WormToolDeployer`
 - `WormOwnableProxy` → `WormToolProxy`
 - `IWormDeployer` → `IWormToolDeployer`
@@ -2558,6 +2884,7 @@ sed -i '' 's/IWormDeployer/IWormToolDeployer/g' contracts/src/interfaces/IWormTo
 **Step 3: Update import paths within Solidity files**
 
 In `WormToolDeployer.sol`, update:
+
 ```solidity
 import "./interfaces/IWormToolDeployer.sol";
 import "./WormToolProxy.sol";
@@ -2619,6 +2946,7 @@ git commit -m "chore(contracts): rebuild artifacts after WormToolDeployer rename
 **File:** `README.md`
 
 **Changes required:**
+
 1. Title: `worm-tool` instead of `wormhole-cli`
 2. Installation: `npm install -g worm-tool` instead of `cargo install ...`
 3. SDK usage: `import { parseVaa } from '@worm-tool/sdk'`
@@ -2627,7 +2955,7 @@ git commit -m "chore(contracts): rebuild artifacts after WormToolDeployer rename
 
 **Step 1: Rewrite README.md to match the new stack**
 
-```markdown
+````markdown
 # worm-tool
 
 CLI and SDK for the [Wormhole](https://wormhole.com) cross-chain protocol.
@@ -2637,6 +2965,7 @@ CLI and SDK for the [Wormhole](https://wormhole.com) cross-chain protocol.
 ```bash
 npm install -g worm-tool
 ```
+````
 
 ## Usage
 
@@ -2650,7 +2979,7 @@ worm-tool deploy multi --artifact ./out/MyContract.sol/MyContract.json --chains 
 ## SDK
 
 ```typescript
-import { parseVaa, getMessageStatus, deployAcrossChains } from '@worm-tool/sdk';
+import { parseVaa, getMessageStatus, deployAcrossChains } from "@worm-tool/sdk";
 ```
 
 ## Configuration
@@ -2658,19 +2987,20 @@ import { parseVaa, getMessageStatus, deployAcrossChains } from '@worm-tool/sdk';
 Create `~/.worm-tool/.env`:
 
 ```env
-WORM_TOOL_PRIVATE_KEY=0x...
+WORM_TOOL_EVM_PRIVATE_KEY=0x...
 WORM_TOOL_RPC_ETHEREUM=https://mainnet.infura.io/v3/...
 WORM_TOOL_RPC_BSC=https://bsc-dataseed.binance.org/
 WORM_TOOL_NETWORK=mainnet
 ```
-```
+
+````
 
 **Step 2: Commit**
 
 ```bash
 git add README.md
 git commit -m "docs: update README for worm-tool TypeScript migration"
-```
+````
 
 ---
 
@@ -2683,6 +3013,7 @@ Update every command example from `worm <command>` to `worm-tool <command>`.
 **Step 1: Rewrite `docs/cli/README.md`**
 
 Include:
+
 - All commands and their flags (ported from Rust `--help` output)
 - Exit codes
 - JSON output format examples
@@ -2701,6 +3032,7 @@ git commit -m "docs: update CLI reference for worm-tool"
 **File:** `docs/sdk/README.md` (new file)
 
 Document every exported function and type from `@worm-tool/sdk`:
+
 - `parseVaa(input)` — return type, throws
 - `EvmChain` — constructor options, methods
 - `deployAcrossChains(params)` — params, return
@@ -2728,11 +3060,13 @@ git commit -m "docs: add @worm-tool/sdk API reference"
 Auto-loaded by Claude Code sessions in this repo.
 
 ## What this project is about
+
 TypeScript CLI tool and SDK for interacting with the Wormhole cross-chain protocol.
 The Rust crates in `crates/` are the historical reference — new code goes in `packages/`.
 Reference: `reference/ccip-tools-ts` (TypeScript, study structure only)
 
 ## Stack
+
 - Language: TypeScript 5.4 (strict)
 - CLI framework: Commander.js v12
 - Async: Node.js native async/await (no extra runtime)
@@ -2744,6 +3078,7 @@ Reference: `reference/ccip-tools-ts` (TypeScript, study structure only)
 - Config: dotenv, loading from ~/.worm-tool/.env
 
 ## Architecture Rules
+
 - `packages/sdk/` — all domain logic, chain interfaces, VAA, deploy, status
 - `packages/cli/` — Commander.js commands + providers only, no business logic
 - Commands go in `packages/cli/src/commands/` — one file per command group
@@ -2753,6 +3088,7 @@ Reference: `reference/ccip-tools-ts` (TypeScript, study structure only)
 - Errors: custom classes extending `WormToolError` (see `packages/sdk/src/error.ts`)
 
 ## Code Rules
+
 - All public functions and types must have JSDoc comments
 - No `any` types — use `unknown` and narrow
 - No `!` non-null assertions in non-test code — guard explicitly
@@ -2761,15 +3097,18 @@ Reference: `reference/ccip-tools-ts` (TypeScript, study structure only)
 - Integration tests in `packages/*/tests/`
 
 ## Testing
+
 - `npm test --workspaces` runs all vitest suites
 - Contracts: `cd contracts && forge test`
 - Coverage: `npm test -- --coverage`
 
 ## Build
+
 - `npm run build --workspaces` — builds all packages
 - Binary entry: `packages/cli/dist/cli.js`
 
 ## Git
+
 - Branch naming: `feat/command-name`, `fix/issue-description`
 - Commits: conventional commits format
 - Never commit `.env` files or private keys
@@ -2788,12 +3127,14 @@ git commit -m "docs: update CLAUDE.md for TypeScript migration"
 ### Task 10.2: Update Claude Pipeline Agents
 
 **Files:**
+
 - Modify: `.claude/agents/rust-developer.md` → `.claude/agents/typescript-developer.md`
 - Modify: `.claude/agents/rust-test-validator.md` → `.claude/agents/typescript-test-validator.md`
 
 **Step 1: Rename and update agent files**
 
 For `typescript-developer.md`, replace all references to:
+
 - `cargo test` → `npm test`
 - `Cargo.toml` → `package.json`
 - `thiserror/anyhow` → `WormToolError` classes
@@ -2849,6 +3190,7 @@ mv crates/ archive/rust-crates
 **Step 2: Update .gitignore**
 
 Add:
+
 ```
 node_modules/
 packages/*/dist/
@@ -2960,43 +3302,43 @@ EOF
 
 ## Appendix: Dependency Matrix
 
-| Rust Crate | TypeScript Equivalent | Notes |
-|---|---|---|
-| `tokio` | Node.js native async | No equivalent needed |
-| `clap` | `commander` v12 | Similar derive-style API |
-| `thiserror` | Custom `WormToolError` classes | Manual but simple |
-| `anyhow` | `try/catch` + re-throw | TypeScript standard |
-| `ethers-rs` | `viem` v2 | More type-safe, modern API |
-| `solana-client` | `@solana/web3.js` | Direct equivalent |
-| `serde_json` | `JSON.parse` / `JSON.stringify` | Built-in |
-| `hex` | string operations | Built-in |
-| `base64` | `atob`/`btoa` | Built-in in Node 20+ |
-| `sha3 / k256` | `@noble/hashes` | Pure JS, audited |
-| `rlp` | `viem` RLP utils | Included in viem |
-| `dotenvy` | `dotenv` | Direct equivalent |
-| `clap_complete` | `commander` completions | Built-in |
-| `bs58` | `bs58` npm package | Same name |
-| `alloy-core` (sol-types) | `viem` ABI encoder | `encodeAbiParameters` |
-| `async-trait` | TypeScript interfaces | Native, no macro needed |
+| Rust Crate               | TypeScript Equivalent           | Notes                      |
+| ------------------------ | ------------------------------- | -------------------------- |
+| `tokio`                  | Node.js native async            | No equivalent needed       |
+| `clap`                   | `commander` v12                 | Similar derive-style API   |
+| `thiserror`              | Custom `WormToolError` classes  | Manual but simple          |
+| `anyhow`                 | `try/catch` + re-throw          | TypeScript standard        |
+| `ethers-rs`              | `viem` v2                       | More type-safe, modern API |
+| `solana-client`          | `@solana/web3.js`               | Direct equivalent          |
+| `serde_json`             | `JSON.parse` / `JSON.stringify` | Built-in                   |
+| `hex`                    | string operations               | Built-in                   |
+| `base64`                 | `atob`/`btoa`                   | Built-in in Node 20+       |
+| `sha3 / k256`            | `@noble/hashes`                 | Pure JS, audited           |
+| `rlp`                    | `viem` RLP utils                | Included in viem           |
+| `dotenvy`                | `dotenv`                        | Direct equivalent          |
+| `clap_complete`          | `commander` completions         | Built-in                   |
+| `bs58`                   | `bs58` npm package              | Same name                  |
+| `alloy-core` (sol-types) | `viem` ABI encoder              | `encodeAbiParameters`      |
+| `async-trait`            | TypeScript interfaces           | Native, no macro needed    |
 
 ---
 
 ## Estimated Task Count
 
-| Phase | Tasks | Commits |
-|-------|-------|---------|
-| 0 — Scaffold | 4 | 5 |
-| 1 — SDK Errors + Chain Interface | 2 | 2 |
-| 2 — VAA Module | 1 | 1 |
-| 3 — Chain Modules | 5 | 5 |
-| 4 — Deploy Module | 5 | 5 |
-| 5 — Feature Modules | 3 | 3 |
-| 6 — CLI Foundation | 4 | 4 |
-| 7 — CLI Commands (13 commands) | 13 | 13 |
-| 8 — Contract Rename | 2 | 2 |
-| 9 — Docs | 3 | 3 |
-| 10 — CLAUDE.md + Pipeline | 2 | 2 |
-| 11 — Cleanup + PR | 3 | 3 |
-| **Total** | **47** | **48** |
+| Phase                            | Tasks  | Commits |
+| -------------------------------- | ------ | ------- |
+| 0 — Scaffold                     | 4      | 5       |
+| 1 — SDK Errors + Chain Interface | 2      | 2       |
+| 2 — VAA Module                   | 1      | 1       |
+| 3 — Chain Modules                | 5      | 5       |
+| 4 — Deploy Module                | 5      | 5       |
+| 5 — Feature Modules              | 3      | 3       |
+| 6 — CLI Foundation               | 4      | 4       |
+| 7 — CLI Commands (13 commands)   | 13     | 13      |
+| 8 — Contract Rename              | 2      | 2       |
+| 9 — Docs                         | 3      | 3       |
+| 10 — CLAUDE.md + Pipeline        | 2      | 2       |
+| 11 — Cleanup + PR                | 3      | 3       |
+| **Total**                        | **47** | **48**  |
 
 **Rough estimate:** 3–5 focused working sessions for an experienced TypeScript developer familiar with viem and Commander.js.

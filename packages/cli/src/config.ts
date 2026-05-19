@@ -1,11 +1,12 @@
 import { config as loadDotenv } from 'dotenv';
 import { resolve } from 'path';
 import { homedir } from 'os';
+import type { WormholeNetwork } from '@worm-tool/sdk';
 
 export interface WormToolConfig {
   privateKey: `0x${string}` | undefined;
   rpcUrls: Record<string, string>;
-  network: 'mainnet' | 'testnet';
+  network: WormholeNetwork;
 }
 
 /** Load config from ~/.worm-tool/.env then process.env (process.env wins). */

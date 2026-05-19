@@ -3,8 +3,6 @@ import { WormToolError } from '../error.js';
 import type { ContractMeta } from '../toolchain/types.js';
 import type { AddressBookEntry } from './address-book.js';
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
 /** Etherscan API verification payload (note: `constructorArguements` is the API's typo). */
 export interface VerificationPayload {
   apikey: string;
@@ -44,16 +42,12 @@ export interface VerifyContractOptions {
   apiKey: string;
 }
 
-// ─── Error ───────────────────────────────────────────────────────────────────
-
 /** Thrown when the Etherscan verification API returns a non-OK HTTP response. */
 export class VerificationError extends WormToolError {
   constructor(message: string, cause?: unknown) {
     super(`Verification error: ${message}`, cause);
   }
 }
-
-// ─── Chain API URL map ────────────────────────────────────────────────────────
 
 const CHAIN_API_MAP: Record<number, string> = {
   1: 'https://api.etherscan.io/api',
@@ -67,8 +61,6 @@ const CHAIN_API_MAP: Record<number, string> = {
 };
 
 const ETHERSCAN_API_DEFAULT = 'https://api.etherscan.io/api';
-
-// ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
  * Build an Etherscan-compatible verification payload from contract metadata.

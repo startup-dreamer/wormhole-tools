@@ -58,17 +58,17 @@ npx worm-tool --help
 `worm-tool` loads environment variables from `~/.worm-tool/.env` at startup. All recognized
 variables use the `WORM_TOOL_` prefix.
 
-| Variable | Description |
-|----------|-------------|
-| `WORM_TOOL_PRIVATE_KEY` | EVM private key (`0x`-prefixed hex) used by submit/transfer/deploy commands |
-| `WORM_TOOL_SOLANA_PRIVATE_KEY` | Solana keypair (base58, 64-byte) |
-| `WORM_TOOL_EVM_RPC` | Default EVM RPC URL (overridden per-command with `--rpc`) |
-| `WORM_TOOL_SOLANA_RPC` | Default Solana RPC URL |
+| Variable                       | Description                                                                 |
+| ------------------------------ | --------------------------------------------------------------------------- |
+| `WORM_TOOL_EVM_PRIVATE_KEY`    | EVM private key (`0x`-prefixed hex) used by submit/transfer/deploy commands |
+| `WORM_TOOL_SOLANA_PRIVATE_KEY` | Solana keypair (base58, 64-byte)                                            |
+| `WORM_TOOL_EVM_RPC`            | Default EVM RPC URL (overridden per-command with `--rpc`)                   |
+| `WORM_TOOL_SOLANA_RPC`         | Default Solana RPC URL                                                      |
 
 You can also set variables inline:
 
 ```bash
-WORM_TOOL_PRIVATE_KEY=0xYOUR_KEY worm-tool transfer ...
+WORM_TOOL_EVM_PRIVATE_KEY=0xYOUR_KEY worm-tool transfer ...
 ```
 
 ---
@@ -77,17 +77,17 @@ WORM_TOOL_PRIVATE_KEY=0xYOUR_KEY worm-tool transfer ...
 
 Most commands accept a `--network` flag:
 
-| Value | API used |
-|-------|----------|
-| `mainnet` (default) | `https://api.wormholescan.io` |
-| `testnet` | `https://api.testnet.wormholescan.io` |
-| `devnet` | `https://api.testnet.wormholescan.io` |
+| Value               | API used                              |
+| ------------------- | ------------------------------------- |
+| `mainnet` (default) | `https://api.wormholescan.io`         |
+| `testnet`           | `https://api.testnet.wormholescan.io` |
+| `devnet`            | `https://api.testnet.wormholescan.io` |
 
 ---
 
 ## Wallet & Private Keys
 
-Commands that submit transactions read the private key from `WORM_TOOL_PRIVATE_KEY` or an explicit
+Commands that submit transactions read the private key from `WORM_TOOL_EVM_PRIVATE_KEY` or an explicit
 flag.
 
 **EVM:**
@@ -97,7 +97,7 @@ flag.
 worm-tool transfer ... --private-key 0xYOUR_HEX_KEY
 
 # via environment variable
-export WORM_TOOL_PRIVATE_KEY=0xYOUR_HEX_KEY
+export WORM_TOOL_EVM_PRIVATE_KEY=0xYOUR_HEX_KEY
 worm-tool transfer ...
 ```
 
@@ -133,12 +133,12 @@ worm-tool deploy address \
   --deployer 0x0aA4B5899bAF7326397b1041db9c854056126F57
 ```
 
-| Option | Description |
-|--------|-------------|
-| `--artifact <path>` | Hardhat/Foundry artifact JSON |
-| `--bytecode <hex>` | Raw init bytecode (alternative to `--artifact`) |
-| `--salt <salt>` | CREATE2 salt: 32-byte hex or arbitrary string (keccak256'd) |
-| `--deployer <address>` | WormToolDeployer address acting as CREATE2 factory |
+| Option                 | Description                                                 |
+| ---------------------- | ----------------------------------------------------------- |
+| `--artifact <path>`    | Hardhat/Foundry artifact JSON                               |
+| `--bytecode <hex>`     | Raw init bytecode (alternative to `--artifact`)             |
+| `--salt <salt>`        | CREATE2 salt: 32-byte hex or arbitrary string (keccak256'd) |
+| `--deployer <address>` | WormToolDeployer address acting as CREATE2 factory          |
 
 #### `deploy multi`
 
@@ -160,16 +160,16 @@ worm-tool deploy multi \
   --value 33000000000000000
 ```
 
-| Option | Description |
-|--------|-------------|
-| `--artifact <path>` | Hardhat/Foundry artifact JSON |
-| `--bytecode <hex>` | Raw init bytecode |
-| `--salt <salt>` | CREATE2 salt |
-| `--source <chain>` | Source chain (transaction sent here) |
-| `--targets <chains>` | Comma-separated cross-chain targets (optional) |
-| `--init-hex <hex>` | ABI-encoded initializer calldata |
-| `--value <wei>` | ETH for Wormhole relayer fees (required with `--targets`) |
-| `--deployer <address>` | Override WormToolDeployer address |
+| Option                 | Description                                               |
+| ---------------------- | --------------------------------------------------------- |
+| `--artifact <path>`    | Hardhat/Foundry artifact JSON                             |
+| `--bytecode <hex>`     | Raw init bytecode                                         |
+| `--salt <salt>`        | CREATE2 salt                                              |
+| `--source <chain>`     | Source chain (transaction sent here)                      |
+| `--targets <chains>`   | Comma-separated cross-chain targets (optional)            |
+| `--init-hex <hex>`     | ABI-encoded initializer calldata                          |
+| `--value <wei>`        | ETH for Wormhole relayer fees (required with `--targets`) |
+| `--deployer <address>` | Override WormToolDeployer address                         |
 
 #### `deploy upgrade`
 
@@ -189,13 +189,13 @@ worm-tool deploy upgrade \
   --value 33000000000000000
 ```
 
-| Option | Description |
-|--------|-------------|
-| `--proxy <address>` | Proxy contract address |
-| `--new-impl <address>` | New implementation address |
-| `--chains <chains>` | Comma-separated chain names; first is the source |
-| `--value <wei>` | ETH for Wormhole relayer fees |
-| `--deployer <address>` | Override WormToolDeployer address |
+| Option                 | Description                                      |
+| ---------------------- | ------------------------------------------------ |
+| `--proxy <address>`    | Proxy contract address                           |
+| `--new-impl <address>` | New implementation address                       |
+| `--chains <chains>`    | Comma-separated chain names; first is the source |
+| `--value <wei>`        | ETH for Wormhole relayer fees                    |
+| `--deployer <address>` | Override WormToolDeployer address                |
 
 The proxy must inherit `WormToolProxy` to authorize cross-chain upgrades from WormToolDeployer.
 
@@ -211,13 +211,13 @@ worm-tool deploy call \
   --value 33000000000000000
 ```
 
-| Option | Description |
-|--------|-------------|
-| `--target <address>` | Target contract address |
-| `--calldata <hex>` | ABI-encoded calldata |
-| `--chains <chains>` | Comma-separated chain names; first is the source |
-| `--value <wei>` | ETH for Wormhole relayer fees |
-| `--deployer <address>` | Override WormToolDeployer address |
+| Option                 | Description                                      |
+| ---------------------- | ------------------------------------------------ |
+| `--target <address>`   | Target contract address                          |
+| `--calldata <hex>`     | ABI-encoded calldata                             |
+| `--chains <chains>`    | Comma-separated chain names; first is the source |
+| `--value <wei>`        | ETH for Wormhole relayer fees                    |
+| `--deployer <address>` | Override WormToolDeployer address                |
 
 #### `deploy status`
 
@@ -231,9 +231,9 @@ worm-tool deploy status \
 
 ```json
 [
-  { "chain": "sepolia",          "address": "0x8a7a...", "deployed": true },
+  { "chain": "sepolia", "address": "0x8a7a...", "deployed": true },
   { "chain": "arbitrum-sepolia", "address": "0x8a7a...", "deployed": true },
-  { "chain": "base-sepolia",     "address": "0x8a7a...", "deployed": true }
+  { "chain": "base-sepolia", "address": "0x8a7a...", "deployed": true }
 ]
 ```
 
@@ -252,14 +252,14 @@ metadata, and a direct link to the Wormhole explorer.
 
 **Arguments:**
 
-| Argument | Description |
-|----------|-------------|
+| Argument    | Description                                       |
+| ----------- | ------------------------------------------------- |
 | `<TX_HASH>` | Source transaction hash (`0x`-prefixed, 66 chars) |
 
 **Options:**
 
-| Option | Default | Description |
-|--------|---------|-------------|
+| Option      | Default   | Description                                       |
+| ----------- | --------- | ------------------------------------------------- |
 | `--network` | `mainnet` | Wormhole network (`mainnet`, `testnet`, `devnet`) |
 
 **Example:**
@@ -310,16 +310,16 @@ Fetches the `N` most recent VAAs for the chain and computes p50/p95/min/max late
 
 **Arguments:**
 
-| Argument | Description |
-|----------|-------------|
+| Argument  | Description                                   |
+| --------- | --------------------------------------------- |
 | `<CHAIN>` | Chain name (e.g. `solana`, `ethereum`, `bsc`) |
 
 **Options:**
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--count` | `20` | Number of recent VAAs to sample |
-| `--network` | `mainnet` | Wormhole network |
+| Option      | Default   | Description                     |
+| ----------- | --------- | ------------------------------- |
+| `--count`   | `20`      | Number of recent VAAs to sample |
+| `--network` | `mainnet` | Wormhole network                |
 
 **Examples:**
 
@@ -444,9 +444,9 @@ worm-tool generate --guardian-secret <KEY> <SUBCOMMAND>
 
 **Options:**
 
-| Option | Alias | Description |
-|--------|-------|-------------|
-| `--guardian-secret` | `-g` | Guardian private key(s), comma-separated hex strings |
+| Option              | Alias | Description                                          |
+| ------------------- | ----- | ---------------------------------------------------- |
+| `--guardian-secret` | `-g`  | Guardian private key(s), comma-separated hex strings |
 
 #### `generate registration`
 
@@ -459,11 +459,11 @@ worm-tool generate --guardian-secret <KEY> registration \
   --contract-address <ADDRESS>
 ```
 
-| Option | Alias | Description |
-|--------|-------|-------------|
-| `--module` | `-m` | `Core`, `TokenBridge`, `NFTBridge`, or `WormholeRelayer` |
-| `--chain-id` | `-c` | Wormhole chain ID of the chain being registered |
-| `--contract-address` | `-a` | Contract address to register (hex) |
+| Option               | Alias | Description                                              |
+| -------------------- | ----- | -------------------------------------------------------- |
+| `--module`           | `-m`  | `Core`, `TokenBridge`, `NFTBridge`, or `WormholeRelayer` |
+| `--chain-id`         | `-c`  | Wormhole chain ID of the chain being registered          |
+| `--contract-address` | `-a`  | Contract address to register (hex)                       |
 
 #### `generate upgrade`
 
@@ -503,12 +503,12 @@ worm-tool submit <VAA> [OPTIONS]
 
 **Options:**
 
-| Option | Alias | Description |
-|--------|-------|-------------|
-| `--chain` | `-c` | Target EVM chain name (e.g. `ethereum`) |
-| `--contract-address` | `-a` | Override target contract address |
-| `--rpc` | | RPC endpoint URL |
-| `--evm-key` | | Private key (env: `WORM_TOOL_PRIVATE_KEY`) |
+| Option               | Alias | Description                                    |
+| -------------------- | ----- | ---------------------------------------------- |
+| `--chain`            | `-c`  | Target EVM chain name (e.g. `ethereum`)        |
+| `--contract-address` | `-a`  | Override target contract address               |
+| `--rpc`              |       | RPC endpoint URL                               |
+| `--evm-key`          |       | Private key (env: `WORM_TOOL_EVM_PRIVATE_KEY`) |
 
 **Example (devnet):**
 
@@ -532,12 +532,12 @@ Accepts a source transaction hash or raw VAA bytes.
 
 **Options:**
 
-| Option | Description |
-|--------|-------------|
-| `--dst-chain` | Destination chain name (e.g. `ethereum`) |
-| `--rpc` | Destination chain RPC endpoint |
-| `--contract` | Override target contract address |
-| `--network` | Network for API VAA lookup (default: `mainnet`) |
+| Option        | Description                                     |
+| ------------- | ----------------------------------------------- |
+| `--dst-chain` | Destination chain name (e.g. `ethereum`)        |
+| `--rpc`       | Destination chain RPC endpoint                  |
+| `--contract`  | Override target contract address                |
+| `--network`   | Network for API VAA lookup (default: `mainnet`) |
 
 **Examples:**
 
@@ -561,22 +561,22 @@ worm-tool transfer [OPTIONS]
 
 **Required options:**
 
-| Option | Description |
-|--------|-------------|
-| `--token` | ERC-20 token address (`0x`-prefixed) |
-| `--amount` | Amount in the token's smallest unit (e.g. wei) |
-| `--dst-chain` | Wormhole chain ID of the destination |
+| Option        | Description                                                       |
+| ------------- | ----------------------------------------------------------------- |
+| `--token`     | ERC-20 token address (`0x`-prefixed)                              |
+| `--amount`    | Amount in the token's smallest unit (e.g. wei)                    |
+| `--dst-chain` | Wormhole chain ID of the destination                              |
 | `--recipient` | 32-byte recipient address on the destination chain (64 hex chars) |
 
 **Optional:**
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--token-bridge` | registry default | Token bridge contract address |
-| `--rpc` | `http://localhost:8545` | EVM RPC endpoint |
-| `--private-key` | `WORM_TOOL_PRIVATE_KEY` env | EVM private key |
-| `--arbiter-fee` | `0` | Relayer fee in token's smallest unit |
-| `--nonce` | `0` | Transfer nonce |
+| Option           | Default                         | Description                          |
+| ---------------- | ------------------------------- | ------------------------------------ |
+| `--token-bridge` | registry default                | Token bridge contract address        |
+| `--rpc`          | `http://localhost:8545`         | EVM RPC endpoint                     |
+| `--private-key`  | `WORM_TOOL_EVM_PRIVATE_KEY` env | EVM private key                      |
+| `--arbiter-fee`  | `0`                             | Relayer fee in token's smallest unit |
+| `--nonce`        | `0`                             | Transfer nonce                       |
 
 ---
 
@@ -722,10 +722,10 @@ worm-tool completion fish > ~/.config/fish/completions/worm-tool.fish
 
 ## Exit Codes
 
-| Code | Meaning |
-|------|---------|
-| `0` | Success |
-| `1` | Error (invalid input, RPC failure, contract error, etc.) |
+| Code | Meaning                                                  |
+| ---- | -------------------------------------------------------- |
+| `0`  | Success                                                  |
+| `1`  | Error (invalid input, RPC failure, contract error, etc.) |
 
 ---
 
@@ -739,14 +739,14 @@ use.
 
 ## Known Public RPCs
 
-| Chain | URL |
-|-------|-----|
-| Ethereum mainnet | `https://ethereum.publicnode.com` |
-| Solana mainnet | `https://api.mainnet-beta.solana.com` |
-| Aptos mainnet | `https://fullnode.mainnet.aptoslabs.com` |
-| NEAR mainnet | `https://rpc.mainnet.near.org` |
-| Sui mainnet | `https://fullnode.mainnet.sui.io:443` |
-| BSC mainnet | `https://bsc-dataseed.binance.org` |
+| Chain            | URL                                      |
+| ---------------- | ---------------------------------------- |
+| Ethereum mainnet | `https://ethereum.publicnode.com`        |
+| Solana mainnet   | `https://api.mainnet-beta.solana.com`    |
+| Aptos mainnet    | `https://fullnode.mainnet.aptoslabs.com` |
+| NEAR mainnet     | `https://rpc.mainnet.near.org`           |
+| Sui mainnet      | `https://fullnode.mainnet.sui.io:443`    |
+| BSC mainnet      | `https://bsc-dataseed.binance.org`       |
 
 > **Note:** Public RPCs may rate-limit or block certain calls. For production use, use a dedicated
 > RPC provider (Alchemy, Infura, QuickNode, etc.).
@@ -757,29 +757,29 @@ use.
 
 ### Chain IDs
 
-| Chain | Wormhole ID |
-|-------|-------------|
-| Solana | 1 |
-| Ethereum | 2 |
-| BSC | 4 |
-| Polygon | 5 |
-| Avalanche | 6 |
-| Fantom | 10 |
-| Klaytn | 13 |
-| Celo | 14 |
-| Moonbeam | 16 |
-| Sui | 21 |
-| Aptos | 22 |
-| Arbitrum | 23 |
-| Optimism | 24 |
-| Base | 30 |
-| Sei | 32 |
-| Scroll | 34 |
-| Mantle | 35 |
-| Blast | 36 |
-| Linea | 38 |
-| Berachain | 39 |
-| Sepolia (testnet) | 10002 |
-| Arbitrum Sepolia (testnet) | 10003 |
-| Base Sepolia (testnet) | 10004 |
-| Optimism Sepolia (testnet) | 10005 |
+| Chain                      | Wormhole ID |
+| -------------------------- | ----------- |
+| Solana                     | 1           |
+| Ethereum                   | 2           |
+| BSC                        | 4           |
+| Polygon                    | 5           |
+| Avalanche                  | 6           |
+| Fantom                     | 10          |
+| Klaytn                     | 13          |
+| Celo                       | 14          |
+| Moonbeam                   | 16          |
+| Sui                        | 21          |
+| Aptos                      | 22          |
+| Arbitrum                   | 23          |
+| Optimism                   | 24          |
+| Base                       | 30          |
+| Sei                        | 32          |
+| Scroll                     | 34          |
+| Mantle                     | 35          |
+| Blast                      | 36          |
+| Linea                      | 38          |
+| Berachain                  | 39          |
+| Sepolia (testnet)          | 10002       |
+| Arbitrum Sepolia (testnet) | 10003       |
+| Base Sepolia (testnet)     | 10004       |
+| Optimism Sepolia (testnet) | 10005       |

@@ -26,8 +26,11 @@ export async function readFoundryArtifacts(artifactDir: string): Promise<Contrac
     solDirs = entries
       .filter(e => e.isDirectory() && e.name.endsWith('.sol'))
       .map(e => join(artifactDir, e.name));
-  } catch {
-    return [];
+  } catch (err) {
+    if (err instanceof Error && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT') {
+      return [];
+    }
+    throw err;
   }
 
   for (const solDir of solDirs) {

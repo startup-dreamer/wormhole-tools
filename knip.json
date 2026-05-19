@@ -1,0 +1,24 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "ignore": [
+    ".claude/**",
+    "contracts/**"
+  ],
+  "workspaces": {
+    "packages/cli": {
+      "entry": [
+        "src/**/*.test.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": ["src/**/*.ts", "tests/**/*.ts"]
+    },
+    "packages/sdk": {
+      "entry": [
+        "src/**/*.test.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": ["src/**/*.ts", "tests/**/*.ts"]
+    }
+  },
+  "ignoreExportsUsedInFile": true
+}

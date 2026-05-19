@@ -1,5 +1,5 @@
 import { WormToolError } from './error.js';
-import { getMessageStatus, MessageStatus } from './status.js';
+import { getMessageStatus, MessageStatus, type WormholeNetwork } from './status.js';
 
 export interface LatencyMeasurement {
   emitterChain: number;
@@ -7,7 +7,7 @@ export interface LatencyMeasurement {
   sequence: bigint;
   /** Time from tx submission to first Guardian signature, in milliseconds. */
   signingLatencyMs: number;
-  network: 'mainnet' | 'testnet';
+  network: WormholeNetwork;
 }
 
 export interface MeasureLatencyParams {
@@ -16,7 +16,7 @@ export interface MeasureLatencyParams {
   sequence: bigint;
   /** Timestamp when the source transaction was submitted (Date.now() value). */
   txSubmittedAt: number;
-  network?: 'mainnet' | 'testnet';
+  network?: WormholeNetwork;
   /** How often to poll the Guardian API, in ms. Default: 2000. */
   pollIntervalMs?: number;
   /** Maximum time to wait for a signature before giving up, in ms. Default: 120_000. */

@@ -9,8 +9,14 @@ function fromHex(h: string): Uint8Array {
   return arr;
 }
 
-function toChecksumAddress(bytes: Uint8Array): `0x${string}` {
+/** Convert a Uint8Array to a 0x-prefixed hex string. */
+export function bytesToHex(bytes: Uint8Array): `0x${string}` {
   return ('0x' + Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')) as `0x${string}`;
+}
+
+/** Keccak256-hash a hex-encoded byte string, returning a 0x-prefixed hex hash. */
+export function keccak256Hex(hex: string): `0x${string}` {
+  return bytesToHex(keccak_256(fromHex(hex)));
 }
 
 /**
@@ -48,5 +54,5 @@ export function computeCreate2Address(
   data.set(hashBytes, 53);
 
   const addressHash = keccak_256(data);
-  return toChecksumAddress(addressHash.slice(12));
+  return bytesToHex(addressHash.slice(12));
 }

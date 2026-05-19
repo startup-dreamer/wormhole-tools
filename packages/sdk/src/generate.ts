@@ -1,6 +1,7 @@
-import { keccak_256 } from '@noble/hashes/sha3';
 import type { ParsedVaa, VaaSignature } from './vaa/index.js';
 import { encodeVaaHex } from './vaa/index.js';
+import { bytesToHex } from './deploy/create2.js';
+import { keccak_256 } from '@noble/hashes/sha3';
 
 export interface GenerateVaaParams {
   emitterChain: number;
@@ -30,7 +31,6 @@ export function generateTestVaa(params: GenerateVaaParams): ParsedVaa {
     consistencyLevel = 1,
   } = params;
 
-  // Compute hash of the body for the hash field
   const bodyParts: number[] = [];
   const writeU32 = (v: number): void => {
     bodyParts.push((v >>> 24) & 0xff, (v >>> 16) & 0xff, (v >>> 8) & 0xff, v & 0xff);
@@ -53,7 +53,7 @@ export function generateTestVaa(params: GenerateVaaParams): ParsedVaa {
   writeHex(payload);
 
   const bodyBytes = new Uint8Array(bodyParts);
-  const hash = ('0x' + Array.from(keccak_256(bodyBytes), b => b.toString(16).padStart(2, '0')).join('')) as `0x${string}`;
+  const hash = bytesToHex(keccak_256(bodyBytes));
 
   const signatures: VaaSignature[] = [];
 

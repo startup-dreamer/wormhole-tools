@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { getChainInfo } from '@worm-tool/sdk';
+import { getChainInfo, WORMHOLESCAN_MAINNET, WORMHOLESCAN_TESTNET } from '@worm-tool/sdk';
 import { printJson, printError } from '../output.js';
 
 export function registerLatencyCommand(program: Command): void {
@@ -18,9 +18,7 @@ export function registerLatencyCommand(program: Command): void {
       try {
         const info = getChainInfo(chain);
         const network = opts.network === 'testnet' ? 'testnet' : 'mainnet';
-        const base = network === 'testnet'
-          ? 'https://api.testnet.wormholescan.io'
-          : 'https://api.wormholescan.io';
+        const base = network === 'testnet' ? WORMHOLESCAN_TESTNET : WORMHOLESCAN_MAINNET;
 
         const url = `${base}/api/v1/vaas/${info.wormholeChainId}?pageSize=${count}`;
         const res = await fetch(url);

@@ -20,13 +20,9 @@ async function exists(path: string): Promise<boolean> {
 }
 
 async function foundryArtifactDir(root: string): Promise<string> {
-  try {
-    const toml = await readFile(join(root, 'foundry.toml'), 'utf8');
-    const match = /^\s*out\s*=\s*"([^"]+)"/m.exec(toml);
-    return join(root, match?.[1] ?? 'out');
-  } catch {
-    return join(root, 'out');
-  }
+  const toml = await readFile(join(root, 'foundry.toml'), 'utf8');
+  const match = /^\s*out\s*=\s*"([^"]+)"/m.exec(toml);
+  return join(root, match?.[1] ?? 'out');
 }
 
 /**

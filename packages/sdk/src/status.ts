@@ -1,7 +1,10 @@
 import { RpcError } from './error.js';
 
-const WORMHOLESCAN_MAINNET = 'https://api.wormholescan.io';
-const WORMHOLESCAN_TESTNET = 'https://api.testnet.wormholescan.io';
+export const WORMHOLESCAN_MAINNET = 'https://api.wormholescan.io';
+export const WORMHOLESCAN_TESTNET = 'https://api.testnet.wormholescan.io';
+
+/** The two Wormhole network environments. */
+export type WormholeNetwork = 'mainnet' | 'testnet';
 
 export enum MessageStatus {
   Pending = 'pending',
@@ -13,7 +16,7 @@ export interface MessageStatusParams {
   /** 32-byte emitter address as 0x-prefixed hex */
   emitterAddress: string;
   sequence: bigint;
-  network?: 'mainnet' | 'testnet';
+  network?: WormholeNetwork;
 }
 
 export interface MessageStatusResult {

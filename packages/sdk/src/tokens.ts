@@ -10,34 +10,22 @@ export interface TokenInfo {
   nativeChain?: number;
 }
 
-function encodeErc20Call(selector: `0x${string}`): `0x${string}` {
-  return selector;
-}
-
 const ERC20_NAME_SELECTOR = '0x06fdde03' as `0x${string}`;
 const ERC20_SYMBOL_SELECTOR = '0x95d89b41' as `0x${string}`;
 const ERC20_DECIMALS_SELECTOR = '0x313ce567' as `0x${string}`;
 
 async function callString(chain: WormToolChain, token: string, selector: `0x${string}`): Promise<string> {
-  const result = await chain.call(token, encodeErc20Call(selector));
+  const result = await chain.call(token, selector);
   if (result === '0x' || result.length <= 2) return '';
-  try {
-    const [value] = decodeAbiParameters(parseAbiParameters('string'), result);
-    return value as string;
-  } catch {
-    return '';
-  }
+  const [value] = decodeAbiParameters(parseAbiParameters('string'), result);
+  return value as string;
 }
 
 async function callUint8(chain: WormToolChain, token: string, selector: `0x${string}`): Promise<number> {
-  const result = await chain.call(token, encodeErc20Call(selector));
+  const result = await chain.call(token, selector);
   if (result === '0x' || result.length <= 2) return 18;
-  try {
-    const [value] = decodeAbiParameters(parseAbiParameters('uint8'), result);
-    return Number(value);
-  } catch {
-    return 18;
-  }
+  const [value] = decodeAbiParameters(parseAbiParameters('uint8'), result);
+  return Number(value);
 }
 
 /** Fetch ERC-20 token metadata from a chain. */
@@ -72,10 +60,8 @@ export async function getTokenBalance(
   const result = await chain.call(tokenAddress, calldata);
   let balance = 0n;
   if (result !== '0x' && result.length > 2) {
-    try {
-      const [v] = decodeAbiParameters(parseAbiParameters('uint256'), result);
-      balance = v as bigint;
-    } catch { /* leave as 0 */ }
+    const [v] = decodeAbiParameters(parseAbiParameters('uint256'), result);
+    balance = v as bigint;
   }
 
   const info = await getTokenInfo(chain, tokenAddress);

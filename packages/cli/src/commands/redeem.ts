@@ -1,18 +1,9 @@
 import type { Command } from 'commander';
-import { parseVaa } from '@worm-tool/sdk';
+import { parseVaa, WORMHOLESCAN_MAINNET, WORMHOLESCAN_TESTNET } from '@worm-tool/sdk';
 import { loadConfig } from '../config.js';
 import { createEvmChain } from '../providers/evm.js';
 import { printJson, printError } from '../output.js';
-
-/** ABI-encode a single `bytes` argument: offset (32) + length (32) + data (padded). */
-function abiEncodeBytes(hex: string): `0x${string}` {
-  const raw = hex.startsWith('0x') ? hex.slice(2) : hex;
-  const byteLen = raw.length / 2;
-  const paddedLen = Math.ceil(byteLen / 32) * 32;
-  const offset = '0000000000000000000000000000000000000000000000000000000000000020';
-  const len = byteLen.toString(16).padStart(64, '0');
-  return `0x${offset}${len}${raw.padEnd(paddedLen * 2, '0')}` as `0x${string}`;
-}
+import { abiEncodeBytes } from './_vaa-utils.js';
 
 function isTxHash(input: string): boolean {
   return input.startsWith('0x') && input.length === 66 && /^[0-9a-fA-F]+$/.test(input.slice(2));
@@ -33,10 +24,7 @@ export function registerRedeemCommand(program: Command): void {
 
         let vaaHex: string;
         if (isTxHash(input)) {
-          // Fetch VAA from wormholescan
-          const base = network === 'testnet'
-            ? 'https://api.testnet.wormholescan.io'
-            : 'https://api.wormholescan.io';
+          const base = network === 'testnet' ? WORMHOLESCAN_TESTNET : WORMHOLESCAN_MAINNET;
           const res = await fetch(`${base}/api/v1/transactions/${input}`);
           if (!res.ok) throw new Error(`Failed to fetch VAA for tx ${input}: ${res.status}`);
           const data = await res.json() as { data?: { vaa?: { raw?: string } } };
@@ -44,7 +32,6 @@ export function registerRedeemCommand(program: Command): void {
           if (!raw) throw new Error(`No VAA found for tx ${input} (not yet signed?)`);
           vaaHex = raw.startsWith('0x') ? raw : '0x' + raw;
         } else {
-          // Validate parses before sending
           parseVaa(input);
           vaaHex = input.startsWith('0x') ? input : '0x' + input;
         }
@@ -52,7 +39,6 @@ export function registerRedeemCommand(program: Command): void {
         const chain = createEvmChain(opts.chain, config);
         if (!opts.contract) throw new Error(`--contract is required for ${opts.chain}`);
 
-        // Default selector: completeTransfer(bytes) = 0xc6878519
         const selectorRaw = opts.selector ?? '0xc6878519';
         const selector = selectorRaw.startsWith('0x') ? selectorRaw : '0x' + selectorRaw;
         const data = (selector + abiEncodeBytes(vaaHex).slice(2)) as `0x${string}`;

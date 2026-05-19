@@ -148,8 +148,9 @@ export async function importFromFoundryBroadcast(root: string): Promise<PartialB
           deployedAt: new Date().toISOString(),
         };
       }
-    } catch {
-      // Skip malformed files
+    } catch (err) {
+      if (err instanceof SyntaxError) continue; // Skip malformed JSON files
+      throw err;
     }
   }
 
@@ -182,8 +183,9 @@ export async function importFromHardhatDeploy(root: string): Promise<PartialBook
       files = entries
         .filter(e => e.isFile() && e.name.endsWith('.json') && e.name !== 'worm-tool.json')
         .map(e => e.name);
-    } catch {
-      continue;
+    } catch (err) {
+      if (isNodeError(err) && err.code === 'ENOENT') continue;
+      throw err;
     }
 
     for (const file of files) {
@@ -199,16 +201,15 @@ export async function importFromHardhatDeploy(root: string): Promise<PartialBook
           ...(data.transactionHash !== undefined ? { txHash: data.transactionHash } : {}),
           deployedAt: new Date().toISOString(),
         };
-      } catch {
-        // Skip malformed files
+      } catch (err) {
+        if (err instanceof SyntaxError) continue; // Skip malformed JSON files
+        throw err;
       }
     }
   }
 
   return result;
 }
-
-// ─── Internal helpers ────────────────────────────────────────────────────────
 
 interface FoundryBroadcast {
   chain: number;

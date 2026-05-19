@@ -9,7 +9,7 @@ const mockArtifact: ContractMeta = {
   artifactPath: '/tmp/out/MyToken.sol/MyToken.json',
   abi: [],
   bytecode: '0x6080' as `0x${string}`,
-  constructorInputs: [{ name: '_name', type: 'string' }] as any,
+  constructorInputs: [{ name: '_name', type: 'string' }],
   isAbstract: false,
   isInterface: false,
   compilerVersion: '0.8.24',

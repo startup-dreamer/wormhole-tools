@@ -4,6 +4,8 @@ import type { Command } from 'commander';
 import {
   extractBytecode,
   computeCreate2Address,
+  keccak256Hex,
+  bytesToHex,
   deployAcrossChains,
   callAcrossChains,
   upgradeAcrossChains,
@@ -35,8 +37,7 @@ function saltFromStr(s: string): `0x${string}` {
   if (/^(0x)?[0-9a-fA-F]{64}$/.test(s)) {
     return (s.startsWith('0x') ? s : '0x' + s) as `0x${string}`;
   }
-  const hash = keccak_256(new TextEncoder().encode(s));
-  return ('0x' + Array.from(hash, b => b.toString(16).padStart(2, '0')).join('')) as `0x${string}`;
+  return bytesToHex(keccak_256(new TextEncoder().encode(s)));
 }
 
 async function resolveBytecode(artifact?: string, bytecodeHex?: string): Promise<`0x${string}`> {
@@ -96,7 +97,6 @@ export function registerDeployCommand(program: Command): void {
     .command('deploy')
     .description('Deploy and manage contracts across chains via WormToolDeployer');
 
-  // ── deploy init ───────────────────────────────────────────────────────────
   deploy
     .command('init')
     .description('Generate a starter worm-tool.deploy.yaml from compiled artifacts')
@@ -144,7 +144,6 @@ export function registerDeployCommand(program: Command): void {
       } catch (err) { printError('deploy init failed', err); process.exit(1); }
     });
 
-  // ── deploy address ───────────────────────────────────────────────────────
   deploy
     .command('address')
     .description('Compute the CREATE2 deployment address offline (no key required)')
@@ -156,16 +155,12 @@ export function registerDeployCommand(program: Command): void {
       try {
         const bytecode = await resolveBytecode(opts.artifact, opts.bytecode);
         const salt = saltFromStr(opts.salt);
-        const hex = bytecode.startsWith('0x') ? bytecode.slice(2) : bytecode;
-        const initBytes = new Uint8Array(hex.length / 2);
-        for (let i = 0; i < initBytes.length; i++) initBytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-        const initCodeHash = ('0x' + Array.from(keccak_256(initBytes), b => b.toString(16).padStart(2, '0')).join('')) as `0x${string}`;
+        const initCodeHash = keccak256Hex(bytecode);
         const address = computeCreate2Address(opts.deployer, salt, initCodeHash);
         printJson({ address, salt, initCodeHash, deployer: opts.deployer });
       } catch (err) { printError('deploy address failed', err); process.exit(1); }
     });
 
-  // ── deploy multi ─────────────────────────────────────────────────────────
   deploy
     .command('multi')
     .description('Deploy bytecode to multiple chains in one source transaction')
@@ -202,7 +197,6 @@ export function registerDeployCommand(program: Command): void {
       } catch (err) { printError('deploy multi failed', err); process.exit(1); }
     });
 
-  // ── deploy call ──────────────────────────────────────────────────────────
   deploy
     .command('call')
     .description('Send a cross-chain function call through WormToolDeployer')
@@ -228,7 +222,6 @@ export function registerDeployCommand(program: Command): void {
       } catch (err) { printError('deploy call failed', err); process.exit(1); }
     });
 
-  // ── deploy upgrade ───────────────────────────────────────────────────────
   deploy
     .command('upgrade')
     .description('Upgrade a UUPS proxy to a new implementation across chains')
@@ -254,7 +247,6 @@ export function registerDeployCommand(program: Command): void {
       } catch (err) { printError('deploy upgrade failed', err); process.exit(1); }
     });
 
-  // ── deploy status ────────────────────────────────────────────────────────
   deploy
     .command('status')
     .description('Check per-chain deployment status at a known contract address')
@@ -275,7 +267,6 @@ export function registerDeployCommand(program: Command): void {
       } catch (err) { printError('deploy status failed', err); process.exit(1); }
     });
 
-  // ── deploy plan ───────────────────────────────────────────────────────────
   deploy
     .command('plan')
     .description('Dry-run: show what would be deployed and in what order')
@@ -304,7 +295,6 @@ export function registerDeployCommand(program: Command): void {
       } catch (err) { handleManifestMissing('deploy plan', err); }
     });
 
-  // ── deploy run ────────────────────────────────────────────────────────────
   deploy
     .command('run')
     .description('Execute worm-tool.deploy.yaml — deploy all contracts to target chains')
@@ -372,16 +362,10 @@ export function registerDeployCommand(program: Command): void {
               ...(constructorArgs !== '0x' && { constructorArgs }),
             });
 
-            // Compute deterministic CREATE2 address from init code
             const initCode = (constructorArgs !== '0x' && constructorArgs.length > 2)
               ? (bytecode + constructorArgs.slice(2)) as `0x${string}`
               : bytecode;
-            const initHex = initCode.startsWith('0x') ? initCode.slice(2) : initCode;
-            const initBytes = new Uint8Array(initHex.length / 2);
-            for (let i = 0; i < initBytes.length; i++) {
-              initBytes[i] = parseInt(initHex.slice(i * 2, i * 2 + 2), 16);
-            }
-            const initCodeHash = ('0x' + Array.from(keccak_256(initBytes), b => b.toString(16).padStart(2, '0')).join('')) as `0x${string}`;
+            const initCodeHash = keccak256Hex(initCode);
             const deployedAddress = computeCreate2Address(chainEntry.wormToolDeployer, salt, initCodeHash);
 
             return txResults.map((r: { chain: string; receipt: { txHash: string } }) => ({
@@ -404,7 +388,6 @@ export function registerDeployCommand(program: Command): void {
       } catch (err) { handleManifestMissing('deploy run', err); }
     });
 
-  // ── deploy verify ─────────────────────────────────────────────────────────
   deploy
     .command('verify')
     .description('Verify deployed contracts on block explorers (requires WORM_TOOL_ETHERSCAN_API_KEY)')
@@ -455,7 +438,6 @@ export function registerDeployCommand(program: Command): void {
       } catch (err) { handleManifestMissing('deploy verify', err); }
     });
 
-  // ── deploy upgrade-safe ───────────────────────────────────────────────────
   deploy
     .command('upgrade-safe')
     .description('Check storage layout safety then upgrade a UUPS proxy across chains')
@@ -483,7 +465,6 @@ export function registerDeployCommand(program: Command): void {
 
         const chainNames = opts.chains.split(',').map(s => s.trim());
 
-        // Storage layout safety check
         if (!opts.force && opts.oldArtifact) {
           const oldJson = JSON.parse(await readFile(opts.oldArtifact, 'utf8')) as {
             storageLayout?: StorageLayout;
@@ -505,7 +486,6 @@ export function registerDeployCommand(program: Command): void {
           process.stderr.write('Tip: use --old-artifact <path> to enable storage layout safety check before upgrading.\n');
         }
 
-        // Get proxy address from address book
         const firstChain = chainNames[0] ?? '';
         const proxyEntry = book.contracts[opts.contract]?.[firstChain];
         if (!proxyEntry) {
@@ -531,7 +511,6 @@ export function registerDeployCommand(program: Command): void {
       } catch (err) { printError('deploy upgrade-safe failed', err); process.exit(1); }
     });
 
-  // ── deploy diff ───────────────────────────────────────────────────────────
   deploy
     .command('diff')
     .description('Compare manifest targets vs what is in the address book')

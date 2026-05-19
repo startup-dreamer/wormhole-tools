@@ -3,24 +3,14 @@ import { detectToolchain, listArtifacts, ToolchainNotFoundError } from '@worm-to
 import type { ContractMeta } from '@worm-tool/sdk';
 import { printJson, printError, formatTable } from '../output.js';
 
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
-
-/** Resolve the project root: explicit --project flag or cwd. */
 function resolveRoot(opts: { project?: string }): string {
   return opts.project ?? process.cwd();
 }
 
-/** Load and return all artifacts from the detected toolchain. */
 async function loadContracts(root: string): Promise<ContractMeta[]> {
   const info = await detectToolchain(root);
   return listArtifacts(info);
 }
-
-// ---------------------------------------------------------------------------
-// Proxy / upgrade analysis
-// ---------------------------------------------------------------------------
 
 interface AbiEntry {
   type: string;
@@ -73,17 +63,12 @@ function analyzeContract(contract: ContractMeta): CheckResult {
   return { name: contract.name, proxyPattern, hasInitializer, isOwnable, hasAuthorizeUpgrade, warnings };
 }
 
-// ---------------------------------------------------------------------------
-// Command registration
-// ---------------------------------------------------------------------------
-
 /** Register the `contracts` command group onto the given Commander program. */
 export function registerContractsCommand(program: Command): void {
   const contracts = program
     .command('contracts')
     .description('Inspect compiled smart contracts in a Foundry or Hardhat project');
 
-  // ── contracts list ────────────────────────────────────────────────────────
   contracts
     .command('list')
     .description('List all compiled contracts')
@@ -129,7 +114,6 @@ export function registerContractsCommand(program: Command): void {
       }
     });
 
-  // ── contracts info ────────────────────────────────────────────────────────
   contracts
     .command('info <name>')
     .description('Show full metadata for a named contract')
@@ -165,7 +149,6 @@ export function registerContractsCommand(program: Command): void {
       }
     });
 
-  // ── contracts check ───────────────────────────────────────────────────────
   contracts
     .command('check <name>')
     .description('Analyse proxy patterns, upgradeability, and ownership of a contract')

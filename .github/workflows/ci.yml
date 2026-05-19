@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build SDK
+        run: npm run build --workspace=packages/sdk
+
+      - name: Build CLI
+        run: npm run build --workspace=packages/cli
+
+      - name: Type-check SDK
+        run: npm run lint --workspace=packages/sdk
+
+      - name: Type-check CLI
+        run: npm run lint --workspace=packages/cli
+
+      - name: Test SDK
+        run: npm run test --workspace=packages/sdk
+
+      - name: Test CLI
+        run: npm run test --workspace=packages/cli

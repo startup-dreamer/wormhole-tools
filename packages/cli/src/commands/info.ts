@@ -69,7 +69,6 @@ export function registerInfoCommand(program: Command): void {
     .description('Print a full summary for a chain (name, IDs, finality, contracts)')
     .action((chain: string) => {
       try {
-        // Support lookup by numeric ID or name
         const asNum = parseInt(chain, 10);
         const summary = Number.isNaN(asNum) ? getChainInfo(chain) : getChainInfo(asNum);
         printJson(summary);

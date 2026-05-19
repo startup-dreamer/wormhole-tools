@@ -19,8 +19,7 @@ export async function runChecks(opts: RunChecksOptions): Promise<DoctorCheck[]> 
   const { root, skipManifest, skipToolchain } = opts;
   const results: DoctorCheck[] = [];
 
-  // 1. Private key
-  const pk = process.env['WORM_TOOL_EVM_PRIVATE_KEY'];
+  const pk = process.env['WORM_TOOL_PRIVATE_KEY'];
   const keyValid = typeof pk === 'string' && /^0x[0-9a-fA-F]{64}$/.test(pk);
   results.push({
     check: 'private-key',
@@ -28,11 +27,10 @@ export async function runChecks(opts: RunChecksOptions): Promise<DoctorCheck[]> 
     message: keyValid
       ? 'Private key configured'
       : pk === undefined
-        ? 'WORM_TOOL_EVM_PRIVATE_KEY is not set'
-        : 'WORM_TOOL_EVM_PRIVATE_KEY is set but has invalid format (expected 0x + 64 hex chars)',
+        ? 'WORM_TOOL_PRIVATE_KEY is not set'
+        : 'WORM_TOOL_PRIVATE_KEY is set but has invalid format (expected 0x + 64 hex chars)',
   });
 
-  // 2. Toolchain
   if (!skipToolchain) {
     const { detectToolchain, ToolchainNotFoundError } = await import('@worm-tool/sdk');
     try {
@@ -49,7 +47,6 @@ export async function runChecks(opts: RunChecksOptions): Promise<DoctorCheck[]> 
     }
   }
 
-  // 3. Manifest
   if (!skipManifest) {
     try {
       const { parseManifest, detectToolchain, listArtifacts, CHAIN_REGISTRY } = await import('@worm-tool/sdk');
@@ -57,7 +54,6 @@ export async function runChecks(opts: RunChecksOptions): Promise<DoctorCheck[]> 
       const manifest = parseManifest(yaml);
       results.push({ check: 'manifest', passed: true, message: 'worm-tool.deploy.yaml found and valid' });
 
-      // 4. Artifacts for all contracts in deploy_targets
       try {
         const toolchain = await detectToolchain(root);
         const artifacts = await listArtifacts(toolchain);
@@ -69,11 +65,10 @@ export async function runChecks(opts: RunChecksOptions): Promise<DoctorCheck[]> 
         } else {
           results.push({ check: 'artifacts', passed: false, message: `Missing artifacts: ${missing.join(', ')} — run forge build / npx hardhat compile` });
         }
-      } catch {
-        results.push({ check: 'artifacts', passed: false, message: 'Could not list artifacts (toolchain not detected)' });
+      } catch (err) {
+        results.push({ check: 'artifacts', passed: false, message: `Could not list artifacts: ${err instanceof Error ? err.message : String(err)}` });
       }
 
-      // 5. All chains recognized
       const allChains = [...new Set(manifest.deploy_targets.flatMap(t => t.chains))];
       const unknownChains = allChains.filter(c => {
         const net = manifest.networks[c];

@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { getMessageStatus, MessageStatus } from '@worm-tool/sdk';
+import { MessageStatus, WORMHOLESCAN_MAINNET, WORMHOLESCAN_TESTNET } from '@worm-tool/sdk';
 import { printJson, printError } from '../output.js';
 
 export function registerStatusCommand(program: Command): void {
@@ -14,10 +14,7 @@ export function registerStatusCommand(program: Command): void {
       }
       const network = opts.network === 'testnet' ? 'testnet' : 'mainnet';
       try {
-        // Derive emitter info from wormholescan tx endpoint
-        const base = network === 'testnet'
-          ? 'https://api.testnet.wormholescan.io'
-          : 'https://api.wormholescan.io';
+        const base = network === 'testnet' ? WORMHOLESCAN_TESTNET : WORMHOLESCAN_MAINNET;
         const res = await fetch(`${base}/api/v1/transactions/${txHash}`);
         if (!res.ok) {
           if (res.status === 404) {
@@ -26,7 +23,7 @@ export function registerStatusCommand(program: Command): void {
           }
           throw new Error(`Wormholescan returned ${res.status}`);
         }
-        const data = await res.json() as Record<string, unknown>;
+        const data: unknown = await res.json();
         printJson(data);
       } catch (err) {
         printError('status lookup failed', err);

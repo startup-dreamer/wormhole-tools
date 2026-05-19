@@ -48,7 +48,7 @@ export class ContractCallError extends WormToolError {
 /** Private key was not found or is invalid. */
 export class PrivateKeyError extends WormToolError {
   constructor() {
-    super('Private key not found or invalid — set WORM_TOOL_PRIVATE_KEY');
+    super("Private key not found or invalid — set WORM_TOOL_PRIVATE_KEY");
   }
 }
 

@@ -5,8 +5,7 @@ import type { DeployManifest } from './manifest.js';
 import type { AddressBook } from './address-book.js';
 import { isDeployed, setAddress } from './address-book.js';
 import type { ContractMeta } from '../toolchain/types.js';
-import { keccak_256 } from '@noble/hashes/sha3';
-import { computeCreate2Address } from './create2.js';
+import { computeCreate2Address, keccak256Hex } from './create2.js';
 
 /** Thrown when the deployment engine encounters an unrecoverable error. */
 export class EngineError extends WormToolError {
@@ -67,13 +66,13 @@ function extractDeps(args: DeployManifest['contracts'][number]['args']): string[
 }
 
 /**
- * Sort contracts in topological (dependency-first) order.
+ * Sort contracts in topological (dependency-first) order using Kahn's algorithm.
  *
- * Reads `{{contracts.X.address}}` references from each contract's args to
- * build a dependency graph, then performs a depth-first topological sort.
+ * Reads `{{contracts.X.address}}` references from each contract's args to build
+ * a dependency graph.
  *
- * @throws {EngineError} containing the word `"circular"` when a dependency
- *   cycle is detected.
+ * @throws {EngineError} containing the word `"circular"` when a dependency cycle
+ *   is detected.
  */
 export function buildDependencyOrder(
   contracts: DeployManifest['contracts'],
@@ -83,7 +82,6 @@ export function buildDependencyOrder(
   const byName = new Map<string, DeployManifest['contracts'][number]>();
   for (const c of contracts) byName.set(c.name, c);
 
-  // Kahn's algorithm
   const deps = new Map<string, string[]>();
   const reverseDeps = new Map<string, string[]>();
   for (const c of contracts) {
@@ -98,7 +96,6 @@ export function buildDependencyOrder(
     }
   }
 
-  // In-degree = number of deps each node has
   const inDegree = new Map<string, number>();
   for (const c of contracts) {
     inDegree.set(c.name, (deps.get(c.name) ?? []).length);
@@ -228,11 +225,9 @@ export async function runDeployment(opts: EngineRunOptions): Promise<EngineRunRe
   const { manifest, artifacts, deployFn, saltFn, onProgress } = opts;
   let book = opts.book;
 
-  // Seed resolved addresses from the existing address book
   const resolvedAddresses: Record<string, `0x${string}`> = {};
   for (const [contractName, chains] of Object.entries(book.contracts)) {
     for (const [, entry] of Object.entries(chains)) {
-      // Use the first available chain's address as the representative address
       if (!resolvedAddresses[contractName]) {
         resolvedAddresses[contractName] = entry.address;
       }
@@ -255,7 +250,6 @@ export async function runDeployment(opts: EngineRunOptions): Promise<EngineRunRe
 
       if (allDeployed) {
         onProgress?.(`Skipping ${contractConfig.name} (already deployed on all target chains)`);
-        // Seed resolved address from book
         const firstChain = target.chains[0];
         if (firstChain) {
           const addr = book.contracts[contractConfig.name]?.[firstChain]?.address;
@@ -265,7 +259,6 @@ export async function runDeployment(opts: EngineRunOptions): Promise<EngineRunRe
         continue;
       }
 
-      // Find the artifact
       const artifact = artifacts.find(a => a.name === contractConfig.contract);
       if (!artifact) {
         throw new EngineError(
@@ -273,14 +266,12 @@ export async function runDeployment(opts: EngineRunOptions): Promise<EngineRunRe
         );
       }
 
-      // Resolve template args
       const rawArgs = contractConfig.args ?? [];
       const resolvedArgs = rawArgs.map(arg => ({
         ...arg,
         value: resolveTemplateArg(arg.value, resolvedAddresses),
       }));
 
-      // ABI-encode constructor args
       let constructorArgs: `0x${string}` = '0x';
       if (resolvedArgs.length > 0 && artifact.constructorInputs.length > 0) {
         const params = artifact.constructorInputs as AbiParameter[];
@@ -303,12 +294,7 @@ export async function runDeployment(opts: EngineRunOptions): Promise<EngineRunRe
         const initCode = (constructorArgs !== '0x' && constructorArgs.length > 2)
           ? (artifact.bytecode + constructorArgs.slice(2)) as `0x${string}`
           : artifact.bytecode;
-        const initHex = initCode.startsWith('0x') ? initCode.slice(2) : initCode;
-        const initBytes = new Uint8Array(initHex.length / 2);
-        for (let i = 0; i < initBytes.length; i++) {
-          initBytes[i] = parseInt(initHex.slice(i * 2, i * 2 + 2), 16);
-        }
-        const initCodeHash = ('0x' + Array.from(keccak_256(initBytes), b => b.toString(16).padStart(2, '0')).join('')) as `0x${string}`;
+        const initCodeHash = keccak256Hex(initCode);
         const address = computeCreate2Address(deployerAddr, salt, initCodeHash);
 
         for (const chain of target.chains) {
@@ -340,7 +326,6 @@ export async function runDeployment(opts: EngineRunOptions): Promise<EngineRunRe
           deployedAt: new Date().toISOString(),
         });
         deployed.push({ name: contractConfig.name, chain: r.chain, address: r.address });
-        // Update resolved address (use first chain's address as representative)
         if (!resolvedAddresses[contractConfig.name]) {
           resolvedAddresses[contractConfig.name] = r.address;
         }

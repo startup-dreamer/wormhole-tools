@@ -8,9 +8,9 @@ messaging protocol.
 
 ## Packages
 
-| Package | Description |
-|---------|-------------|
-| [`worm-tool`](./packages/cli) | Command-line interface (`worm-tool` binary) |
+| Package                            | Description                                      |
+| ---------------------------------- | ------------------------------------------------ |
+| [`worm-tool`](./packages/cli)      | Command-line interface (`worm-tool` binary)      |
 | [`@worm-tool/sdk`](./packages/sdk) | TypeScript SDK for Wormhole protocol interaction |
 
 ## Install
@@ -24,7 +24,7 @@ npm install -g worm-tool
 Create `~/.worm-tool/.env`:
 
 ```env
-WORM_TOOL_PRIVATE_KEY=0xYOUR_EVM_PRIVATE_KEY
+WORM_TOOL_EVM_PRIVATE_KEY=0xYOUR_EVM_PRIVATE_KEY
 WORM_TOOL_SOLANA_PRIVATE_KEY=YOUR_BASE58_SOLANA_KEY
 ```
 
@@ -69,21 +69,27 @@ worm-tool transfer \
 ## SDK Usage
 
 ```typescript
-import { parseVaa, EvmChain, getMessageStatus, MessageStatus } from '@worm-tool/sdk';
+import {
+  parseVaa,
+  EvmChain,
+  getMessageStatus,
+  MessageStatus,
+} from "@worm-tool/sdk";
 
 // Parse a VAA
-const vaa = parseVaa('0x010000000001...');
+const vaa = parseVaa("0x010000000001...");
 console.log(vaa.emitterChain, vaa.sequence);
 
 // Check message status
 const result = await getMessageStatus({
   emitterChain: 2,
-  emitterAddress: '0x0000000000000000000000003ee18b2214aff97000d974cf647e7c347e8fa585',
+  emitterAddress:
+    "0x0000000000000000000000003ee18b2214aff97000d974cf647e7c347e8fa585",
   sequence: 643990n,
 });
 
 if (result.status === MessageStatus.Signed) {
-  console.log('VAA ready:', result.vaaBytes);
+  console.log("VAA ready:", result.vaaBytes);
 }
 ```
 

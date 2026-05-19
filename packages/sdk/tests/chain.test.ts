@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import type { WormToolChain, TransactionReceipt } from '../src/chain.js';
+import type { WormcraftChain, TransactionReceipt } from '../src/chain.js';
 
-class MockChain implements WormToolChain {
+class MockChain implements WormcraftChain {
   readonly chainId = 2n;
   readonly chainName = 'ethereum';
   async getBalance(_address: string): Promise<bigint> { return 1000n; }
@@ -15,9 +15,9 @@ class MockChain implements WormToolChain {
   async getCode(_address: string): Promise<`0x${string}`> { return '0x6001'; }
 }
 
-describe('WormToolChain interface', () => {
+describe('WormcraftChain interface', () => {
   it('mock satisfies the interface', async () => {
-    const chain: WormToolChain = new MockChain();
+    const chain: WormcraftChain = new MockChain();
     expect(chain.chainId).toBe(2n);
     const bal = await chain.getBalance('0x1234');
     expect(bal).toBe(1000n);

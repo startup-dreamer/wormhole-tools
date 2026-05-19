@@ -1,5 +1,5 @@
 import { readFile } from 'fs/promises';
-import { WormToolError } from '../error.js';
+import { WormcraftError } from '../error.js';
 import type { ContractMeta } from '../toolchain/types.js';
 import type { AddressBookEntry } from './address-book.js';
 
@@ -43,7 +43,7 @@ export interface VerifyContractOptions {
 }
 
 /** Thrown when the Etherscan verification API returns a non-OK HTTP response. */
-export class VerificationError extends WormToolError {
+export class VerificationError extends WormcraftError {
   constructor(message: string, cause?: unknown) {
     super(`Verification error: ${message}`, cause);
   }

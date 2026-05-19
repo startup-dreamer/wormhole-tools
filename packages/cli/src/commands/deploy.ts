@@ -12,8 +12,8 @@ import {
   checkContractDeployed,
   getChainByName,
   diffStorageLayouts,
-} from '@worm-tool/sdk';
-import type { StorageLayout } from '@worm-tool/sdk';
+} from '@wormcraft/sdk';
+import type { StorageLayout } from '@wormcraft/sdk';
 import { keccak_256 } from '@noble/hashes/sha3';
 import { loadConfig } from '../config.js';
 import { createEvmChain } from '../providers/evm.js';
@@ -24,9 +24,9 @@ function handleManifestMissing(commandName: string, err: unknown): never {
     err instanceof Error &&
     'code' in err &&
     (err as NodeJS.ErrnoException).code === 'ENOENT' &&
-    String((err as NodeJS.ErrnoException).path ?? '').endsWith('worm-tool.deploy.yaml')
+    String((err as NodeJS.ErrnoException).path ?? '').endsWith('wormcraft.deploy.yaml')
   ) {
-    printError('worm-tool.deploy.yaml not found — run `worm-tool deploy init` to create one');
+    printError('wormcraft.deploy.yaml not found — run `wormcraft deploy init` to create one');
   } else {
     printError(`${commandName} failed`, err);
   }
@@ -55,7 +55,7 @@ function resolveDeployer(chainName: string, override?: string): string {
   if (override) return override;
   const entry = getChainByName(chainName);
   if (!entry?.wormToolDeployer) {
-    throw new Error(`No WormToolDeployer address known for ${chainName} — set --deployer`);
+    throw new Error(`No WormcraftDeployer address known for ${chainName} — set --deployer`);
   }
   return entry.wormToolDeployer;
 }
@@ -74,7 +74,7 @@ export function buildStarterManifestYaml(contractNames: string[]): string {
 networks:
   sepolia:
     chain: sepolia
-    rpc: "\${WORM_TOOL_RPC_SEPOLIA}"
+    rpc: "\${WORMCRAFT_RPC_SEPOLIA}"
 
 # Deployer salt — change this to get a different deterministic address
 deployer:
@@ -95,22 +95,22 @@ deploy_targets:
 export function registerDeployCommand(program: Command): void {
   const deploy = program
     .command('deploy')
-    .description('Deploy and manage contracts across chains via WormToolDeployer');
+    .description('Deploy and manage contracts across chains via WormcraftDeployer');
 
   deploy
     .command('init')
-    .description('Generate a starter worm-tool.deploy.yaml from compiled artifacts')
+    .description('Generate a starter wormcraft.deploy.yaml from compiled artifacts')
     .option('--project <dir>', 'Project root (default: cwd)')
     .option('--force', 'Overwrite existing manifest')
     .action(async (opts: { project?: string; force?: boolean }) => {
       try {
         const root = opts.project ?? process.cwd();
-        const manifestPath = join(root, 'worm-tool.deploy.yaml');
+        const manifestPath = join(root, 'wormcraft.deploy.yaml');
 
         if (!opts.force) {
           try {
             await readFile(manifestPath, 'utf8');
-            printError('worm-tool.deploy.yaml already exists — use --force to overwrite');
+            printError('wormcraft.deploy.yaml already exists — use --force to overwrite');
             process.exit(1);
           } catch (err) {
             if (!(err instanceof Error && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT')) {
@@ -119,7 +119,7 @@ export function registerDeployCommand(program: Command): void {
           }
         }
 
-        const { detectToolchain, listArtifacts, ToolchainNotFoundError } = await import('@worm-tool/sdk');
+        const { detectToolchain, listArtifacts, ToolchainNotFoundError } = await import('@wormcraft/sdk');
         let contractNames: string[];
         try {
           const toolchain = await detectToolchain(root);
@@ -150,7 +150,7 @@ export function registerDeployCommand(program: Command): void {
     .option('--artifact <path>', 'Path to Hardhat/Foundry artifact JSON')
     .option('--bytecode <hex>', 'Raw init bytecode (0x-prefixed)')
     .requiredOption('--salt <salt>', 'CREATE2 salt: 32-byte hex or an arbitrary string (keccak256\'d)')
-    .requiredOption('--deployer <address>', 'WormToolDeployer contract address (20-byte hex)')
+    .requiredOption('--deployer <address>', 'WormcraftDeployer contract address (20-byte hex)')
     .action(async (opts: { artifact?: string; bytecode?: string; salt: string; deployer: string }) => {
       try {
         const bytecode = await resolveBytecode(opts.artifact, opts.bytecode);
@@ -170,7 +170,7 @@ export function registerDeployCommand(program: Command): void {
     .requiredOption('--source <chain>', 'Source chain (where the tx is sent)')
     .option('--targets <chains>', 'Comma-separated cross-chain target names (omit for local-only)')
     .option('--init-hex <hex>', 'ABI-encoded constructor calldata')
-    .option('--deployer <address>', 'Override WormToolDeployer address')
+    .option('--deployer <address>', 'Override WormcraftDeployer address')
     .option('--value <wei>', 'ETH (in wei) to send for Wormhole relayer fees when using --targets')
     .action(async (opts: {
       artifact?: string; bytecode?: string; salt: string;
@@ -199,11 +199,11 @@ export function registerDeployCommand(program: Command): void {
 
   deploy
     .command('call')
-    .description('Send a cross-chain function call through WormToolDeployer')
+    .description('Send a cross-chain function call through WormcraftDeployer')
     .requiredOption('--target <address>', 'Target contract address')
     .requiredOption('--calldata <hex>', 'ABI-encoded calldata (0x-prefixed)')
     .requiredOption('--chains <chains>', 'Comma-separated chain names')
-    .option('--deployer <address>', 'Override WormToolDeployer address')
+    .option('--deployer <address>', 'Override WormcraftDeployer address')
     .option('--value <wei>', 'ETH (in wei) to send for Wormhole relayer fees when using cross-chain targets')
     .action(async (opts: { target: string; calldata: string; chains: string; deployer?: string; value?: string }) => {
       try {
@@ -228,7 +228,7 @@ export function registerDeployCommand(program: Command): void {
     .requiredOption('--proxy <address>', 'Proxy contract address')
     .requiredOption('--new-impl <address>', 'New implementation address')
     .requiredOption('--chains <chains>', 'Comma-separated chain names')
-    .option('--deployer <address>', 'Override WormToolDeployer address')
+    .option('--deployer <address>', 'Override WormcraftDeployer address')
     .option('--value <wei>', 'ETH (in wei) to send for Wormhole relayer fees when using cross-chain targets')
     .action(async (opts: { proxy: string; newImpl: string; chains: string; deployer?: string; value?: string }) => {
       try {
@@ -275,8 +275,8 @@ export function registerDeployCommand(program: Command): void {
     .action(async (opts: { project?: string; json?: boolean }) => {
       try {
         const root = opts.project ?? process.cwd();
-        const { parseManifest, loadAddressBook, buildDeployPlan } = await import('@worm-tool/sdk');
-        const manifestYaml = await readFile(join(root, 'worm-tool.deploy.yaml'), 'utf8');
+        const { parseManifest, loadAddressBook, buildDeployPlan } = await import('@wormcraft/sdk');
+        const manifestYaml = await readFile(join(root, 'wormcraft.deploy.yaml'), 'utf8');
         const manifest = parseManifest(manifestYaml);
         const book = await loadAddressBook(root);
         const plan = buildDeployPlan(manifest, book);
@@ -297,7 +297,7 @@ export function registerDeployCommand(program: Command): void {
 
   deploy
     .command('run')
-    .description('Execute worm-tool.deploy.yaml — deploy all contracts to target chains')
+    .description('Execute wormcraft.deploy.yaml — deploy all contracts to target chains')
     .option('--project <dir>', 'Project root (default: cwd)')
     .option('--network <name>', 'Limit to one network from the manifest')
     .option('--only <contract>', 'Deploy only this contract')
@@ -310,9 +310,9 @@ export function registerDeployCommand(program: Command): void {
           parseManifest, loadAddressBook, saveAddressBook,
           detectToolchain, listArtifacts, runDeployment,
           deployAcrossChains, getChainByName,
-        } = await import('@worm-tool/sdk');
+        } = await import('@wormcraft/sdk');
 
-        const manifestYaml = await readFile(join(root, 'worm-tool.deploy.yaml'), 'utf8');
+        const manifestYaml = await readFile(join(root, 'wormcraft.deploy.yaml'), 'utf8');
         let manifest = parseManifest(manifestYaml);
 
         if (opts.only) {
@@ -348,7 +348,7 @@ export function registerDeployCommand(program: Command): void {
             const resolvedChainName = networkEntry?.chain ?? firstChain;
             const chainEntry = getChainByName(resolvedChainName);
             if (!chainEntry?.wormToolDeployer) {
-              throw new Error(`No WormToolDeployer address for chain "${firstChain}" — set --deployer or add to chain registry`);
+              throw new Error(`No WormcraftDeployer address for chain "${firstChain}" — set --deployer or add to chain registry`);
             }
             const allChainObjs = chains.map(n => {
               const net = manifest.networks[n];
@@ -390,7 +390,7 @@ export function registerDeployCommand(program: Command): void {
 
   deploy
     .command('verify')
-    .description('Verify deployed contracts on block explorers (requires WORM_TOOL_ETHERSCAN_API_KEY)')
+    .description('Verify deployed contracts on block explorers (requires WORMCRAFT_ETHERSCAN_API_KEY)')
     .option('--project <dir>', 'Project root (default: cwd)')
     .option('--network <name>', 'Limit to one network')
     .option('--contract <name>', 'Verify only this contract')
@@ -398,12 +398,12 @@ export function registerDeployCommand(program: Command): void {
     .action(async (opts: { project?: string; network?: string; contract?: string; constructorArgs?: string }) => {
       try {
         const root = opts.project ?? process.cwd();
-        const { parseManifest, loadAddressBook, detectToolchain, listArtifacts, verifyContract, getChainByName } = await import('@worm-tool/sdk');
+        const { parseManifest, loadAddressBook, detectToolchain, listArtifacts, verifyContract, getChainByName } = await import('@wormcraft/sdk');
 
-        const apiKey = process.env['WORM_TOOL_ETHERSCAN_API_KEY'];
-        if (!apiKey) throw new Error('WORM_TOOL_ETHERSCAN_API_KEY environment variable is required');
+        const apiKey = process.env['WORMCRAFT_ETHERSCAN_API_KEY'];
+        if (!apiKey) throw new Error('WORMCRAFT_ETHERSCAN_API_KEY environment variable is required');
 
-        const manifestYaml = await readFile(join(root, 'worm-tool.deploy.yaml'), 'utf8');
+        const manifestYaml = await readFile(join(root, 'wormcraft.deploy.yaml'), 'utf8');
         const manifest = parseManifest(manifestYaml);
         const book = await loadAddressBook(root);
         const toolchain = await detectToolchain(root);
@@ -454,7 +454,7 @@ export function registerDeployCommand(program: Command): void {
         const {
           detectToolchain, listArtifacts, loadAddressBook,
           upgradeAcrossChains, getChainByName,
-        } = await import('@worm-tool/sdk');
+        } = await import('@wormcraft/sdk');
 
         const toolchain = await detectToolchain(root);
         const artifacts = await listArtifacts(toolchain);
@@ -494,7 +494,7 @@ export function registerDeployCommand(program: Command): void {
 
         const chainEntry = getChainByName(firstChain);
         if (!chainEntry?.wormToolDeployer) {
-          throw new Error(`No WormToolDeployer address for chain "${firstChain}"`);
+          throw new Error(`No WormcraftDeployer address for chain "${firstChain}"`);
         }
 
         const chains = chainNames.map(n => createEvmChain(n, config));
@@ -519,9 +519,9 @@ export function registerDeployCommand(program: Command): void {
     .action(async (opts: { project?: string; json?: boolean }) => {
       try {
         const root = opts.project ?? process.cwd();
-        const { parseManifest, loadAddressBook, isDeployed } = await import('@worm-tool/sdk');
+        const { parseManifest, loadAddressBook, isDeployed } = await import('@wormcraft/sdk');
 
-        const manifestYaml = await readFile(join(root, 'worm-tool.deploy.yaml'), 'utf8');
+        const manifestYaml = await readFile(join(root, 'wormcraft.deploy.yaml'), 'utf8');
         const manifest = parseManifest(manifestYaml);
         const book = await loadAddressBook(root);
 

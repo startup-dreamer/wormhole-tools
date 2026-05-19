@@ -1,8 +1,8 @@
-import { EvmChain, getChainByName, ChainNotSupportedError } from '@worm-tool/sdk';
-import type { WormToolConfig } from '../config.js';
+import { EvmChain, getChainByName, ChainNotSupportedError } from '@wormcraft/sdk';
+import type { WormcraftConfig } from '../config.js';
 
 /** Create an EvmChain adapter for a named chain using the loaded config. */
-export function createEvmChain(chainName: string, config: WormToolConfig): EvmChain {
+export function createEvmChain(chainName: string, config: WormcraftConfig): EvmChain {
   const entry = getChainByName(chainName);
   if (!entry) throw new ChainNotSupportedError(chainName);
   if (entry.evmChainId === undefined) {
@@ -11,7 +11,7 @@ export function createEvmChain(chainName: string, config: WormToolConfig): EvmCh
 
   const rpcUrl = config.rpcUrls[chainName] ?? entry.defaultRpc;
   if (!rpcUrl) {
-    throw new Error(`No RPC URL for ${chainName} — set WORM_TOOL_RPC_${chainName.toUpperCase()} in ~/.worm-tool/.env`);
+    throw new Error(`No RPC URL for ${chainName} — set WORMCRAFT_RPC_${chainName.toUpperCase()} in ~/.wormcraft/.env`);
   }
 
   return new EvmChain({

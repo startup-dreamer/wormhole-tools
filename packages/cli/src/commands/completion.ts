@@ -7,7 +7,7 @@ export function registerCompletionCommand(program: Command): void {
     .description('Print shell completion setup instructions')
     .option('--shell <shell>', 'Shell type: bash, zsh, fish', 'bash')
     .action((opts: { shell: string }) => {
-      const name = 'worm-tool';
+      const name = 'wormcraft';
       switch (opts.shell) {
         case 'bash':
           console.log(`# Add to ~/.bashrc:\n# eval "$(${name} completion --shell bash)"\n_${name}_completions() { COMPREPLY=($(compgen -W "$(${name} --help 2>/dev/null | grep -oP '^  \\K\\S+')" -- "\${COMP_WORDS[COMP_CWORD]}")); }\ncomplete -F _${name}_completions ${name}`);

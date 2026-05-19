@@ -7,7 +7,7 @@ export interface ChainEntry {
   defaultRpc?: string;
   /** Wormhole core contract address on this chain */
   wormholeCore?: `0x${string}`;
-  /** WormToolDeployer contract address (set after deployment) */
+  /** WormcraftDeployer contract address (set after deployment) */
   wormToolDeployer?: `0x${string}`;
   isTestnet?: boolean;
 }
@@ -26,8 +26,8 @@ export const CHAIN_REGISTRY: ChainEntry[] = [
   { wormholeChainId: 23, name: 'arbitrum',      evmChainId: 42161 },
   { wormholeChainId: 24, name: 'optimism',      evmChainId: 10 },
   { wormholeChainId: 30, name: 'base',          evmChainId: 8453 },
-  // Testnets — WormToolDeployer deployed at the same address on all chains via CREATE2
-  // (salt = keccak256("worm-tool-deployer-v1"), factory = deployer wallet 0x68A2610f...)
+  // Testnets — WormcraftDeployer deployed at the same address on all chains via CREATE2
+  // (salt = keccak256("wormcraft-deployer-v1"), factory = deployer wallet 0x68A2610f...)
   {
     wormholeChainId: 10002, name: 'sepolia', evmChainId: 11155111, isTestnet: true,
     defaultRpc: 'https://ethereum-sepolia.publicnode.com',

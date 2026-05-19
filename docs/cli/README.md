@@ -1,8 +1,8 @@
-# worm-tool CLI Reference
+# wormcraft CLI Reference
 
 Command-line interface for interacting with the Wormhole cross-chain protocol.
 
-`worm-tool` can query message status, measure guardian latency, read on-chain contract state, parse
+`wormcraft` can query message status, measure guardian latency, read on-chain contract state, parse
 and generate VAAs, initiate token bridge transfers, and **deploy contracts to deterministic addresses
 across EVM chains** — across EVM chains, Solana, Aptos, NEAR, and Sui.
 
@@ -41,34 +41,34 @@ across EVM chains** — across EVM chains, Solana, Aptos, NEAR, and Sui.
 ## Installation
 
 ```bash
-npm install -g worm-tool
-worm-tool --help
+npm install -g wormcraft
+wormcraft --help
 ```
 
 Or run without installing:
 
 ```bash
-npx worm-tool --help
+npx wormcraft --help
 ```
 
 ---
 
 ## Configuration
 
-`worm-tool` loads environment variables from `~/.worm-tool/.env` at startup. All recognized
-variables use the `WORM_TOOL_` prefix.
+`wormcraft` loads environment variables from `~/.wormcraft/.env` at startup. All recognized
+variables use the `WORMCRAFT_` prefix.
 
 | Variable                       | Description                                                                 |
 | ------------------------------ | --------------------------------------------------------------------------- |
-| `WORM_TOOL_EVM_PRIVATE_KEY`    | EVM private key (`0x`-prefixed hex) used by submit/transfer/deploy commands |
-| `WORM_TOOL_SOLANA_PRIVATE_KEY` | Solana keypair (base58, 64-byte)                                            |
-| `WORM_TOOL_EVM_RPC`            | Default EVM RPC URL (overridden per-command with `--rpc`)                   |
-| `WORM_TOOL_SOLANA_RPC`         | Default Solana RPC URL                                                      |
+| `WORMCRAFT_EVM_PRIVATE_KEY`    | EVM private key (`0x`-prefixed hex) used by submit/transfer/deploy commands |
+| `WORMCRAFT_SOLANA_PRIVATE_KEY` | Solana keypair (base58, 64-byte)                                            |
+| `WORMCRAFT_EVM_RPC`            | Default EVM RPC URL (overridden per-command with `--rpc`)                   |
+| `WORMCRAFT_SOLANA_RPC`         | Default Solana RPC URL                                                      |
 
 You can also set variables inline:
 
 ```bash
-WORM_TOOL_EVM_PRIVATE_KEY=0xYOUR_KEY worm-tool transfer ...
+WORMCRAFT_EVM_PRIVATE_KEY=0xYOUR_KEY wormcraft transfer ...
 ```
 
 ---
@@ -87,24 +87,24 @@ Most commands accept a `--network` flag:
 
 ## Wallet & Private Keys
 
-Commands that submit transactions read the private key from `WORM_TOOL_EVM_PRIVATE_KEY` or an explicit
+Commands that submit transactions read the private key from `WORMCRAFT_EVM_PRIVATE_KEY` or an explicit
 flag.
 
 **EVM:**
 
 ```bash
 # via flag
-worm-tool transfer ... --private-key 0xYOUR_HEX_KEY
+wormcraft transfer ... --private-key 0xYOUR_HEX_KEY
 
 # via environment variable
-export WORM_TOOL_EVM_PRIVATE_KEY=0xYOUR_HEX_KEY
-worm-tool transfer ...
+export WORMCRAFT_EVM_PRIVATE_KEY=0xYOUR_HEX_KEY
+wormcraft transfer ...
 ```
 
 **Solana:**
 
 ```bash
-export WORM_TOOL_SOLANA_PRIVATE_KEY=<base58-64-byte-keypair>
+export WORMCRAFT_SOLANA_PRIVATE_KEY=<base58-64-byte-keypair>
 ```
 
 > **Warning:** Private keys are never logged or included in error messages. Never commit keys to
@@ -118,7 +118,7 @@ export WORM_TOOL_SOLANA_PRIVATE_KEY=<base58-64-byte-keypair>
 
 ### `deploy`
 
-Deploy and manage contracts at deterministic addresses across EVM chains via `WormToolDeployer`.
+Deploy and manage contracts at deterministic addresses across EVM chains via `WormcraftDeployer`.
 
 See the full guide at **[docs/deploy.md](../deploy.md)** for address determinism, upgradeability, and bootstrapping.
 
@@ -127,7 +127,7 @@ See the full guide at **[docs/deploy.md](../deploy.md)** for address determinism
 Compute the CREATE2 deployment address offline — no gas required.
 
 ```bash
-worm-tool deploy address \
+wormcraft deploy address \
   --artifact contracts/out/MyContract.sol/MyContract.json \
   --salt "my-project-v1" \
   --deployer 0x0aA4B5899bAF7326397b1041db9c854056126F57
@@ -138,7 +138,7 @@ worm-tool deploy address \
 | `--artifact <path>`    | Hardhat/Foundry artifact JSON                               |
 | `--bytecode <hex>`     | Raw init bytecode (alternative to `--artifact`)             |
 | `--salt <salt>`        | CREATE2 salt: 32-byte hex or arbitrary string (keccak256'd) |
-| `--deployer <address>` | WormToolDeployer address acting as CREATE2 factory          |
+| `--deployer <address>` | WormcraftDeployer address acting as CREATE2 factory          |
 
 #### `deploy multi`
 
@@ -146,13 +146,13 @@ Deploy bytecode on the source chain and optionally propagate cross-chain via Wor
 
 ```bash
 # Local only (no fee)
-worm-tool deploy multi \
+wormcraft deploy multi \
   --artifact contracts/out/Counter.sol/Counter.json \
   --salt "counter-v1" \
   --source sepolia
 
 # Cross-chain (requires Wormhole relayer fee)
-worm-tool deploy multi \
+wormcraft deploy multi \
   --artifact contracts/out/Counter.sol/Counter.json \
   --salt "counter-v1" \
   --source sepolia \
@@ -169,7 +169,7 @@ worm-tool deploy multi \
 | `--targets <chains>`   | Comma-separated cross-chain targets (optional)            |
 | `--init-hex <hex>`     | ABI-encoded initializer calldata                          |
 | `--value <wei>`        | ETH for Wormhole relayer fees (required with `--targets`) |
-| `--deployer <address>` | Override WormToolDeployer address                         |
+| `--deployer <address>` | Override WormcraftDeployer address                         |
 
 #### `deploy upgrade`
 
@@ -177,12 +177,12 @@ Upgrade a UUPS proxy to a new implementation across chains in one transaction.
 
 ```bash
 # 1. Deploy v2 impl on each chain
-worm-tool deploy multi --artifact out/V2.json --salt "my-v2-impl" --source sepolia
-worm-tool deploy multi --artifact out/V2.json --salt "my-v2-impl" --source arbitrum-sepolia
-worm-tool deploy multi --artifact out/V2.json --salt "my-v2-impl" --source base-sepolia
+wormcraft deploy multi --artifact out/V2.json --salt "my-v2-impl" --source sepolia
+wormcraft deploy multi --artifact out/V2.json --salt "my-v2-impl" --source arbitrum-sepolia
+wormcraft deploy multi --artifact out/V2.json --salt "my-v2-impl" --source base-sepolia
 
 # 2. Upgrade — one call propagates to all chains via Wormhole
-worm-tool deploy upgrade \
+wormcraft deploy upgrade \
   --proxy 0xPROXY_ADDRESS \
   --new-impl 0xV2_IMPL_ADDRESS \
   --chains sepolia,arbitrum-sepolia,base-sepolia \
@@ -195,16 +195,16 @@ worm-tool deploy upgrade \
 | `--new-impl <address>` | New implementation address                       |
 | `--chains <chains>`    | Comma-separated chain names; first is the source |
 | `--value <wei>`        | ETH for Wormhole relayer fees                    |
-| `--deployer <address>` | Override WormToolDeployer address                |
+| `--deployer <address>` | Override WormcraftDeployer address                |
 
-The proxy must inherit `WormToolProxy` to authorize cross-chain upgrades from WormToolDeployer.
+The proxy must inherit `WormcraftProxy` to authorize cross-chain upgrades from WormcraftDeployer.
 
 #### `deploy call`
 
-Send an arbitrary function call through WormToolDeployer to the same contract on multiple chains.
+Send an arbitrary function call through WormcraftDeployer to the same contract on multiple chains.
 
 ```bash
-worm-tool deploy call \
+wormcraft deploy call \
   --target 0xCONTRACT_ADDRESS \
   --calldata $(cast calldata "setValue(uint256)" 42) \
   --chains sepolia,arbitrum-sepolia,base-sepolia \
@@ -217,14 +217,14 @@ worm-tool deploy call \
 | `--calldata <hex>`     | ABI-encoded calldata                             |
 | `--chains <chains>`    | Comma-separated chain names; first is the source |
 | `--value <wei>`        | ETH for Wormhole relayer fees                    |
-| `--deployer <address>` | Override WormToolDeployer address                |
+| `--deployer <address>` | Override WormcraftDeployer address                |
 
 #### `deploy status`
 
 Check whether a contract is deployed at an address on one or more chains.
 
 ```bash
-worm-tool deploy status \
+wormcraft deploy status \
   --address 0x8a7a833a0ffb9947102be06a6ebf9f8447bb6823 \
   --chains sepolia,arbitrum-sepolia,base-sepolia
 ```
@@ -244,7 +244,7 @@ worm-tool deploy status \
 Track a Wormhole message end-to-end by its source transaction hash.
 
 ```bash
-worm-tool status <TX_HASH> [--network mainnet|testnet]
+wormcraft status <TX_HASH> [--network mainnet|testnet]
 ```
 
 Queries the Wormhole Scan API and prints source chain, destination chain, VAA signing status, token
@@ -265,7 +265,7 @@ metadata, and a direct link to the Wormhole explorer.
 **Example:**
 
 ```bash
-worm-tool status 0xb789efdb02a76692efd7f2aabde73470ad63fc9571a93f28f6ec505b79f4de3b
+wormcraft status 0xb789efdb02a76692efd7f2aabde73470ad63fc9571a93f28f6ec505b79f4de3b
 ```
 
 **Output:**
@@ -303,7 +303,7 @@ worm-tool status 0xb789efdb02a76692efd7f2aabde73470ad63fc9571a93f28f6ec505b79f4d
 Measure real-time guardian signing latency for a source chain.
 
 ```bash
-worm-tool latency <CHAIN> [--count N] [--network mainnet|testnet]
+wormcraft latency <CHAIN> [--count N] [--network mainnet|testnet]
 ```
 
 Fetches the `N` most recent VAAs for the chain and computes p50/p95/min/max latency.
@@ -324,8 +324,8 @@ Fetches the `N` most recent VAAs for the chain and computes p50/p95/min/max late
 **Examples:**
 
 ```bash
-worm-tool latency solana
-worm-tool latency ethereum --count 50
+wormcraft latency solana
+wormcraft latency ethereum --count 50
 ```
 
 **Output:**
@@ -352,15 +352,15 @@ Query Wormhole chain and contract metadata from the built-in registry.
 Print the Wormhole chain ID for a named chain.
 
 ```bash
-worm-tool info chain-id <CHAIN_NAME>
+wormcraft info chain-id <CHAIN_NAME>
 ```
 
 **Examples:**
 
 ```bash
-worm-tool info chain-id solana      # → 1
-worm-tool info chain-id ethereum    # → 2
-worm-tool info chain-id arbitrum    # → 23
+wormcraft info chain-id solana      # → 1
+wormcraft info chain-id ethereum    # → 2
+wormcraft info chain-id arbitrum    # → 23
 ```
 
 #### `info contract-address`
@@ -368,7 +368,7 @@ worm-tool info chain-id arbitrum    # → 23
 Print the contract address for a Wormhole module on a given chain and network.
 
 ```bash
-worm-tool info contract-address <NETWORK> <CHAIN> <MODULE>
+wormcraft info contract-address <NETWORK> <CHAIN> <MODULE>
 ```
 
 `<MODULE>` is one of: `core`, `token_bridge`, `nft_bridge`.
@@ -376,9 +376,9 @@ worm-tool info contract-address <NETWORK> <CHAIN> <MODULE>
 **Examples:**
 
 ```bash
-worm-tool info contract-address mainnet ethereum core
-worm-tool info contract-address mainnet solana token_bridge
-worm-tool info contract-address testnet sepolia core
+wormcraft info contract-address mainnet ethereum core
+wormcraft info contract-address mainnet solana token_bridge
+wormcraft info contract-address testnet sepolia core
 ```
 
 #### `info emitter-address`
@@ -386,13 +386,13 @@ worm-tool info contract-address testnet sepolia core
 Convert a native chain address to the 32-byte Wormhole emitter format.
 
 ```bash
-worm-tool info emitter-address <CHAIN> <ADDRESS>
+wormcraft info emitter-address <CHAIN> <ADDRESS>
 ```
 
 **Example:**
 
 ```bash
-worm-tool info emitter-address ethereum 0x3ee18B2214AFF97000D974cf647E7C347E8fa585
+wormcraft info emitter-address ethereum 0x3ee18B2214AFF97000D974cf647E7C347E8fa585
 # → "0x0000000000000000000000003ee18b2214aff97000d974cf647e7c347e8fa585"
 ```
 
@@ -403,7 +403,7 @@ worm-tool info emitter-address ethereum 0x3ee18B2214AFF97000D974cf647E7C347E8fa5
 Parse a VAA and print all fields as JSON.
 
 ```bash
-worm-tool parse <VAA>
+wormcraft parse <VAA>
 ```
 
 Accepts hex (with or without `0x` prefix) and base64-encoded VAAs.
@@ -411,7 +411,7 @@ Accepts hex (with or without `0x` prefix) and base64-encoded VAAs.
 **Example:**
 
 ```bash
-worm-tool parse 010000000001...
+wormcraft parse 010000000001...
 ```
 
 **Output:**
@@ -439,7 +439,7 @@ worm-tool parse 010000000001...
 Generate signed VAAs for devnet and testnet use. Requires a guardian private key.
 
 ```bash
-worm-tool generate --guardian-secret <KEY> <SUBCOMMAND>
+wormcraft generate --guardian-secret <KEY> <SUBCOMMAND>
 ```
 
 **Options:**
@@ -453,7 +453,7 @@ worm-tool generate --guardian-secret <KEY> <SUBCOMMAND>
 Generate a chain registration governance VAA.
 
 ```bash
-worm-tool generate --guardian-secret <KEY> registration \
+wormcraft generate --guardian-secret <KEY> registration \
   --module <MODULE> \
   --chain-id <CHAIN_ID> \
   --contract-address <ADDRESS>
@@ -470,7 +470,7 @@ worm-tool generate --guardian-secret <KEY> registration \
 Generate a contract upgrade governance VAA.
 
 ```bash
-worm-tool generate --guardian-secret <KEY> upgrade \
+wormcraft generate --guardian-secret <KEY> upgrade \
   --module <MODULE> \
   --chain-id <CHAIN_ID> \
   --contract-address <NEW_ADDRESS>
@@ -481,7 +481,7 @@ worm-tool generate --guardian-secret <KEY> upgrade \
 Generate a token attestation VAA.
 
 ```bash
-worm-tool generate --guardian-secret <KEY> attestation \
+wormcraft generate --guardian-secret <KEY> attestation \
   --emitter-chain <CHAIN_ID> \
   --emitter-address <ADDRESS> \
   --chain <CHAIN_ID> \
@@ -498,7 +498,7 @@ worm-tool generate --guardian-secret <KEY> attestation \
 Submit a VAA to a Wormhole contract on an EVM chain.
 
 ```bash
-worm-tool submit <VAA> [OPTIONS]
+wormcraft submit <VAA> [OPTIONS]
 ```
 
 **Options:**
@@ -508,12 +508,12 @@ worm-tool submit <VAA> [OPTIONS]
 | `--chain`            | `-c`  | Target EVM chain name (e.g. `ethereum`)        |
 | `--contract-address` | `-a`  | Override target contract address               |
 | `--rpc`              |       | RPC endpoint URL                               |
-| `--evm-key`          |       | Private key (env: `WORM_TOOL_EVM_PRIVATE_KEY`) |
+| `--evm-key`          |       | Private key (env: `WORMCRAFT_EVM_PRIVATE_KEY`) |
 
 **Example (devnet):**
 
 ```bash
-worm-tool submit 010000000001... \
+wormcraft submit 010000000001... \
   --rpc http://localhost:8545 \
   --chain ethereum
 ```
@@ -525,7 +525,7 @@ worm-tool submit 010000000001... \
 Manually redeem a stuck Wormhole VAA on the destination chain.
 
 ```bash
-worm-tool redeem <INPUT> [OPTIONS]
+wormcraft redeem <INPUT> [OPTIONS]
 ```
 
 Accepts a source transaction hash or raw VAA bytes.
@@ -543,10 +543,10 @@ Accepts a source transaction hash or raw VAA bytes.
 
 ```bash
 # Redeem by source tx hash
-worm-tool redeem 0xb789efdb... --dst-chain ethereum --rpc https://ethereum.publicnode.com
+wormcraft redeem 0xb789efdb... --dst-chain ethereum --rpc https://ethereum.publicnode.com
 
 # Redeem by raw VAA
-worm-tool redeem 010000000601... --rpc http://localhost:8545
+wormcraft redeem 010000000601... --rpc http://localhost:8545
 ```
 
 ---
@@ -556,7 +556,7 @@ worm-tool redeem 010000000601... --rpc http://localhost:8545
 Initiate a Wormhole token bridge transfer from an EVM chain.
 
 ```bash
-worm-tool transfer [OPTIONS]
+wormcraft transfer [OPTIONS]
 ```
 
 **Required options:**
@@ -574,7 +574,7 @@ worm-tool transfer [OPTIONS]
 | ---------------- | ------------------------------- | ------------------------------------ |
 | `--token-bridge` | registry default                | Token bridge contract address        |
 | `--rpc`          | `http://localhost:8545`         | EVM RPC endpoint                     |
-| `--private-key`  | `WORM_TOOL_EVM_PRIVATE_KEY` env | EVM private key                      |
+| `--private-key`  | `WORMCRAFT_EVM_PRIVATE_KEY` env | EVM private key                      |
 | `--arbiter-fee`  | `0`                             | Relayer fee in token's smallest unit |
 | `--nonce`        | `0`                             | Transfer nonce                       |
 
@@ -589,7 +589,7 @@ Query Token Bridge registered tokens on an EVM chain.
 Look up the wrapped token address for a foreign token on an EVM chain.
 
 ```bash
-worm-tool tokens wrapped \
+wormcraft tokens wrapped \
   --origin-chain <CHAIN_NAME> \
   --token <TOKEN_ADDRESS> \
   --chain <CHAIN_NAME> \
@@ -601,7 +601,7 @@ worm-tool tokens wrapped \
 Check whether an address is a Wormhole-wrapped token.
 
 ```bash
-worm-tool tokens is-wrapped \
+wormcraft tokens is-wrapped \
   --token <TOKEN_ADDRESS> \
   --chain <CHAIN_NAME> \
   --rpc <RPC_URL>
@@ -618,7 +618,7 @@ Read state from Wormhole contracts on an EVM chain.
 Read the current guardian set index and chain ID from the core bridge contract.
 
 ```bash
-worm-tool evm init-wormhole [--rpc <URL>] [--contract <ADDRESS>]
+wormcraft evm init-wormhole [--rpc <URL>] [--contract <ADDRESS>]
 ```
 
 #### `evm init-token-bridge`
@@ -626,7 +626,7 @@ worm-tool evm init-wormhole [--rpc <URL>] [--contract <ADDRESS>]
 Read the chain ID configured in a Token Bridge contract.
 
 ```bash
-worm-tool evm init-token-bridge [--rpc <URL>] [--contract <ADDRESS>]
+wormcraft evm init-token-bridge [--rpc <URL>] [--contract <ADDRESS>]
 ```
 
 ---
@@ -638,7 +638,7 @@ Interact with Wormhole contracts on Solana.
 #### `solana node-info`
 
 ```bash
-worm-tool solana node-info [--rpc <URL>]
+wormcraft solana node-info [--rpc <URL>]
 ```
 
 #### `solana guardian-set`
@@ -646,7 +646,7 @@ worm-tool solana node-info [--rpc <URL>]
 Read the current guardian set index from the Wormhole bridge state account.
 
 ```bash
-worm-tool solana guardian-set [--rpc <URL>] [--contract <ACCOUNT>]
+wormcraft solana guardian-set [--rpc <URL>] [--contract <ACCOUNT>]
 ```
 
 #### `solana sequence`
@@ -654,7 +654,7 @@ worm-tool solana guardian-set [--rpc <URL>] [--contract <ACCOUNT>]
 Read the sequence number from a Wormhole emitter sequence account.
 
 ```bash
-worm-tool solana sequence --emitter <ACCOUNT> [--rpc <URL>]
+wormcraft solana sequence --emitter <ACCOUNT> [--rpc <URL>]
 ```
 
 ---
@@ -666,7 +666,7 @@ Interact with Wormhole contracts on Aptos.
 #### `aptos ledger-info`
 
 ```bash
-worm-tool aptos ledger-info [--rpc <URL>]
+wormcraft aptos ledger-info [--rpc <URL>]
 ```
 
 ---
@@ -678,7 +678,7 @@ Interact with Wormhole contracts on NEAR.
 #### `near node-status`
 
 ```bash
-worm-tool near node-status [--rpc <URL>]
+wormcraft near node-status [--rpc <URL>]
 ```
 
 ---
@@ -690,7 +690,7 @@ Interact with Wormhole contracts on Sui.
 #### `sui node-info`
 
 ```bash
-worm-tool sui node-info [--rpc <URL>]
+wormcraft sui node-info [--rpc <URL>]
 ```
 
 ---
@@ -700,7 +700,7 @@ worm-tool sui node-info [--rpc <URL>]
 Generate shell tab-completion scripts.
 
 ```bash
-worm-tool completion <SHELL>
+wormcraft completion <SHELL>
 ```
 
 `<SHELL>` is one of: `bash`, `zsh`, `fish`.
@@ -709,13 +709,13 @@ worm-tool completion <SHELL>
 
 ```bash
 # bash
-worm-tool completion bash >> ~/.bashrc && source ~/.bashrc
+wormcraft completion bash >> ~/.bashrc && source ~/.bashrc
 
 # zsh
-worm-tool completion zsh >> ~/.zshrc && source ~/.zshrc
+wormcraft completion zsh >> ~/.zshrc && source ~/.zshrc
 
 # fish
-worm-tool completion fish > ~/.config/fish/completions/worm-tool.fish
+wormcraft completion fish > ~/.config/fish/completions/wormcraft.fish
 ```
 
 ---

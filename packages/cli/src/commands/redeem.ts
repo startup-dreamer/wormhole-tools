@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { parseVaa, WORMHOLESCAN_MAINNET, WORMHOLESCAN_TESTNET } from '@worm-tool/sdk';
+import { parseVaa, WORMHOLESCAN_MAINNET, WORMHOLESCAN_TESTNET } from '@wormcraft/sdk';
 import { loadConfig } from '../config.js';
 import { createEvmChain } from '../providers/evm.js';
 import { printJson, printError } from '../output.js';

@@ -8,7 +8,7 @@ import {
 } from './address-book.js';
 
 let root: string;
-beforeEach(() => { root = mkdtempSync(join(tmpdir(), 'worm-tool-ab-')); });
+beforeEach(() => { root = mkdtempSync(join(tmpdir(), 'wormcraft-ab-')); });
 afterEach(() => { rmSync(root, { recursive: true }); });
 
 describe('loadAddressBook', () => {
@@ -19,7 +19,7 @@ describe('loadAddressBook', () => {
 
   it('loads existing book', async () => {
     mkdirSync(join(root, 'deployments'));
-    writeFileSync(join(root, 'deployments', 'worm-tool.json'), JSON.stringify({
+    writeFileSync(join(root, 'deployments', 'wormcraft.json'), JSON.stringify({
       version: '1', salt: 'test',
       contracts: { MyToken: { sepolia: { address: '0xabc', deployedAt: '2026-01-01T00:00:00Z' } } },
     }));

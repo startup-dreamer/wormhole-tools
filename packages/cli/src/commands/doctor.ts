@@ -19,7 +19,7 @@ export async function runChecks(opts: RunChecksOptions): Promise<DoctorCheck[]> 
   const { root, skipManifest, skipToolchain } = opts;
   const results: DoctorCheck[] = [];
 
-  const pk = process.env['WORM_TOOL_PRIVATE_KEY'];
+  const pk = process.env['WORMCRAFT_PRIVATE_KEY'];
   const keyValid = typeof pk === 'string' && /^0x[0-9a-fA-F]{64}$/.test(pk);
   results.push({
     check: 'private-key',
@@ -27,12 +27,12 @@ export async function runChecks(opts: RunChecksOptions): Promise<DoctorCheck[]> 
     message: keyValid
       ? 'Private key configured'
       : pk === undefined
-        ? 'WORM_TOOL_PRIVATE_KEY is not set'
-        : 'WORM_TOOL_PRIVATE_KEY is set but has invalid format (expected 0x + 64 hex chars)',
+        ? 'WORMCRAFT_PRIVATE_KEY is not set'
+        : 'WORMCRAFT_PRIVATE_KEY is set but has invalid format (expected 0x + 64 hex chars)',
   });
 
   if (!skipToolchain) {
-    const { detectToolchain, ToolchainNotFoundError } = await import('@worm-tool/sdk');
+    const { detectToolchain, ToolchainNotFoundError } = await import('@wormcraft/sdk');
     try {
       await detectToolchain(root);
       results.push({ check: 'toolchain', passed: true, message: 'Project toolchain detected (Foundry or Hardhat)' });
@@ -49,10 +49,10 @@ export async function runChecks(opts: RunChecksOptions): Promise<DoctorCheck[]> 
 
   if (!skipManifest) {
     try {
-      const { parseManifest, detectToolchain, listArtifacts, CHAIN_REGISTRY } = await import('@worm-tool/sdk');
-      const yaml = await readFile(join(root, 'worm-tool.deploy.yaml'), 'utf8');
+      const { parseManifest, detectToolchain, listArtifacts, CHAIN_REGISTRY } = await import('@wormcraft/sdk');
+      const yaml = await readFile(join(root, 'wormcraft.deploy.yaml'), 'utf8');
       const manifest = parseManifest(yaml);
-      results.push({ check: 'manifest', passed: true, message: 'worm-tool.deploy.yaml found and valid' });
+      results.push({ check: 'manifest', passed: true, message: 'wormcraft.deploy.yaml found and valid' });
 
       try {
         const toolchain = await detectToolchain(root);
@@ -78,14 +78,14 @@ export async function runChecks(opts: RunChecksOptions): Promise<DoctorCheck[]> 
       if (unknownChains.length === 0) {
         results.push({ check: 'chains', passed: true, message: `All chains recognized (${allChains.join(', ')})` });
       } else {
-        results.push({ check: 'chains', passed: false, message: `Unknown chains: ${unknownChains.join(', ')} — check worm-tool.deploy.yaml networks section` });
+        results.push({ check: 'chains', passed: false, message: `Unknown chains: ${unknownChains.join(', ')} — check wormcraft.deploy.yaml networks section` });
       }
 
     } catch (err) {
       if (err instanceof Error && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT') {
-        results.push({ check: 'manifest', passed: false, message: 'worm-tool.deploy.yaml not found — run `worm-tool deploy init` to create one' });
+        results.push({ check: 'manifest', passed: false, message: 'wormcraft.deploy.yaml not found — run `wormcraft deploy init` to create one' });
       } else {
-        results.push({ check: 'manifest', passed: false, message: `worm-tool.deploy.yaml invalid: ${err instanceof Error ? err.message : String(err)}` });
+        results.push({ check: 'manifest', passed: false, message: `wormcraft.deploy.yaml invalid: ${err instanceof Error ? err.message : String(err)}` });
       }
     }
   }

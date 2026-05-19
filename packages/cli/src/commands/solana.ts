@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { SolanaChain } from '@worm-tool/sdk';
+import { SolanaChain } from '@wormcraft/sdk';
 import { printJson, printError } from '../output.js';
 
 export function registerSolanaCommand(program: Command): void {

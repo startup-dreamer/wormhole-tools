@@ -1,4 +1,4 @@
-# worm-tool — Claude Code Rules
+# wormcraft — Claude Code Rules
 
 Auto-loaded by Claude Code sessions in this repo. Contains the hard facts needed to build correctly.
 These rules apply to every task in this project unless explicitly overridden. Bias: caution over speed on non-trivial work. Use judgment on trivial tasks.
@@ -48,7 +48,7 @@ Transform tasks into verifiable goals:
 
 ## What this project is about
 TypeScript CLI and SDK for interacting with the Wormhole cross-chain protocol. The project was previously named `wormhole-cli` (Rust); this is the TypeScript rewrite.
-Binary name: `worm-tool`. SDK package: `@worm-tool/sdk`.
+Binary name: `wormcraft`. SDK package: `@wormcraft/sdk`.
 Reference implementation: `reference/ccip-tools-ts` (TypeScript, study structure only)
 Wormhole protocol reference: `reference/wormhole/clients/js/src/`
 
@@ -59,17 +59,17 @@ Wormhole protocol reference: `reference/wormhole/clients/js/src/`
 - EVM: viem v2
 - Solana: @solana/web3.js v1
 - VAA parsing/encoding: custom (see packages/sdk/src/vaa/)
-- Config: dotenv, loading from ~/.worm-tool/.env, env var prefix `WORM_TOOL_`
+- Config: dotenv, loading from ~/.wormcraft/.env, env var prefix `WORMCRAFT_`
 - Build: tsup (esbuild)
 - Tests: vitest
-- Package structure: `packages/cli` (binary `worm-tool`) and `packages/sdk` (`@worm-tool/sdk`)
+- Package structure: `packages/cli` (binary `wormcraft`) and `packages/sdk` (`@wormcraft/sdk`)
 
 ## Architecture Rules
 - Commands go in packages/cli/src/commands/ — one file per command group
 - Chain-specific logic goes in packages/sdk/src/chains/ — one module per chain family
 - VAA encoding/decoding is isolated in packages/sdk/src/vaa/
 - No business logic in packages/cli/src/index.ts — it is the entrypoint only
-- Errors use WormToolError class hierarchy (see packages/sdk/src/error.ts), propagated in CLI layer
+- Errors use WormcraftError class hierarchy (see packages/sdk/src/error.ts), propagated in CLI layer
 
 ## Code Rules
 - All exported functions and classes must have JSDoc comments

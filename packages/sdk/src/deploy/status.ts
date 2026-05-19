@@ -1,8 +1,8 @@
-import type { WormToolChain } from '../chain.js';
+import type { WormcraftChain } from '../chain.js';
 
 /** Returns true if a contract is deployed at the given address on the given chain. */
 export async function checkContractDeployed(
-  chain: WormToolChain,
+  chain: WormcraftChain,
   address: string,
 ): Promise<boolean> {
   const code = await chain.getCode(address);

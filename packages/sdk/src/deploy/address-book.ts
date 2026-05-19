@@ -13,7 +13,7 @@ export interface AddressBookEntry {
 }
 
 /**
- * Persistent address book stored at `<root>/deployments/worm-tool.json`.
+ * Persistent address book stored at `<root>/deployments/wormcraft.json`.
  * `contracts` is keyed by contractName → chainName → entry.
  */
 export interface AddressBook {
@@ -25,10 +25,10 @@ export interface AddressBook {
 /** Partial address book returned by import functions (no version/salt wrapper). */
 export type PartialBook = Record<string, Record<string, AddressBookEntry>>;
 
-const BOOK_PATH = (root: string) => join(root, 'deployments', 'worm-tool.json');
+const BOOK_PATH = (root: string) => join(root, 'deployments', 'wormcraft.json');
 
 /**
- * Load the address book from `<root>/deployments/worm-tool.json`.
+ * Load the address book from `<root>/deployments/wormcraft.json`.
  * Returns an empty book when the file does not exist.
  */
 export async function loadAddressBook(root: string): Promise<AddressBook> {
@@ -50,7 +50,7 @@ export async function loadAddressBook(root: string): Promise<AddressBook> {
 }
 
 /**
- * Persist the address book to `<root>/deployments/worm-tool.json`.
+ * Persist the address book to `<root>/deployments/wormcraft.json`.
  * Creates the `deployments/` directory if it does not exist.
  */
 export async function saveAddressBook(root: string, book: AddressBook): Promise<void> {
@@ -159,7 +159,7 @@ export async function importFromFoundryBroadcast(root: string): Promise<PartialB
 
 /**
  * Walk `<root>/deployments/<networkName>/<Contract>.json` (hardhat-deploy
- * layout), skipping `worm-tool.json`. Returns a `PartialBook` ready to merge
+ * layout), skipping `wormcraft.json`. Returns a `PartialBook` ready to merge
  * into an `AddressBook`.
  */
 export async function importFromHardhatDeploy(root: string): Promise<PartialBook> {
@@ -181,7 +181,7 @@ export async function importFromHardhatDeploy(root: string): Promise<PartialBook
     try {
       const entries = await readdir(networkDir, { withFileTypes: true });
       files = entries
-        .filter(e => e.isFile() && e.name.endsWith('.json') && e.name !== 'worm-tool.json')
+        .filter(e => e.isFile() && e.name.endsWith('.json') && e.name !== 'wormcraft.json')
         .map(e => e.name);
     } catch (err) {
       if (isNodeError(err) && err.code === 'ENOENT') continue;

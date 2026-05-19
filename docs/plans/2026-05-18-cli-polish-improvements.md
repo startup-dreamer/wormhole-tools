@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use `subagent-driven-development` to implement this plan task-by-task.
 
-**Goal:** Implement 10 UX improvements and new commands discovered during manual testing: shared table output, `info` ergonomics, optional sequence in `generate test-vaa`, deploy plan/diff table view, manifest error guidance, Beacon proxy detection, `worm-tool doctor`, `worm-tool deploy init`, and `deploy run --dry-run`.
+**Goal:** Implement 10 UX improvements and new commands discovered during manual testing: shared table output, `info` ergonomics, optional sequence in `generate test-vaa`, deploy plan/diff table view, manifest error guidance, Beacon proxy detection, `wormcraft doctor`, `wormcraft deploy init`, and `deploy run --dry-run`.
 
 **Architecture:** All changes are additive — no breaking changes to existing commands or SDK exports. Output infrastructure (Task 1) is foundational and must land first; Tasks 2–7 are independent of each other; Tasks 8–10 build on Task 1. SDK changes are isolated to their modules. New CLI commands live in `packages/cli/src/commands/` and are wired in `packages/cli/src/main.ts`.
 
@@ -22,7 +22,7 @@ This project is a TypeScript CLI + SDK monorepo. Key conventions:
 - Build: `npm run build` inside `packages/sdk` then `packages/cli` (tsup)
 - Test: `npm test` inside `packages/sdk`
 - No non-null assertions (`!`) in non-test code — use optional chaining or explicit checks
-- Errors extend `WormToolError` from `packages/sdk/src/error.ts`
+- Errors extend `WormcraftError` from `packages/sdk/src/error.ts`
 - No comments unless the WHY is non-obvious; no docstrings beyond one-line JSDoc on exported functions
 
 Relevant existing files to read before each task:
@@ -173,7 +173,7 @@ Add to `packages/cli/src/commands/info.test.ts` (create if it doesn't exist, or 
 it('--testnet-only returns only isTestnet chains', async () => {
   // The actual filtering logic is inline in the action handler.
   // Test the SDK-level filtering directly:
-  const { CHAIN_REGISTRY } = await import('@worm-tool/sdk');
+  const { CHAIN_REGISTRY } = await import('@wormcraft/sdk');
   const testnetOnly = CHAIN_REGISTRY.filter(c => c.isTestnet === true);
   const mainnetOnly = CHAIN_REGISTRY.filter(c => !c.isTestnet);
   expect(testnetOnly.every(c => c.isTestnet)).toBe(true);
@@ -355,7 +355,7 @@ Find or create `packages/cli/src/commands/generate.test.ts`. Add:
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { generateTestVaaHex } from '@worm-tool/sdk';
+import { generateTestVaaHex } from '@wormcraft/sdk';
 
 describe('generate test-vaa sequence default', () => {
   it('generates a valid VAA when sequence is 0 (default)', () => {
@@ -456,8 +456,8 @@ deploy
   .action(async (opts: { project?: string; json?: boolean }) => {
     try {
       const root = opts.project ?? process.cwd();
-      const { parseManifest, loadAddressBook, buildDeployPlan } = await import('@worm-tool/sdk');
-      const manifestYaml = await readFile(join(root, 'worm-tool.deploy.yaml'), 'utf8');
+      const { parseManifest, loadAddressBook, buildDeployPlan } = await import('@wormcraft/sdk');
+      const manifestYaml = await readFile(join(root, 'wormcraft.deploy.yaml'), 'utf8');
       const manifest = parseManifest(manifestYaml);
       const book = await loadAddressBook(root);
       const plan = buildDeployPlan(manifest, book);
@@ -490,9 +490,9 @@ deploy
   .action(async (opts: { project?: string; json?: boolean }) => {
     try {
       const root = opts.project ?? process.cwd();
-      const { parseManifest, loadAddressBook, isDeployed } = await import('@worm-tool/sdk');
+      const { parseManifest, loadAddressBook, isDeployed } = await import('@wormcraft/sdk');
 
-      const manifestYaml = await readFile(join(root, 'worm-tool.deploy.yaml'), 'utf8');
+      const manifestYaml = await readFile(join(root, 'wormcraft.deploy.yaml'), 'utf8');
       const manifest = parseManifest(manifestYaml);
       const book = await loadAddressBook(root);
 
@@ -553,7 +553,7 @@ git commit -m "feat: table output for deploy plan and deploy diff, --json flag t
 
 ## Task 6: Better missing-manifest error message
 
-When `worm-tool.deploy.yaml` is not found, the current error is raw `ENOENT`. Guide users to run `worm-tool deploy init`.
+When `wormcraft.deploy.yaml` is not found, the current error is raw `ENOENT`. Guide users to run `wormcraft deploy init`.
 
 **Files:**
 - Modify: `packages/cli/src/commands/deploy.ts` — add manifest-specific error handler
@@ -569,9 +569,9 @@ function handleManifestMissing(commandName: string, err: unknown): never {
     err instanceof Error &&
     'code' in err &&
     (err as NodeJS.ErrnoException).code === 'ENOENT' &&
-    String((err as NodeJS.ErrnoException).path ?? '').endsWith('worm-tool.deploy.yaml')
+    String((err as NodeJS.ErrnoException).path ?? '').endsWith('wormcraft.deploy.yaml')
   ) {
-    printError('worm-tool.deploy.yaml not found — run `worm-tool deploy init` to create one');
+    printError('wormcraft.deploy.yaml not found — run `wormcraft deploy init` to create one');
   } else {
     printError(`${commandName} failed`, err);
   }
@@ -597,7 +597,7 @@ with:
 ```bash
 cd packages/cli && npm run build
 node dist/cli.js deploy plan --project /tmp/doesnotexist
-# Expected: Error: worm-tool.deploy.yaml not found — run `worm-tool deploy init` to create one
+# Expected: Error: wormcraft.deploy.yaml not found — run `wormcraft deploy init` to create one
 
 node dist/cli.js deploy plan --project /tmp
 # Expected: same error (no manifest there either)
@@ -707,7 +707,7 @@ git commit -m "feat: detect Beacon proxy in contracts check, extract testable de
 
 ---
 
-## Task 8: `worm-tool doctor` command
+## Task 8: `wormcraft doctor` command
 
 A pre-flight environment checker. Runs a series of checks and reports pass/fail with actionable messages.
 
@@ -716,9 +716,9 @@ A pre-flight environment checker. Runs a series of checks and reports pass/fail 
 - Modify: `packages/cli/src/main.ts` — wire in `registerDoctorCommand`
 
 **Checks performed:**
-1. `WORM_TOOL_EVM_PRIVATE_KEY` — set, starts with `0x`, is 66 chars (32 bytes)
+1. `WORMCRAFT_EVM_PRIVATE_KEY` — set, starts with `0x`, is 66 chars (32 bytes)
 2. Toolchain detected — `foundry.toml` or `hardhat.config.ts/js` found in project root
-3. `worm-tool.deploy.yaml` — exists and parses without error
+3. `wormcraft.deploy.yaml` — exists and parses without error
 4. All contracts in `deploy_targets` have compiled artifacts
 5. All chains in `deploy_targets` are in `CHAIN_REGISTRY`
 
@@ -726,7 +726,7 @@ Output format (default — human-readable):
 ```
 ✓ Private key configured
 ✓ Foundry project detected
-✓ worm-tool.deploy.yaml valid
+✓ wormcraft.deploy.yaml valid
 ✓ All manifest contracts found in artifacts (Counter, Vault)
 ✗ Unknown chain: mainnet (not in CHAIN_REGISTRY — did you mean "ethereum"?)
 ```
@@ -742,29 +742,29 @@ import { runChecks } from './doctor.js';
 import type { DoctorCheck } from './doctor.js';
 
 describe('runChecks', () => {
-  it('returns a failed check when WORM_TOOL_EVM_PRIVATE_KEY is missing', async () => {
-    const oldKey = process.env['WORM_TOOL_EVM_PRIVATE_KEY'];
-    delete process.env['WORM_TOOL_EVM_PRIVATE_KEY'];
+  it('returns a failed check when WORMCRAFT_EVM_PRIVATE_KEY is missing', async () => {
+    const oldKey = process.env['WORMCRAFT_EVM_PRIVATE_KEY'];
+    delete process.env['WORMCRAFT_EVM_PRIVATE_KEY'];
     const results = await runChecks({ root: process.cwd(), skipManifest: true, skipToolchain: true });
-    process.env['WORM_TOOL_EVM_PRIVATE_KEY'] = oldKey;
+    process.env['WORMCRAFT_EVM_PRIVATE_KEY'] = oldKey;
     const keyCheck = results.find(r => r.check === 'private-key');
     expect(keyCheck?.passed).toBe(false);
   });
 
   it('returns a failed check for invalid key format', async () => {
-    const oldKey = process.env['WORM_TOOL_EVM_PRIVATE_KEY'];
-    process.env['WORM_TOOL_EVM_PRIVATE_KEY'] = 'not-a-key';
+    const oldKey = process.env['WORMCRAFT_EVM_PRIVATE_KEY'];
+    process.env['WORMCRAFT_EVM_PRIVATE_KEY'] = 'not-a-key';
     const results = await runChecks({ root: process.cwd(), skipManifest: true, skipToolchain: true });
-    process.env['WORM_TOOL_EVM_PRIVATE_KEY'] = oldKey;
+    process.env['WORMCRAFT_EVM_PRIVATE_KEY'] = oldKey;
     const keyCheck = results.find(r => r.check === 'private-key');
     expect(keyCheck?.passed).toBe(false);
   });
 
   it('passes key check when valid key is set', async () => {
-    const oldKey = process.env['WORM_TOOL_EVM_PRIVATE_KEY'];
-    process.env['WORM_TOOL_EVM_PRIVATE_KEY'] = '0x' + 'a'.repeat(64);
+    const oldKey = process.env['WORMCRAFT_EVM_PRIVATE_KEY'];
+    process.env['WORMCRAFT_EVM_PRIVATE_KEY'] = '0x' + 'a'.repeat(64);
     const results = await runChecks({ root: process.cwd(), skipManifest: true, skipToolchain: true });
-    process.env['WORM_TOOL_EVM_PRIVATE_KEY'] = oldKey;
+    process.env['WORMCRAFT_EVM_PRIVATE_KEY'] = oldKey;
     const keyCheck = results.find(r => r.check === 'private-key');
     expect(keyCheck?.passed).toBe(true);
   });
@@ -803,7 +803,7 @@ export async function runChecks(opts: RunChecksOptions): Promise<DoctorCheck[]> 
   const results: DoctorCheck[] = [];
 
   // 1. Private key
-  const pk = process.env['WORM_TOOL_EVM_PRIVATE_KEY'];
+  const pk = process.env['WORMCRAFT_EVM_PRIVATE_KEY'];
   const keyValid = typeof pk === 'string' && /^0x[0-9a-fA-F]{64}$/.test(pk);
   results.push({
     check: 'private-key',
@@ -811,13 +811,13 @@ export async function runChecks(opts: RunChecksOptions): Promise<DoctorCheck[]> 
     message: keyValid
       ? 'Private key configured'
       : pk === undefined
-        ? 'WORM_TOOL_EVM_PRIVATE_KEY is not set'
-        : 'WORM_TOOL_EVM_PRIVATE_KEY is set but has invalid format (expected 0x + 64 hex chars)',
+        ? 'WORMCRAFT_EVM_PRIVATE_KEY is not set'
+        : 'WORMCRAFT_EVM_PRIVATE_KEY is set but has invalid format (expected 0x + 64 hex chars)',
   });
 
   // 2. Toolchain
   if (!skipToolchain) {
-    const { detectToolchain, ToolchainNotFoundError } = await import('@worm-tool/sdk');
+    const { detectToolchain, ToolchainNotFoundError } = await import('@wormcraft/sdk');
     try {
       await detectToolchain(root);
       results.push({ check: 'toolchain', passed: true, message: 'Project toolchain detected (Foundry or Hardhat)' });
@@ -835,10 +835,10 @@ export async function runChecks(opts: RunChecksOptions): Promise<DoctorCheck[]> 
   // 3. Manifest
   if (!skipManifest) {
     try {
-      const { parseManifest, loadAddressBook, detectToolchain, listArtifacts, getChainByName, CHAIN_REGISTRY } = await import('@worm-tool/sdk');
-      const yaml = await readFile(join(root, 'worm-tool.deploy.yaml'), 'utf8');
+      const { parseManifest, loadAddressBook, detectToolchain, listArtifacts, getChainByName, CHAIN_REGISTRY } = await import('@wormcraft/sdk');
+      const yaml = await readFile(join(root, 'wormcraft.deploy.yaml'), 'utf8');
       const manifest = parseManifest(yaml);
-      results.push({ check: 'manifest', passed: true, message: 'worm-tool.deploy.yaml found and valid' });
+      results.push({ check: 'manifest', passed: true, message: 'wormcraft.deploy.yaml found and valid' });
 
       // 4. Artifacts for all contracts in deploy_targets
       try {
@@ -866,14 +866,14 @@ export async function runChecks(opts: RunChecksOptions): Promise<DoctorCheck[]> 
       if (unknownChains.length === 0) {
         results.push({ check: 'chains', passed: true, message: `All chains recognized (${allChains.join(', ')})` });
       } else {
-        results.push({ check: 'chains', passed: false, message: `Unknown chains: ${unknownChains.join(', ')} — check worm-tool.deploy.yaml networks section` });
+        results.push({ check: 'chains', passed: false, message: `Unknown chains: ${unknownChains.join(', ')} — check wormcraft.deploy.yaml networks section` });
       }
 
     } catch (err) {
       if (err instanceof Error && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT') {
-        results.push({ check: 'manifest', passed: false, message: 'worm-tool.deploy.yaml not found — run `worm-tool deploy init` to create one' });
+        results.push({ check: 'manifest', passed: false, message: 'wormcraft.deploy.yaml not found — run `wormcraft deploy init` to create one' });
       } else {
-        results.push({ check: 'manifest', passed: false, message: `worm-tool.deploy.yaml invalid: ${err instanceof Error ? err.message : String(err)}` });
+        results.push({ check: 'manifest', passed: false, message: `wormcraft.deploy.yaml invalid: ${err instanceof Error ? err.message : String(err)}` });
       }
     }
   }
@@ -935,9 +935,9 @@ cd packages/cli && npm run build
 FIXTURE=/var/folders/bp/g_nzlqhs15j5kgw52gsmdc3w0000gn/T/tmp.0wyBQLvoks
 node dist/cli.js doctor --project "$FIXTURE"
 # Expected: lines like:
-# ✗ WORM_TOOL_EVM_PRIVATE_KEY is not set
+# ✗ WORMCRAFT_EVM_PRIVATE_KEY is not set
 # ✓ Project toolchain detected (Foundry or Hardhat)
-# ✓ worm-tool.deploy.yaml found and valid
+# ✓ wormcraft.deploy.yaml found and valid
 # ✓ All manifest contracts found in artifacts (Counter, Vault)
 # ✓ All chains recognized (sepolia)
 
@@ -950,14 +950,14 @@ node dist/cli.js doctor --project "$FIXTURE" --json
 ```bash
 git branch --show-current  # feat/cli-polish
 git add packages/cli/src/commands/doctor.ts packages/cli/src/commands/doctor.test.ts packages/cli/src/main.ts
-git commit -m "feat: add worm-tool doctor command for pre-deployment environment checks"
+git commit -m "feat: add wormcraft doctor command for pre-deployment environment checks"
 ```
 
 ---
 
-## Task 9: `worm-tool deploy init` — generate starter manifest
+## Task 9: `wormcraft deploy init` — generate starter manifest
 
-Generate a starter `worm-tool.deploy.yaml` from detected artifacts. Saves users from learning the manifest schema by hand.
+Generate a starter `wormcraft.deploy.yaml` from detected artifacts. Saves users from learning the manifest schema by hand.
 
 **Files:**
 - Modify: `packages/cli/src/commands/deploy.ts` — add `deploy init` subcommand
@@ -983,7 +983,7 @@ describe('buildStarterManifestYaml', () => {
     expect(yaml).toContain('name: Vault');
     expect(yaml).toContain('version: "1"');
     expect(yaml).toContain('strategy: sequential');
-    expect(yaml).toContain('WORM_TOOL_RPC_SEPOLIA');
+    expect(yaml).toContain('WORMCRAFT_RPC_SEPOLIA');
   });
 
   it('handles a single contract', () => {
@@ -1020,7 +1020,7 @@ export function buildStarterManifestYaml(contractNames: string[]): string {
 networks:
   sepolia:
     chain: sepolia
-    rpc: "\${WORM_TOOL_RPC_SEPOLIA}"
+    rpc: "\${WORMCRAFT_RPC_SEPOLIA}"
 
 # Deployer salt — change this to get a different deterministic address
 deployer:
@@ -1044,18 +1044,18 @@ Add the `deploy init` subcommand inside `registerDeployCommand`:
 ```typescript
 deploy
   .command('init')
-  .description('Generate a starter worm-tool.deploy.yaml from compiled artifacts')
+  .description('Generate a starter wormcraft.deploy.yaml from compiled artifacts')
   .option('--project <dir>', 'Project root (default: cwd)')
   .option('--force', 'Overwrite existing manifest')
   .action(async (opts: { project?: string; force?: boolean }) => {
     try {
       const root = opts.project ?? process.cwd();
-      const manifestPath = join(root, 'worm-tool.deploy.yaml');
+      const manifestPath = join(root, 'wormcraft.deploy.yaml');
 
       if (!opts.force) {
         try {
           await readFile(manifestPath, 'utf8');
-          printError(`worm-tool.deploy.yaml already exists — use --force to overwrite`);
+          printError(`wormcraft.deploy.yaml already exists — use --force to overwrite`);
           process.exit(1);
         } catch (err) {
           if (!(err instanceof Error && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT')) {
@@ -1065,7 +1065,7 @@ deploy
         }
       }
 
-      const { detectToolchain, listArtifacts, ToolchainNotFoundError } = await import('@worm-tool/sdk');
+      const { detectToolchain, listArtifacts, ToolchainNotFoundError } = await import('@wormcraft/sdk');
       let contractNames: string[];
       try {
         const toolchain = await detectToolchain(root);
@@ -1107,14 +1107,14 @@ FIXTURE=/var/folders/bp/g_nzlqhs15j5kgw52gsmdc3w0000gn/T/tmp.0wyBQLvoks
 
 # Test: should fail because manifest already exists
 node dist/cli.js deploy init --project "$FIXTURE"
-# Expected: Error: worm-tool.deploy.yaml already exists — use --force to overwrite
+# Expected: Error: wormcraft.deploy.yaml already exists — use --force to overwrite
 
 # Test with --force
 node dist/cli.js deploy init --project "$FIXTURE" --force
-# Expected: Created .../worm-tool.deploy.yaml
+# Expected: Created .../wormcraft.deploy.yaml
 #           Found 2 deployable contract(s): Counter, Vault
 
-cat "$FIXTURE/worm-tool.deploy.yaml"
+cat "$FIXTURE/wormcraft.deploy.yaml"
 # Expected: YAML with Counter and Vault
 
 # Test in a directory with no manifest
@@ -1122,8 +1122,8 @@ TMPDIR2=$(mktemp -d)
 cp -r "$FIXTURE/out" "$TMPDIR2/"
 cp "$FIXTURE/foundry.toml" "$TMPDIR2/"
 node dist/cli.js deploy init --project "$TMPDIR2"
-# Expected: Created .../worm-tool.deploy.yaml
-cat "$TMPDIR2/worm-tool.deploy.yaml"
+# Expected: Created .../wormcraft.deploy.yaml
+cat "$TMPDIR2/wormcraft.deploy.yaml"
 ```
 
 ### Step 6: Verify branch and commit
@@ -1131,7 +1131,7 @@ cat "$TMPDIR2/worm-tool.deploy.yaml"
 ```bash
 git branch --show-current  # feat/cli-polish
 git add packages/cli/src/commands/deploy.ts packages/cli/src/commands/deploy.init.test.ts
-git commit -m "feat: add deploy init command to generate starter worm-tool.deploy.yaml"
+git commit -m "feat: add deploy init command to generate starter wormcraft.deploy.yaml"
 ```
 
 ---

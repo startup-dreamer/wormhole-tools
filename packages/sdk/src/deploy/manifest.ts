@@ -1,8 +1,8 @@
 import { parse as parseYaml } from 'yaml';
-import { WormToolError } from '../error.js';
+import { WormcraftError } from '../error.js';
 
 /** Thrown when a deploy manifest cannot be parsed or is structurally invalid. */
-export class ManifestParseError extends WormToolError {
+export class ManifestParseError extends WormcraftError {
   constructor(message: string, cause?: unknown) {
     super(`Manifest parse error: ${message}`, cause);
   }
@@ -38,7 +38,7 @@ export interface DeployTarget {
   strategy: DeployStrategy;
 }
 
-/** Top-level structure of a `worm-tool.deploy.yaml` file. */
+/** Top-level structure of a `wormcraft.deploy.yaml` file. */
 export interface DeployManifest {
   version: string;
   networks: Record<string, NetworkConfig>;
@@ -110,7 +110,7 @@ function validateManifest(raw: unknown): DeployManifest {
 }
 
 /**
- * Parse a `worm-tool.deploy.yaml` string into a validated {@link DeployManifest}.
+ * Parse a `wormcraft.deploy.yaml` string into a validated {@link DeployManifest}.
  *
  * All string values have `${VAR}` placeholders resolved against `process.env`
  * before validation. Unknown placeholders are kept as-is.

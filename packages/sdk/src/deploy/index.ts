@@ -1,6 +1,6 @@
 import { encodeFunctionData } from 'viem';
-import type { WormToolChain, TransactionReceipt } from '../chain.js';
-import { WormToolError } from '../error.js';
+import type { WormcraftChain, TransactionReceipt } from '../chain.js';
+import { WormcraftError } from '../error.js';
 
 export { extractBytecode } from './artifact.js';
 export { computeCreate2Address, keccak256Hex, bytesToHex } from './create2.js';
@@ -14,7 +14,7 @@ export * from './engine.js';
 export * from './verify.js';
 export * from './storage-diff.js';
 
-/** Minimal ABI fragment for WormToolDeployer.deployAcrossChains. */
+/** Minimal ABI fragment for WormcraftDeployer.deployAcrossChains. */
 const DEPLOY_ABI = [{
   name: 'deployAcrossChains',
   type: 'function',
@@ -28,7 +28,7 @@ const DEPLOY_ABI = [{
   stateMutability: 'payable',
 }] as const;
 
-/** Minimal ABI fragment for WormToolDeployer.callAcrossChains. */
+/** Minimal ABI fragment for WormcraftDeployer.callAcrossChains. */
 const CALL_ABI = [{
   name: 'callAcrossChains',
   type: 'function',
@@ -41,7 +41,7 @@ const CALL_ABI = [{
   stateMutability: 'payable',
 }] as const;
 
-/** Minimal ABI fragment for WormToolDeployer.upgradeAcrossChains. */
+/** Minimal ABI fragment for WormcraftDeployer.upgradeAcrossChains. */
 const UPGRADE_ABI = [{
   name: 'upgradeAcrossChains',
   type: 'function',
@@ -62,7 +62,7 @@ export interface ChainDeployResult {
 
 export interface DeployAcrossChainsParams {
   /** chains[0] is the source (where the tx is sent). Remaining are cross-chain targets. */
-  chains: WormToolChain[];
+  chains: WormcraftChain[];
   bytecode: `0x${string}`;
   constructorArgs?: `0x${string}`;
   salt: `0x${string}`;
@@ -75,7 +75,7 @@ export interface DeployAcrossChainsParams {
 }
 
 /**
- * Deploy bytecode via WormToolDeployer.
+ * Deploy bytecode via WormcraftDeployer.
  *
  * Sends one transaction from chains[0]. The contract deploys locally on chains[0]
  * (deployOnCurrentChain=true) and sends Wormhole messages to any additional chains.
@@ -86,7 +86,7 @@ export async function deployAcrossChains(
 ): Promise<ChainDeployResult[]> {
   const { chains, bytecode, constructorArgs = '0x', salt, wormToolDeployerAddress, value = 0n } = params;
   const [sourceChain, ...rest] = chains;
-  if (!sourceChain) throw new WormToolError('deployAcrossChains: at least one chain required');
+  if (!sourceChain) throw new WormcraftError('deployAcrossChains: at least one chain required');
 
   const targetChainIds = rest.map(c => Number(c.chainId));
 
@@ -101,7 +101,7 @@ export async function deployAcrossChains(
 }
 
 export interface CallAcrossChainsParams {
-  chains: WormToolChain[];
+  chains: WormcraftChain[];
   target: `0x${string}`;
   calldata: `0x${string}`;
   wormToolDeployerAddress: string;
@@ -114,7 +114,7 @@ export async function callAcrossChains(
 ): Promise<ChainDeployResult[]> {
   const { chains, target, calldata, wormToolDeployerAddress, value = 0n } = params;
   const [sourceChain, ...rest] = chains;
-  if (!sourceChain) throw new WormToolError('callAcrossChains: at least one chain required');
+  if (!sourceChain) throw new WormcraftError('callAcrossChains: at least one chain required');
 
   const targetChainIds = rest.map(c => Number(c.chainId));
 
@@ -129,7 +129,7 @@ export async function callAcrossChains(
 }
 
 export interface UpgradeAcrossChainsParams {
-  chains: WormToolChain[];
+  chains: WormcraftChain[];
   proxy: `0x${string}`;
   newImpl: `0x${string}`;
   wormToolDeployerAddress: string;
@@ -142,7 +142,7 @@ export async function upgradeAcrossChains(
 ): Promise<ChainDeployResult[]> {
   const { chains, proxy, newImpl, wormToolDeployerAddress, value = 0n } = params;
   const [sourceChain, ...rest] = chains;
-  if (!sourceChain) throw new WormToolError('upgradeAcrossChains: at least one chain required');
+  if (!sourceChain) throw new WormcraftError('upgradeAcrossChains: at least one chain required');
 
   const targetChainIds = rest.map(c => Number(c.chainId));
 

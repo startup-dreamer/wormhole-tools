@@ -5,7 +5,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 
 function makeTmpDir(): string {
-  return mkdtempSync(join(tmpdir(), 'worm-tool-test-'));
+  return mkdtempSync(join(tmpdir(), 'wormcraft-test-'));
 }
 
 function writeJson(path: string, obj: unknown): void {

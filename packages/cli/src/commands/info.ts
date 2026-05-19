@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { getChainInfo, getChainById, getChainByName, getChainByEvmId, CHAIN_REGISTRY } from '@worm-tool/sdk';
+import { getChainInfo, getChainById, getChainByName, getChainByEvmId, CHAIN_REGISTRY } from '@wormcraft/sdk';
 import { printJson, printError } from '../output.js';
 
 export function registerInfoCommand(program: Command): void {

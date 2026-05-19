@@ -7,7 +7,7 @@ export interface TransactionReceipt {
 }
 
 /** Minimal interface every chain adapter must implement. */
-export interface WormToolChain {
+export interface WormcraftChain {
   /** Wormhole chain ID (bigint to avoid JS number precision issues). */
   readonly chainId: bigint;
   /** Human-readable chain name (e.g. "ethereum", "solana"). */

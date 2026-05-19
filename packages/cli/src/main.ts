@@ -22,7 +22,7 @@ import { printError } from './output.js';
 const program = new Command();
 
 program
-  .name('worm-tool')
+  .name('wormcraft')
   .description('CLI for Wormhole cross-chain protocol interactions')
   .version('0.0.1');
 

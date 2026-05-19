@@ -2,13 +2,13 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use executing-plans to implement this plan task-by-task.
 
-**Goal:** Migrate the entire `wormhole-cli` Rust monorepo to a TypeScript monorepo named `worm-tool`, covering the SDK package, CLI binary, Solidity contracts (renamed), and all documentation.
+**Goal:** Migrate the entire `wormhole-cli` Rust monorepo to a TypeScript monorepo named `wormcraft`, covering the SDK package, CLI binary, Solidity contracts (renamed), and all documentation.
 
-**Architecture:** npm workspaces monorepo with two packages — `@worm-tool/sdk` (library) and `worm-tool` (CLI binary). The SDK mirrors the Rust crate separation: chain interfaces, VAA parsing, deploy orchestration, and feature modules (transfer, status, latency, tokens) all as independent files. The CLI uses Commander.js, delegates everything to the SDK, and is publishable as both a binary and a Node.js library.
+**Architecture:** npm workspaces monorepo with two packages — `@wormcraft/sdk` (library) and `wormcraft` (CLI binary). The SDK mirrors the Rust crate separation: chain interfaces, VAA parsing, deploy orchestration, and feature modules (transfer, status, latency, tokens) all as independent files. The CLI uses Commander.js, delegates everything to the SDK, and is publishable as both a binary and a Node.js library.
 
 **Tech Stack:** TypeScript 5.4 (strict), npm workspaces, Commander.js v12, viem v2 (EVM), @solana/web3.js v1, tsup (build), vitest (tests), Foundry (contracts, unchanged toolchain).
 
-**Feature Branch:** `feat/migrate-to-worm-tool-typescript`
+**Feature Branch:** `feat/migrate-to-wormcraft-typescript`
 
 ---
 
@@ -33,9 +33,9 @@
 | `crates/wormhole-cli/src/output.rs`                                         | 57     | `packages/cli/src/output.ts`                     |
 | `crates/wormhole-cli/src/providers/`                                        | 228    | `packages/cli/src/providers/`                    |
 | `crates/wormhole-cli/src/commands/`                                         | 1,797  | `packages/cli/src/commands/`                     |
-| `contracts/src/WormDeployer.sol`                                            | 249    | `contracts/src/WormToolDeployer.sol`             |
-| `contracts/src/WormOwnableProxy.sol`                                        | 47     | `contracts/src/WormToolProxy.sol`                |
-| `contracts/src/interfaces/IWormDeployer.sol`                                | 92     | `contracts/src/interfaces/IWormToolDeployer.sol` |
+| `contracts/src/WormDeployer.sol`                                            | 249    | `contracts/src/WormcraftDeployer.sol`             |
+| `contracts/src/WormOwnableProxy.sol`                                        | 47     | `contracts/src/WormcraftProxy.sol`                |
+| `contracts/src/interfaces/IWormDeployer.sol`                                | 92     | `contracts/src/interfaces/IWormcraftDeployer.sol` |
 
 ---
 
@@ -48,15 +48,15 @@
 **Step 1: Create and switch to the migration branch**
 
 ```bash
-git checkout -b feat/migrate-to-worm-tool-typescript
-git push -u origin feat/migrate-to-worm-tool-typescript
+git checkout -b feat/migrate-to-wormcraft-typescript
+git push -u origin feat/migrate-to-wormcraft-typescript
 ```
 
 **Step 2: Verify branch**
 
 ```bash
 git branch --show-current
-# Expected: feat/migrate-to-worm-tool-typescript
+# Expected: feat/migrate-to-wormcraft-typescript
 ```
 
 ---
@@ -74,7 +74,7 @@ git branch --show-current
 
 ```json
 {
-  "name": "worm-tool-monorepo",
+  "name": "wormcraft-monorepo",
   "private": true,
   "version": "0.0.1",
   "workspaces": ["packages/sdk", "packages/cli"],
@@ -147,7 +147,7 @@ git commit -m "chore: scaffold TypeScript monorepo root"
 
 ```json
 {
-  "name": "@worm-tool/sdk",
+  "name": "@wormcraft/sdk",
   "version": "0.0.1",
   "description": "TypeScript SDK for Wormhole cross-chain protocol interactions",
   "type": "module",
@@ -222,7 +222,7 @@ export const SDK_VERSION = "0.0.1";
 
 ```bash
 git add packages/sdk/
-git commit -m "chore: scaffold @worm-tool/sdk package structure"
+git commit -m "chore: scaffold @wormcraft/sdk package structure"
 ```
 
 ---
@@ -240,12 +240,12 @@ git commit -m "chore: scaffold @worm-tool/sdk package structure"
 
 ```json
 {
-  "name": "worm-tool",
+  "name": "wormcraft",
   "version": "0.0.1",
   "description": "CLI tool for Wormhole cross-chain protocol",
   "type": "module",
   "bin": {
-    "worm-tool": "./dist/cli.js"
+    "wormcraft": "./dist/cli.js"
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -266,7 +266,7 @@ git commit -m "chore: scaffold @worm-tool/sdk package structure"
     "dev": "tsup --watch"
   },
   "dependencies": {
-    "@worm-tool/sdk": "workspace:*",
+    "@wormcraft/sdk": "workspace:*",
     "commander": "^12.0.0",
     "dotenv": "^16.0.0"
   },
@@ -333,14 +333,14 @@ npm install
 
 ```bash
 npm ls --workspaces
-# Expected: @worm-tool/sdk and worm-tool listed
+# Expected: @wormcraft/sdk and wormcraft listed
 ```
 
 **Step 7: Commit**
 
 ```bash
 git add packages/cli/ package-lock.json
-git commit -m "chore: scaffold worm-tool CLI package structure"
+git commit -m "chore: scaffold wormcraft CLI package structure"
 ```
 
 ---
@@ -362,24 +362,24 @@ git commit -m "chore: scaffold worm-tool CLI package structure"
 // packages/sdk/src/error.test.ts
 import { describe, it, expect } from "vitest";
 import {
-  WormToolError,
+  WormcraftError,
   RpcError,
   ChainNotSupportedError,
   VaaParseError,
   ContractCallError,
 } from "./error.js";
 
-describe("WormToolError", () => {
+describe("WormcraftError", () => {
   it("RpcError carries chain and message", () => {
     const err = new RpcError("ethereum", "connection refused");
-    expect(err).toBeInstanceOf(WormToolError);
+    expect(err).toBeInstanceOf(WormcraftError);
     expect(err.chain).toBe("ethereum");
     expect(err.message).toContain("connection refused");
   });
 
   it("ChainNotSupportedError names the chain", () => {
     const err = new ChainNotSupportedError("cosmos");
-    expect(err).toBeInstanceOf(WormToolError);
+    expect(err).toBeInstanceOf(WormcraftError);
     expect(err.message).toContain("cosmos");
   });
 
@@ -406,8 +406,8 @@ cd packages/sdk && npm test -- error.test
 **Step 3: Implement `packages/sdk/src/error.ts`**
 
 ```typescript
-/** Base class for all worm-tool errors. */
-export class WormToolError extends Error {
+/** Base class for all wormcraft errors. */
+export class WormcraftError extends Error {
   override readonly name: string;
 
   constructor(message: string, cause?: unknown) {
@@ -418,7 +418,7 @@ export class WormToolError extends Error {
 }
 
 /** RPC call to a chain endpoint failed. */
-export class RpcError extends WormToolError {
+export class RpcError extends WormcraftError {
   constructor(
     public readonly chain: string,
     message: string,
@@ -429,21 +429,21 @@ export class RpcError extends WormToolError {
 }
 
 /** A chain ID or name is not in the registry. */
-export class ChainNotSupportedError extends WormToolError {
+export class ChainNotSupportedError extends WormcraftError {
   constructor(chain: string) {
     super(`Chain not supported: ${chain}`);
   }
 }
 
 /** Failed to parse a VAA from hex or base64. */
-export class VaaParseError extends WormToolError {
+export class VaaParseError extends WormcraftError {
   constructor(message: string, cause?: unknown) {
     super(`VAA parse error: ${message}`, cause);
   }
 }
 
 /** An on-chain contract call reverted or errored. */
-export class ContractCallError extends WormToolError {
+export class ContractCallError extends WormcraftError {
   constructor(
     public readonly address: string,
     message: string,
@@ -454,14 +454,14 @@ export class ContractCallError extends WormToolError {
 }
 
 /** Private key was not found or is invalid. */
-export class PrivateKeyError extends WormToolError {
+export class PrivateKeyError extends WormcraftError {
   constructor() {
-    super("Private key not found or invalid — set WORM_TOOL_EVM_PRIVATE_KEY");
+    super("Private key not found or invalid — set WORMCRAFT_EVM_PRIVATE_KEY");
   }
 }
 
 /** Artifact JSON could not be parsed (Hardhat or Foundry). */
-export class ArtifactParseError extends WormToolError {
+export class ArtifactParseError extends WormcraftError {
   constructor(path: string, cause?: unknown) {
     super(`Failed to parse artifact at ${path}`, cause);
   }
@@ -486,7 +486,7 @@ export * from "./error.js";
 
 ```bash
 git add packages/sdk/src/error.ts packages/sdk/src/error.test.ts packages/sdk/src/index.ts
-git commit -m "feat(sdk): add WormToolError hierarchy"
+git commit -m "feat(sdk): add WormcraftError hierarchy"
 ```
 
 ---
@@ -505,9 +505,9 @@ git commit -m "feat(sdk): add WormToolError hierarchy"
 ```typescript
 // packages/sdk/src/chain.test.ts
 import { describe, it, expect } from "vitest";
-import type { WormToolChain, TransactionReceipt } from "./chain.js";
+import type { WormcraftChain, TransactionReceipt } from "./chain.js";
 
-class MockChain implements WormToolChain {
+class MockChain implements WormcraftChain {
   readonly chainId = 2n;
   readonly chainName = "ethereum";
   async getBalance(address: string): Promise<bigint> {
@@ -531,9 +531,9 @@ class MockChain implements WormToolChain {
   }
 }
 
-describe("WormToolChain interface", () => {
+describe("WormcraftChain interface", () => {
   it("mock satisfies the interface", async () => {
-    const chain: WormToolChain = new MockChain();
+    const chain: WormcraftChain = new MockChain();
     expect(chain.chainId).toBe(2n);
     const bal = await chain.getBalance("0x1234");
     expect(bal).toBe(1000n);
@@ -566,7 +566,7 @@ export interface TransactionReceipt {
 }
 
 /** Minimal interface every chain adapter must implement. */
-export interface WormToolChain {
+export interface WormcraftChain {
   /** Wormhole chain ID (bigint to avoid JS number precision issues). */
   readonly chainId: bigint;
   /** Human-readable chain name (e.g. "ethereum", "solana"). */
@@ -611,7 +611,7 @@ export * from "./chain.js";
 
 ```bash
 git add packages/sdk/src/chain.ts packages/sdk/src/chain.test.ts packages/sdk/src/index.ts
-git commit -m "feat(sdk): add WormToolChain interface and TransactionReceipt types"
+git commit -m "feat(sdk): add WormcraftChain interface and TransactionReceipt types"
 ```
 
 ---
@@ -1016,7 +1016,7 @@ export interface ChainEntry {
   defaultRpc?: string;
   /** Wormhole core contract address on this chain */
   wormholeCore?: `0x${string}`;
-  /** WormToolDeployer contract address (set after deployment) */
+  /** WormcraftDeployer contract address (set after deployment) */
   wormToolDeployer?: `0x${string}`;
   isTestnet?: boolean;
 }
@@ -1243,7 +1243,7 @@ describe("computeCreate2Address", () => {
   });
 
   it("throws on invalid deployer address", async () => {
-    const { WormToolError } = await import("../error.js");
+    const { WormcraftError } = await import("../error.js");
     expect(() =>
       computeCreate2Address(
         "notanaddress",
@@ -1379,7 +1379,7 @@ import {
   type Chain as ViemChain,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import type { WormToolChain, TransactionReceipt } from "../chain.js";
+import type { WormcraftChain, TransactionReceipt } from "../chain.js";
 import { RpcError, PrivateKeyError } from "../error.js";
 import { getChainById } from "../deploy/registry.js";
 
@@ -1391,7 +1391,7 @@ export interface EvmChainConfig {
   privateKey?: `0x${string}`;
 }
 
-export class EvmChain implements WormToolChain {
+export class EvmChain implements WormcraftChain {
   readonly chainId: bigint;
   readonly chainName: string;
 
@@ -1561,14 +1561,14 @@ describe("SolanaChain", () => {
 
 ```typescript
 import { Connection, PublicKey } from "@solana/web3.js";
-import type { WormToolChain, TransactionReceipt } from "../chain.js";
+import type { WormcraftChain, TransactionReceipt } from "../chain.js";
 import { RpcError } from "../error.js";
 
 export interface SolanaChainConfig {
   rpcUrl: string;
 }
 
-export class SolanaChain implements WormToolChain {
+export class SolanaChain implements WormcraftChain {
   readonly chainId = 1n;
   readonly chainName = "solana";
 
@@ -1672,7 +1672,7 @@ git commit -m "feat(sdk): add Solana, Aptos, NEAR, Sui chain adapters"
 
 ## Phase 4 — SDK: Deploy Module
 
-### Task 4.1: ABI Encoder for WormToolDeployer
+### Task 4.1: ABI Encoder for WormcraftDeployer
 
 **Source:** `crates/wormhole-sdk/src/deploy/abi.rs` (188 lines)
 
@@ -1789,7 +1789,7 @@ cd packages/sdk && npm test -- deploy/abi
 
 ```bash
 git add packages/sdk/src/deploy/abi.ts packages/sdk/src/deploy/abi.test.ts
-git commit -m "feat(sdk): port WormToolDeployer ABI encoder (deploy/call/upgrade)"
+git commit -m "feat(sdk): port WormcraftDeployer ABI encoder (deploy/call/upgrade)"
 ```
 
 ---
@@ -1809,9 +1809,9 @@ git commit -m "feat(sdk): port WormToolDeployer ABI encoder (deploy/call/upgrade
 // packages/sdk/src/deploy/status.test.ts
 import { describe, it, expect, vi } from "vitest";
 import { checkContractDeployed } from "./status.js";
-import type { WormToolChain } from "../chain.js";
+import type { WormcraftChain } from "../chain.js";
 
-const makeChain = (code: string): WormToolChain => ({
+const makeChain = (code: string): WormcraftChain => ({
   chainId: 2n,
   chainName: "ethereum",
   getBalance: vi.fn(),
@@ -1839,11 +1839,11 @@ describe("checkContractDeployed", () => {
 **Step 2: Implement `packages/sdk/src/deploy/status.ts`**
 
 ```typescript
-import type { WormToolChain } from "../chain.js";
+import type { WormcraftChain } from "../chain.js";
 
 /** Returns true if a contract is deployed at the given address. */
 export async function checkContractDeployed(
-  chain: WormToolChain,
+  chain: WormcraftChain,
   address: string,
 ): Promise<boolean> {
   const code = await chain.getCode(address);
@@ -1881,9 +1881,9 @@ git commit -m "feat(sdk): add checkContractDeployed helper"
 // packages/sdk/src/deploy/index.test.ts
 import { describe, it, expect, vi } from "vitest";
 import { deployAcrossChains } from "./index.js";
-import type { WormToolChain, TransactionReceipt } from "../chain.js";
+import type { WormcraftChain, TransactionReceipt } from "../chain.js";
 
-const makeMockChain = (id: bigint, name: string): WormToolChain => ({
+const makeMockChain = (id: bigint, name: string): WormcraftChain => ({
   chainId: id,
   chainName: name,
   getBalance: vi.fn().mockResolvedValue(1000n),
@@ -1928,7 +1928,7 @@ describe("deployAcrossChains", () => {
 **Step 2: Implement `packages/sdk/src/deploy/index.ts`**
 
 ```typescript
-import type { WormToolChain, TransactionReceipt } from "../chain.js";
+import type { WormcraftChain, TransactionReceipt } from "../chain.js";
 import {
   encodeDeployMessage,
   encodeCallMessage,
@@ -1936,7 +1936,7 @@ import {
 } from "./abi.js";
 
 export interface DeployAcrossChainsParams {
-  chains: WormToolChain[];
+  chains: WormcraftChain[];
   bytecode: `0x${string}`;
   constructorArgs?: `0x${string}`;
   salt: `0x${string}`;
@@ -1980,7 +1980,7 @@ export async function deployAcrossChains(
 }
 
 export interface CallAcrossChainsParams {
-  chains: WormToolChain[];
+  chains: WormcraftChain[];
   target: `0x${string}`;
   calldata: `0x${string}`;
   wormToolDeployerAddress: string;
@@ -2005,7 +2005,7 @@ export async function callAcrossChains(
 }
 
 export interface UpgradeAcrossChainsParams {
-  chains: WormToolChain[];
+  chains: WormcraftChain[];
   proxy: `0x${string}`;
   newImpl: `0x${string}`;
   wormToolDeployerAddress: string;
@@ -2351,14 +2351,14 @@ import { loadConfig } from "./config.js";
 afterEach(() => vi.unstubAllEnvs());
 
 describe("loadConfig", () => {
-  it("reads WORM_TOOL_EVM_PRIVATE_KEY from env", () => {
-    vi.stubEnv("WORM_TOOL_EVM_PRIVATE_KEY", "0xdeadbeef");
+  it("reads WORMCRAFT_EVM_PRIVATE_KEY from env", () => {
+    vi.stubEnv("WORMCRAFT_EVM_PRIVATE_KEY", "0xdeadbeef");
     const config = loadConfig();
     expect(config.privateKey).toBe("0xdeadbeef");
   });
 
   it("returns undefined for missing keys", () => {
-    vi.stubEnv("WORM_TOOL_EVM_PRIVATE_KEY", "");
+    vi.stubEnv("WORMCRAFT_EVM_PRIVATE_KEY", "");
     const config = loadConfig();
     expect(config.privateKey).toBeUndefined();
   });
@@ -2372,24 +2372,24 @@ import { config as loadDotenv } from "dotenv";
 import { resolve } from "path";
 import { homedir } from "os";
 
-export interface WormToolConfig {
+export interface WormcraftConfig {
   privateKey?: `0x${string}`;
   rpcUrls: Record<string, string>;
   network: "mainnet" | "testnet";
 }
 
-/** Loads config from ~/.worm-tool/.env, then process.env (process.env wins). */
-export function loadConfig(): WormToolConfig {
+/** Loads config from ~/.wormcraft/.env, then process.env (process.env wins). */
+export function loadConfig(): WormcraftConfig {
   loadDotenv({
-    path: resolve(homedir(), ".worm-tool", ".env"),
+    path: resolve(homedir(), ".wormcraft", ".env"),
     override: false,
   });
 
-  const pk = process.env["WORM_TOOL_EVM_PRIVATE_KEY"];
+  const pk = process.env["WORMCRAFT_EVM_PRIVATE_KEY"];
 
   const rpcUrls: Record<string, string> = {};
   for (const [key, value] of Object.entries(process.env)) {
-    const match = key.match(/^WORM_TOOL_RPC_(.+)$/);
+    const match = key.match(/^WORMCRAFT_RPC_(.+)$/);
     if (match?.[1] && value) rpcUrls[match[1].toLowerCase()] = value;
   }
 
@@ -2397,7 +2397,7 @@ export function loadConfig(): WormToolConfig {
     privateKey: pk ? (pk as `0x${string}`) : undefined,
     rpcUrls,
     network:
-      (process.env["WORM_TOOL_NETWORK"] as "mainnet" | "testnet") ?? "mainnet",
+      (process.env["WORMCRAFT_NETWORK"] as "mainnet" | "testnet") ?? "mainnet",
   };
 }
 ```
@@ -2412,7 +2412,7 @@ cd packages/cli && npm test -- config
 
 ```bash
 git add packages/cli/src/config.ts packages/cli/src/config.test.ts
-git commit -m "feat(cli): add config loader (~/.worm-tool/.env)"
+git commit -m "feat(cli): add config loader (~/.wormcraft/.env)"
 ```
 
 ---
@@ -2503,14 +2503,14 @@ git commit -m "feat(cli): add output formatter (printJson, printError)"
 **Step 1: Implement `packages/cli/src/providers/evm.ts`**
 
 ```typescript
-import { EvmChain } from "@worm-tool/sdk";
-import type { WormToolConfig } from "../config.js";
-import { getChainByName } from "@worm-tool/sdk";
-import { ChainNotSupportedError } from "@worm-tool/sdk";
+import { EvmChain } from "@wormcraft/sdk";
+import type { WormcraftConfig } from "../config.js";
+import { getChainByName } from "@wormcraft/sdk";
+import { ChainNotSupportedError } from "@wormcraft/sdk";
 
 export function createEvmChain(
   chainName: string,
-  config: WormToolConfig,
+  config: WormcraftConfig,
 ): EvmChain {
   const entry = getChainByName(chainName);
   if (!entry) throw new ChainNotSupportedError(chainName);
@@ -2520,7 +2520,7 @@ export function createEvmChain(
   const rpcUrl = config.rpcUrls[chainName] ?? entry.defaultRpc;
   if (!rpcUrl)
     throw new Error(
-      `No RPC URL for ${chainName} — set WORM_TOOL_RPC_${chainName.toUpperCase()}`,
+      `No RPC URL for ${chainName} — set WORMCRAFT_RPC_${chainName.toUpperCase()}`,
     );
 
   return new EvmChain({
@@ -2576,7 +2576,7 @@ import { printError } from "./output.js";
 const program = new Command();
 
 program
-  .name("worm-tool")
+  .name("wormcraft")
   .description("CLI for Wormhole cross-chain protocol interactions")
   .version(process.env["npm_package_version"] ?? "0.0.1")
   .option("--json", "force JSON output")
@@ -2615,7 +2615,7 @@ Each command file follows this pattern:
 ```typescript
 // packages/cli/src/commands/parse.ts
 import { Command } from "commander";
-import { parseVaa } from "@worm-tool/sdk";
+import { parseVaa } from "@wormcraft/sdk";
 import { printJson, printError } from "../output.js";
 
 export function registerParseCommand(program: Command): void {
@@ -2638,7 +2638,7 @@ export function registerParseCommand(program: Command): void {
 
 **Source:** `crates/wormhole-cli/src/commands/parse.rs` (22 lines)
 
-Implement the pattern above. Test: run `worm-tool parse 0x01...` and verify JSON output.
+Implement the pattern above. Test: run `wormcraft parse 0x01...` and verify JSON output.
 
 ### Task 7.2: `status` command
 
@@ -2689,7 +2689,7 @@ import {
   callAcrossChains,
   upgradeAcrossChains,
   checkContractDeployed,
-} from "@worm-tool/sdk";
+} from "@wormcraft/sdk";
 import { loadConfig } from "../config.js";
 import { createEvmChain } from "../providers/evm.js";
 import { printJson, printError } from "../output.js";
@@ -2702,7 +2702,7 @@ export function registerDeployCommand(program: Command): void {
 
   deploy
     .command("multi")
-    .description("Deploy bytecode across multiple chains via WormToolDeployer")
+    .description("Deploy bytecode across multiple chains via WormcraftDeployer")
     .requiredOption(
       "--artifact <path>",
       "Path to Hardhat/Foundry artifact JSON",
@@ -2726,7 +2726,7 @@ export function registerDeployCommand(program: Command): void {
         const deployer =
           config.rpcUrls["worm_tool_deployer"] ??
           (() => {
-            throw new Error("Set WORM_TOOL_DEPLOYER_ADDRESS");
+            throw new Error("Set WORMCRAFT_DEPLOYER_ADDRESS");
           })();
         const results = await deployAcrossChains({
           chains,
@@ -2823,7 +2823,7 @@ npm run build --workspace=packages/cli
 
 ```bash
 node packages/cli/dist/cli.js --help
-# Expected: worm-tool help output with all commands listed
+# Expected: wormcraft help output with all commands listed
 
 node packages/cli/dist/cli.js parse --help
 # Expected: parse command help
@@ -2847,47 +2847,47 @@ git commit -m "feat(cli): build passes and all commands registered"
 
 **Files to modify:**
 
-- Rename: `contracts/src/WormDeployer.sol` → `contracts/src/WormToolDeployer.sol`
-- Rename: `contracts/src/WormOwnableProxy.sol` → `contracts/src/WormToolProxy.sol`
-- Rename: `contracts/src/interfaces/IWormDeployer.sol` → `contracts/src/interfaces/IWormToolDeployer.sol`
-- Rename: `contracts/test/WormDeployer.t.sol` → `contracts/test/WormToolDeployer.t.sol`
-- Rename: `contracts/test/WormOwnableProxy.t.sol` → `contracts/test/WormToolProxy.t.sol`
+- Rename: `contracts/src/WormDeployer.sol` → `contracts/src/WormcraftDeployer.sol`
+- Rename: `contracts/src/WormOwnableProxy.sol` → `contracts/src/WormcraftProxy.sol`
+- Rename: `contracts/src/interfaces/IWormDeployer.sol` → `contracts/src/interfaces/IWormcraftDeployer.sol`
+- Rename: `contracts/test/WormDeployer.t.sol` → `contracts/test/WormcraftDeployer.t.sol`
+- Rename: `contracts/test/WormOwnableProxy.t.sol` → `contracts/test/WormcraftProxy.t.sol`
 - Rename: `contracts/script/Bootstrap.s.sol`
 
 **Step 1: Rename files**
 
 ```bash
 cd contracts
-mv src/WormDeployer.sol src/WormToolDeployer.sol
-mv src/WormOwnableProxy.sol src/WormToolProxy.sol
-mv src/interfaces/IWormDeployer.sol src/interfaces/IWormToolDeployer.sol
-mv test/WormDeployer.t.sol test/WormToolDeployer.t.sol
-mv test/WormOwnableProxy.t.sol test/WormToolProxy.t.sol
+mv src/WormDeployer.sol src/WormcraftDeployer.sol
+mv src/WormOwnableProxy.sol src/WormcraftProxy.sol
+mv src/interfaces/IWormDeployer.sol src/interfaces/IWormcraftDeployer.sol
+mv test/WormDeployer.t.sol test/WormcraftDeployer.t.sol
+mv test/WormOwnableProxy.t.sol test/WormcraftProxy.t.sol
 ```
 
 **Step 2: Find and replace inside Solidity files**
 
 All occurrences of:
 
-- `WormDeployer` → `WormToolDeployer`
-- `WormOwnableProxy` → `WormToolProxy`
-- `IWormDeployer` → `IWormToolDeployer`
+- `WormDeployer` → `WormcraftDeployer`
+- `WormOwnableProxy` → `WormcraftProxy`
+- `IWormDeployer` → `IWormcraftDeployer`
 
 ```bash
 # In each renamed file, update contract names and import paths
-sed -i '' 's/WormDeployer/WormToolDeployer/g' contracts/src/WormToolDeployer.sol
-sed -i '' 's/WormOwnableProxy/WormToolProxy/g' contracts/src/WormToolProxy.sol
-sed -i '' 's/IWormDeployer/IWormToolDeployer/g' contracts/src/interfaces/IWormToolDeployer.sol
+sed -i '' 's/WormDeployer/WormcraftDeployer/g' contracts/src/WormcraftDeployer.sol
+sed -i '' 's/WormOwnableProxy/WormcraftProxy/g' contracts/src/WormcraftProxy.sol
+sed -i '' 's/IWormDeployer/IWormcraftDeployer/g' contracts/src/interfaces/IWormcraftDeployer.sol
 # ... (repeat for all files)
 ```
 
 **Step 3: Update import paths within Solidity files**
 
-In `WormToolDeployer.sol`, update:
+In `WormcraftDeployer.sol`, update:
 
 ```solidity
-import "./interfaces/IWormToolDeployer.sol";
-import "./WormToolProxy.sol";
+import "./interfaces/IWormcraftDeployer.sol";
+import "./WormcraftProxy.sol";
 ```
 
 **Step 4: Verify Foundry tests still compile and pass**
@@ -2904,7 +2904,7 @@ forge test -vv
 
 ```bash
 git add contracts/
-git commit -m "feat(contracts): rename WormDeployer → WormToolDeployer, WormOwnableProxy → WormToolProxy"
+git commit -m "feat(contracts): rename WormDeployer → WormcraftDeployer, WormOwnableProxy → WormcraftProxy"
 ```
 
 ---
@@ -2921,20 +2921,20 @@ cd contracts && forge build
 
 ```bash
 ls contracts/artifacts/
-# Expected: WormToolDeployer.json and WormToolProxy.json present
+# Expected: WormcraftDeployer.json and WormcraftProxy.json present
 ls contracts/out/
-# Expected: WormToolDeployer.sol/ directory
+# Expected: WormcraftDeployer.sol/ directory
 ```
 
 **Step 3: Update artifact references in SDK**
 
-In `packages/sdk/src/deploy/abi.ts`, any hardcoded references to `WormDeployer` must be updated to `WormToolDeployer`.
+In `packages/sdk/src/deploy/abi.ts`, any hardcoded references to `WormDeployer` must be updated to `WormcraftDeployer`.
 
 **Step 4: Commit**
 
 ```bash
 git add contracts/artifacts/ contracts/out/
-git commit -m "chore(contracts): rebuild artifacts after WormToolDeployer rename"
+git commit -m "chore(contracts): rebuild artifacts after WormcraftDeployer rename"
 ```
 
 ---
@@ -2947,50 +2947,50 @@ git commit -m "chore(contracts): rebuild artifacts after WormToolDeployer rename
 
 **Changes required:**
 
-1. Title: `worm-tool` instead of `wormhole-cli`
-2. Installation: `npm install -g worm-tool` instead of `cargo install ...`
-3. SDK usage: `import { parseVaa } from '@worm-tool/sdk'`
-4. Command reference: update all `worm ...` examples to `worm-tool ...`
+1. Title: `wormcraft` instead of `wormhole-cli`
+2. Installation: `npm install -g wormcraft` instead of `cargo install ...`
+3. SDK usage: `import { parseVaa } from '@wormcraft/sdk'`
+4. Command reference: update all `worm ...` examples to `wormcraft ...`
 5. Stack table: replace Rust columns with TypeScript/Node.js
 
 **Step 1: Rewrite README.md to match the new stack**
 
 ````markdown
-# worm-tool
+# wormcraft
 
 CLI and SDK for the [Wormhole](https://wormhole.com) cross-chain protocol.
 
 ## Install
 
 ```bash
-npm install -g worm-tool
+npm install -g wormcraft
 ```
 ````
 
 ## Usage
 
 ```bash
-worm-tool --help
-worm-tool status --chain 2 --address 0x... --sequence 42
-worm-tool parse 0x01...
-worm-tool deploy multi --artifact ./out/MyContract.sol/MyContract.json --chains ethereum,bsc
+wormcraft --help
+wormcraft status --chain 2 --address 0x... --sequence 42
+wormcraft parse 0x01...
+wormcraft deploy multi --artifact ./out/MyContract.sol/MyContract.json --chains ethereum,bsc
 ```
 
 ## SDK
 
 ```typescript
-import { parseVaa, getMessageStatus, deployAcrossChains } from "@worm-tool/sdk";
+import { parseVaa, getMessageStatus, deployAcrossChains } from "@wormcraft/sdk";
 ```
 
 ## Configuration
 
-Create `~/.worm-tool/.env`:
+Create `~/.wormcraft/.env`:
 
 ```env
-WORM_TOOL_EVM_PRIVATE_KEY=0x...
-WORM_TOOL_RPC_ETHEREUM=https://mainnet.infura.io/v3/...
-WORM_TOOL_RPC_BSC=https://bsc-dataseed.binance.org/
-WORM_TOOL_NETWORK=mainnet
+WORMCRAFT_EVM_PRIVATE_KEY=0x...
+WORMCRAFT_RPC_ETHEREUM=https://mainnet.infura.io/v3/...
+WORMCRAFT_RPC_BSC=https://bsc-dataseed.binance.org/
+WORMCRAFT_NETWORK=mainnet
 ```
 
 ````
@@ -2999,7 +2999,7 @@ WORM_TOOL_NETWORK=mainnet
 
 ```bash
 git add README.md
-git commit -m "docs: update README for worm-tool TypeScript migration"
+git commit -m "docs: update README for wormcraft TypeScript migration"
 ````
 
 ---
@@ -3008,7 +3008,7 @@ git commit -m "docs: update README for worm-tool TypeScript migration"
 
 **File:** `docs/cli/README.md`
 
-Update every command example from `worm <command>` to `worm-tool <command>`.
+Update every command example from `worm <command>` to `wormcraft <command>`.
 
 **Step 1: Rewrite `docs/cli/README.md`**
 
@@ -3022,7 +3022,7 @@ Include:
 
 ```bash
 git add docs/cli/README.md
-git commit -m "docs: update CLI reference for worm-tool"
+git commit -m "docs: update CLI reference for wormcraft"
 ```
 
 ---
@@ -3031,7 +3031,7 @@ git commit -m "docs: update CLI reference for worm-tool"
 
 **File:** `docs/sdk/README.md` (new file)
 
-Document every exported function and type from `@worm-tool/sdk`:
+Document every exported function and type from `@wormcraft/sdk`:
 
 - `parseVaa(input)` — return type, throws
 - `EvmChain` — constructor options, methods
@@ -3041,7 +3041,7 @@ Document every exported function and type from `@worm-tool/sdk`:
 
 ```bash
 git add docs/sdk/README.md
-git commit -m "docs: add @worm-tool/sdk API reference"
+git commit -m "docs: add @wormcraft/sdk API reference"
 ```
 
 ---
@@ -3055,7 +3055,7 @@ git commit -m "docs: add @worm-tool/sdk API reference"
 **Step 1: Rewrite CLAUDE.md** to reflect the new TypeScript stack.
 
 ```markdown
-# worm-tool — Claude Code Rules
+# wormcraft — Claude Code Rules
 
 Auto-loaded by Claude Code sessions in this repo.
 
@@ -3075,7 +3075,7 @@ Reference: `reference/ccip-tools-ts` (TypeScript, study structure only)
 - Build: tsup (wraps esbuild)
 - Tests: vitest
 - Contracts: Foundry (Solidity, unchanged)
-- Config: dotenv, loading from ~/.worm-tool/.env
+- Config: dotenv, loading from ~/.wormcraft/.env
 
 ## Architecture Rules
 
@@ -3085,7 +3085,7 @@ Reference: `reference/ccip-tools-ts` (TypeScript, study structure only)
 - Chain adapters go in `packages/sdk/src/chains/` — one file per chain family
 - VAA parsing lives in `packages/sdk/src/vaa/` only
 - No business logic in `packages/cli/src/main.ts` — registration only
-- Errors: custom classes extending `WormToolError` (see `packages/sdk/src/error.ts`)
+- Errors: custom classes extending `WormcraftError` (see `packages/sdk/src/error.ts`)
 
 ## Code Rules
 
@@ -3137,7 +3137,7 @@ For `typescript-developer.md`, replace all references to:
 
 - `cargo test` → `npm test`
 - `Cargo.toml` → `package.json`
-- `thiserror/anyhow` → `WormToolError` classes
+- `thiserror/anyhow` → `WormcraftError` classes
 - `tokio` → `Node.js async/await`
 - `clap` → `Commander.js`
 
@@ -3254,7 +3254,7 @@ cd packages/cli && npm run lint
 
 ```bash
 git add -A
-git commit -m "feat: worm-tool TypeScript migration complete"
+git commit -m "feat: wormcraft TypeScript migration complete"
 ```
 
 ---
@@ -3264,33 +3264,33 @@ git commit -m "feat: worm-tool TypeScript migration complete"
 **Step 1: Push branch**
 
 ```bash
-git push origin feat/migrate-to-worm-tool-typescript
+git push origin feat/migrate-to-wormcraft-typescript
 ```
 
 **Step 2: Create PR**
 
 ```bash
 gh pr create \
-  --title "feat: migrate wormhole-cli to worm-tool TypeScript monorepo" \
+  --title "feat: migrate wormhole-cli to wormcraft TypeScript monorepo" \
   --body "$(cat <<'EOF'
 ## Summary
 - Migrates the Rust CLI + SDK to a TypeScript npm workspaces monorepo
-- Renames the project to `worm-tool` (CLI) and `@worm-tool/sdk` (library)
+- Renames the project to `wormcraft` (CLI) and `@wormcraft/sdk` (library)
 - Ports all ~7,000 lines of Rust to idiomatic TypeScript (strict mode)
-- Renames Solidity contracts: WormDeployer → WormToolDeployer
+- Renames Solidity contracts: WormDeployer → WormcraftDeployer
 - Updates all docs, CLAUDE.md, and Claude pipeline agents
 - Archives Rust crates in `archive/rust-crates/` for reference
 
 ## Packages
-- `packages/sdk` — `@worm-tool/sdk`: chain adapters, VAA parser, deploy orchestration
-- `packages/cli` — `worm-tool`: Commander.js CLI binary
+- `packages/sdk` — `@wormcraft/sdk`: chain adapters, VAA parser, deploy orchestration
+- `packages/cli` — `wormcraft`: Commander.js CLI binary
 
 ## Test Plan
 - [ ] `npm test --workspaces` passes
 - [ ] `forge test -vv` passes in `contracts/`
-- [ ] `worm-tool --help` shows all commands
-- [ ] `worm-tool parse <vaa>` outputs valid JSON
-- [ ] `worm-tool info --chain ethereum` returns chain metadata
+- [ ] `wormcraft --help` shows all commands
+- [ ] `wormcraft parse <vaa>` outputs valid JSON
+- [ ] `wormcraft info --chain ethereum` returns chain metadata
 - [ ] TypeScript strict mode: zero errors in both packages
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
@@ -3306,7 +3306,7 @@ EOF
 | ------------------------ | ------------------------------- | -------------------------- |
 | `tokio`                  | Node.js native async            | No equivalent needed       |
 | `clap`                   | `commander` v12                 | Similar derive-style API   |
-| `thiserror`              | Custom `WormToolError` classes  | Manual but simple          |
+| `thiserror`              | Custom `WormcraftError` classes  | Manual but simple          |
 | `anyhow`                 | `try/catch` + re-throw          | TypeScript standard        |
 | `ethers-rs`              | `viem` v2                       | More type-safe, modern API |
 | `solana-client`          | `@solana/web3.js`               | Direct equivalent          |

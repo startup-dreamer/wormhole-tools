@@ -13,7 +13,7 @@ describe('EvmChain', () => {
     expect(chain.chainName).toBe('evm-999');
   });
 
-  it('satisfies WormToolChain interface', () => {
+  it('satisfies WormcraftChain interface', () => {
     const chain = new EvmChain({ rpcUrl: 'http://localhost:8545', wormholeChainId: 4n, evmChainId: 56 });
     expect(chain.chainId).toBe(4n);
     expect(chain.chainName).toBe('bsc');

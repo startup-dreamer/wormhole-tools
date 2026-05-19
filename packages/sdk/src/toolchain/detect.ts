@@ -1,10 +1,10 @@
 import { access, readFile } from 'fs/promises';
 import { join } from 'path';
-import { WormToolError } from '../error.js';
+import { WormcraftError } from '../error.js';
 import type { ToolchainInfo } from './types.js';
 
 /** Thrown when a directory contains neither a Foundry nor Hardhat project. */
-export class ToolchainNotFoundError extends WormToolError {
+export class ToolchainNotFoundError extends WormcraftError {
   constructor(root: string) {
     super(`${root} is not a Foundry or Hardhat project (no foundry.toml or hardhat.config.ts/js found)`);
   }

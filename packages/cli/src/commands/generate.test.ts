@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Command } from 'commander';
-import { parseVaa } from '@worm-tool/sdk';
+import { parseVaa } from '@wormcraft/sdk';
 import { registerGenerateCommand } from './generate.js';
 
 function makeProgram(): Command {
@@ -51,7 +51,7 @@ describe('generate command', () => {
       expect(result.vaa.length).toBeGreaterThan(2);
     });
 
-    it('produces a VAA hex that is parseable by parseVaa from @worm-tool/sdk', () => {
+    it('produces a VAA hex that is parseable by parseVaa from @wormcraft/sdk', () => {
       const program = makeProgram();
       program.parse([
         'generate', 'test-vaa',

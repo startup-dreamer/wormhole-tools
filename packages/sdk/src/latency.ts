@@ -1,4 +1,4 @@
-import { WormToolError } from './error.js';
+import { WormcraftError } from './error.js';
 import { getMessageStatus, MessageStatus, type WormholeNetwork } from './status.js';
 
 export interface LatencyMeasurement {
@@ -53,7 +53,7 @@ export async function measureSigningLatency(
     await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
   }
 
-  throw new WormToolError(
+  throw new WormcraftError(
     `Timed out waiting for VAA signature after ${timeoutMs}ms (chain=${emitterChain}, seq=${sequence})`,
   );
 }

@@ -6,7 +6,7 @@ import {
   type Chain as ViemChain,
 } from 'viem';
 import { privateKeyToAccount, type PrivateKeyAccount } from 'viem/accounts';
-import type { WormToolChain, TransactionReceipt } from '../chain.js';
+import type { WormcraftChain, TransactionReceipt } from '../chain.js';
 import { RpcError, PrivateKeyError } from '../error.js';
 import { getChainById } from '../deploy/registry.js';
 
@@ -20,7 +20,7 @@ export interface EvmChainConfig {
   privateKey?: `0x${string}`;
 }
 
-export class EvmChain implements WormToolChain {
+export class EvmChain implements WormcraftChain {
   readonly chainId: bigint;
   readonly chainName: string;
 

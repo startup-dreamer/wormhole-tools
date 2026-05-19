@@ -10,7 +10,7 @@ import { registerContractsCommand } from '../../src/commands/contracts.js';
 // ---------------------------------------------------------------------------
 
 function makeTmpFoundryProject(): string {
-  const root = mkdtempSync(join(tmpdir(), 'worm-tool-contracts-test-'));
+  const root = mkdtempSync(join(tmpdir(), 'wormcraft-contracts-test-'));
   writeFileSync(join(root, 'foundry.toml'), '[profile.default]\n');
 
   // MyToken — concrete, constructor(string)
@@ -84,7 +84,7 @@ function makeTmpFoundryProject(): string {
 
 /** Create an empty temp directory (no toolchain files). */
 function makeTmpDir(): string {
-  return mkdtempSync(join(tmpdir(), 'worm-tool-empty-'));
+  return mkdtempSync(join(tmpdir(), 'wormcraft-empty-'));
 }
 
 function makeProgram(): Command {

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { deployAcrossChains, callAcrossChains, upgradeAcrossChains } from '../../src/deploy/index.js';
-import type { WormToolChain, TransactionReceipt } from '../../src/chain.js';
+import type { WormcraftChain, TransactionReceipt } from '../../src/chain.js';
 
-function makeMockChain(id: bigint, name: string): WormToolChain {
+function makeMockChain(id: bigint, name: string): WormcraftChain {
   return {
     chainId: id,
     chainName: name,

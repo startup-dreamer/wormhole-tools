@@ -1,5 +1,5 @@
 {
-  "name": "@worm-tool/sdk",
+  "name": "@wormcraft/sdk",
   "version": "0.0.1",
   "description": "TypeScript SDK for Wormhole cross-chain protocol interactions",
   "type": "module",

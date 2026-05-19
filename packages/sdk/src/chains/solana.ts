@@ -1,12 +1,12 @@
 import { Connection, PublicKey } from '@solana/web3.js';
-import type { WormToolChain, TransactionReceipt } from '../chain.js';
+import type { WormcraftChain, TransactionReceipt } from '../chain.js';
 import { RpcError } from '../error.js';
 
 export interface SolanaChainConfig {
   rpcUrl: string;
 }
 
-export class SolanaChain implements WormToolChain {
+export class SolanaChain implements WormcraftChain {
   readonly chainId = 1n;
   readonly chainName = 'solana';
 

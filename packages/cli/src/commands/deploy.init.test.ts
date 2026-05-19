@@ -8,7 +8,7 @@ describe('buildStarterManifestYaml', () => {
     expect(yaml).toContain('name: Vault');
     expect(yaml).toContain('version: "1"');
     expect(yaml).toContain('strategy: sequential');
-    expect(yaml).toContain('WORM_TOOL_RPC_SEPOLIA');
+    expect(yaml).toContain('WORMCRAFT_RPC_SEPOLIA');
   });
 
   it('handles a single contract', () => {

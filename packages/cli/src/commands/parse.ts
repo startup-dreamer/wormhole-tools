@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { parseVaa } from '@worm-tool/sdk';
+import { parseVaa } from '@wormcraft/sdk';
 import { printJson, printError } from '../output.js';
 
 export function registerParseCommand(program: Command): void {

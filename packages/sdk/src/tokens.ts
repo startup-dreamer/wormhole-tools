@@ -1,4 +1,4 @@
-import type { WormToolChain } from './chain.js';
+import type { WormcraftChain } from './chain.js';
 import { encodeAbiParameters, parseAbiParameters, decodeAbiParameters } from 'viem';
 
 export interface TokenInfo {
@@ -14,14 +14,14 @@ const ERC20_NAME_SELECTOR = '0x06fdde03' as `0x${string}`;
 const ERC20_SYMBOL_SELECTOR = '0x95d89b41' as `0x${string}`;
 const ERC20_DECIMALS_SELECTOR = '0x313ce567' as `0x${string}`;
 
-async function callString(chain: WormToolChain, token: string, selector: `0x${string}`): Promise<string> {
+async function callString(chain: WormcraftChain, token: string, selector: `0x${string}`): Promise<string> {
   const result = await chain.call(token, selector);
   if (result === '0x' || result.length <= 2) return '';
   const [value] = decodeAbiParameters(parseAbiParameters('string'), result);
   return value as string;
 }
 
-async function callUint8(chain: WormToolChain, token: string, selector: `0x${string}`): Promise<number> {
+async function callUint8(chain: WormcraftChain, token: string, selector: `0x${string}`): Promise<number> {
   const result = await chain.call(token, selector);
   if (result === '0x' || result.length <= 2) return 18;
   const [value] = decodeAbiParameters(parseAbiParameters('uint8'), result);
@@ -29,7 +29,7 @@ async function callUint8(chain: WormToolChain, token: string, selector: `0x${str
 }
 
 /** Fetch ERC-20 token metadata from a chain. */
-export async function getTokenInfo(chain: WormToolChain, tokenAddress: string): Promise<TokenInfo> {
+export async function getTokenInfo(chain: WormcraftChain, tokenAddress: string): Promise<TokenInfo> {
   const [name, symbol, decimals] = await Promise.all([
     callString(chain, tokenAddress, ERC20_NAME_SELECTOR),
     callString(chain, tokenAddress, ERC20_SYMBOL_SELECTOR),
@@ -50,7 +50,7 @@ const ERC20_BALANCE_OF_SELECTOR = '0x70a08231' as `0x${string}`;
 
 /** Fetch the ERC-20 token balance of a wallet on a given chain. */
 export async function getTokenBalance(
-  chain: WormToolChain,
+  chain: WormcraftChain,
   tokenAddress: string,
   walletAddress: string,
 ): Promise<TokenBalance> {

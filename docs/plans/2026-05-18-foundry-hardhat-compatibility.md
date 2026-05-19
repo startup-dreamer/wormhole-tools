@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use executing-plans to implement this plan task-by-task.
 
-**Goal:** Make `worm-tool` project-aware inside Foundry and Hardhat repos — auto-discover compiled contracts, provide a declarative deployment manifest, orchestrate multi-contract multi-chain deployments with dependency resolution and address-book resumability, verify, and support proxy upgrades.
+**Goal:** Make `wormcraft` project-aware inside Foundry and Hardhat repos — auto-discover compiled contracts, provide a declarative deployment manifest, orchestrate multi-contract multi-chain deployments with dependency resolution and address-book resumability, verify, and support proxy upgrades.
 
-**Architecture:** Seven sequential phases: (1) toolchain detection + artifact normalization in SDK, (2) `worm-tool contracts` CLI, (3) YAML deployment manifest schema + parser, (4) deployment engine with `deploy run/plan/diff` CLI, (5) address book with Foundry/Hardhat seed import, (6) Etherscan verification, (7) upgrade with storage-layout safety diff. Each phase adds a module to `packages/sdk/src/` and optionally wires a CLI command in `packages/cli/src/commands/`.
+**Architecture:** Seven sequential phases: (1) toolchain detection + artifact normalization in SDK, (2) `wormcraft contracts` CLI, (3) YAML deployment manifest schema + parser, (4) deployment engine with `deploy run/plan/diff` CLI, (5) address book with Foundry/Hardhat seed import, (6) Etherscan verification, (7) upgrade with storage-layout safety diff. Each phase adds a module to `packages/sdk/src/` and optionally wires a CLI command in `packages/cli/src/commands/`.
 
 **Tech Stack:** TypeScript 5.4 strict, viem v2 (ABI encoding), `yaml` npm package (manifest parsing), vitest (tests co-located as `*.test.ts`), Commander.js v12 (CLI).
 
@@ -41,7 +41,7 @@ import { tmpdir } from 'os';
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function makeTmpDir(): string {
-  return mkdtempSync(join(tmpdir(), 'worm-tool-test-'));
+  return mkdtempSync(join(tmpdir(), 'wormcraft-test-'));
 }
 
 function writeJson(path: string, obj: unknown): void {
@@ -241,10 +241,10 @@ export interface ContractMeta {
 // packages/sdk/src/toolchain/detect.ts
 import { access, readFile } from 'fs/promises';
 import { join } from 'path';
-import { WormToolError } from '../error.js';
+import { WormcraftError } from '../error.js';
 import type { ToolchainInfo } from './types.js';
 
-export class ToolchainNotFoundError extends WormToolError {
+export class ToolchainNotFoundError extends WormcraftError {
   constructor(root: string) {
     super(`${root} is not a Foundry or Hardhat project (no foundry.toml or hardhat.config.ts/js found)`);
   }
@@ -484,7 +484,7 @@ git commit -m "feat(toolchain): detect Foundry/Hardhat projects and normalize ar
 
 ---
 
-## Task 2: `worm-tool contracts` CLI Commands
+## Task 2: `wormcraft contracts` CLI Commands
 
 **Goal:** Three new subcommands — `contracts list`, `contracts info <name>`, `contracts check <name>` — that auto-detect the toolchain from `cwd` (or `--project`) and display contract metadata.
 
@@ -508,7 +508,7 @@ import { Command } from 'commander';
 import { registerContractsCommand } from '../../src/commands/contracts.js';
 
 function makeTmpDir(): string {
-  return mkdtempSync(join(tmpdir(), 'worm-tool-cli-test-'));
+  return mkdtempSync(join(tmpdir(), 'wormcraft-cli-test-'));
 }
 
 function makeFoundryProject(root: string, contracts: Array<{ name: string; bytecode?: string; constructorInputs?: unknown[] }>): void {
@@ -613,7 +613,7 @@ Expected: FAIL — module not found.
 
 ```typescript
 import type { Command } from 'commander';
-import { detectToolchain, listArtifacts, ToolchainNotFoundError } from '@worm-tool/sdk';
+import { detectToolchain, listArtifacts, ToolchainNotFoundError } from '@wormcraft/sdk';
 import { printJson, printError } from '../output.js';
 
 function resolveProject(option?: string): string {
@@ -780,7 +780,7 @@ git commit -m "feat(contracts): add contracts list/info/check commands with Foun
 
 ## Task 3: Deployment Manifest Schema & Parser
 
-**Goal:** Define a typed `DeployManifest` interface, parse `worm-tool.deploy.yaml` from the project root, resolve env var interpolation (`${VAR}`), and validate the structure. The `yaml` package must be added to `packages/sdk`.
+**Goal:** Define a typed `DeployManifest` interface, parse `wormcraft.deploy.yaml` from the project root, resolve env var interpolation (`${VAR}`), and validate the structure. The `yaml` package must be added to `packages/sdk`.
 
 **Files:**
 - Create: `packages/sdk/src/deploy/manifest.ts`
@@ -881,9 +881,9 @@ Expected: FAIL — module not found.
 ```typescript
 // packages/sdk/src/deploy/manifest.ts
 import { parse as parseYaml } from 'yaml';
-import { WormToolError } from '../error.js';
+import { WormcraftError } from '../error.js';
 
-export class ManifestParseError extends WormToolError {
+export class ManifestParseError extends WormcraftError {
   constructor(message: string, cause?: unknown) {
     super(`Manifest parse error: ${message}`, cause);
   }
@@ -995,14 +995,14 @@ Expected: all tests PASS.
 
 ```bash
 git add packages/sdk/src/deploy/manifest.ts packages/sdk/src/deploy/manifest.test.ts packages/sdk/src/deploy/index.ts packages/sdk/package.json packages/sdk/package-lock.json
-git commit -m "feat(manifest): add worm-tool.deploy.yaml schema parser with env var interpolation"
+git commit -m "feat(manifest): add wormcraft.deploy.yaml schema parser with env var interpolation"
 ```
 
 ---
 
 ## Task 4: Address Book
 
-**Goal:** A persistent JSON store at `<project-root>/deployments/worm-tool.json` that tracks deployed contract addresses per chain. Supports idempotency (skip already-deployed), Foundry broadcast import, and Hardhat-deploy import.
+**Goal:** A persistent JSON store at `<project-root>/deployments/wormcraft.json` that tracks deployed contract addresses per chain. Supports idempotency (skip already-deployed), Foundry broadcast import, and Hardhat-deploy import.
 
 **Files:**
 - Create: `packages/sdk/src/deploy/address-book.ts`
@@ -1033,7 +1033,7 @@ import {
 
 let root: string;
 
-beforeEach(() => { root = mkdtempSync(join(tmpdir(), 'worm-tool-ab-')); });
+beforeEach(() => { root = mkdtempSync(join(tmpdir(), 'wormcraft-ab-')); });
 afterEach(() => { rmSync(root, { recursive: true }); });
 
 describe('loadAddressBook', () => {
@@ -1044,7 +1044,7 @@ describe('loadAddressBook', () => {
 
   it('loads existing book', async () => {
     mkdirSync(join(root, 'deployments'));
-    writeFileSync(join(root, 'deployments', 'worm-tool.json'), JSON.stringify({
+    writeFileSync(join(root, 'deployments', 'wormcraft.json'), JSON.stringify({
       version: '1',
       salt: 'test',
       contracts: {
@@ -1152,7 +1152,7 @@ export interface AddressBook {
   contracts: Record<string, Record<string, AddressBookEntry>>;
 }
 
-const BOOK_PATH = (root: string) => join(root, 'deployments', 'worm-tool.json');
+const BOOK_PATH = (root: string) => join(root, 'deployments', 'wormcraft.json');
 
 export async function loadAddressBook(root: string): Promise<AddressBook> {
   try {
@@ -1250,7 +1250,7 @@ export async function importFromHardhatDeploy(root: string): Promise<PartialBook
     let files;
     try { files = await readdir(networkPath); } catch { continue; }
     for (const file of files) {
-      if (!file.endsWith('.json') || file === 'worm-tool.json') continue;
+      if (!file.endsWith('.json') || file === 'wormcraft.json') continue;
       const contractName = file.slice(0, -5);
       try {
         const raw = JSON.parse(await readFile(join(networkPath, file), 'utf8')) as {
@@ -1331,9 +1331,9 @@ describe('resolveTemplateArg', () => {
   });
 
   it('resolves {{env.VAR}} from process.env', () => {
-    process.env['WORM_TOOL_OWNER'] = '0x1234';
-    expect(resolveTemplateArg('{{env.WORM_TOOL_OWNER}}', deployed)).toBe('0x1234');
-    delete process.env['WORM_TOOL_OWNER'];
+    process.env['WORMCRAFT_OWNER'] = '0x1234';
+    expect(resolveTemplateArg('{{env.WORMCRAFT_OWNER}}', deployed)).toBe('0x1234');
+    delete process.env['WORMCRAFT_OWNER'];
   });
 });
 
@@ -1376,14 +1376,14 @@ import { encodeAbiParameters } from 'viem';
 import type { AbiParameter } from 'viem';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
-import { WormToolError } from '../error.js';
+import { WormcraftError } from '../error.js';
 import type { DeployManifest, ContractDeployConfig } from './manifest.js';
 import type { AddressBook, AddressBookEntry } from './address-book.js';
 import { isDeployed, setAddress, getAddress } from './address-book.js';
 import { extractBytecode } from './artifact.js';
 import type { ContractMeta } from '../toolchain/types.js';
 
-export class EngineError extends WormToolError {
+export class EngineError extends WormcraftError {
   constructor(message: string, cause?: unknown) {
     super(`Deployment engine error: ${message}`, cause);
   }
@@ -1621,13 +1621,13 @@ deploy
   .action(async (opts: { project?: string }) => {
     try {
       const root = opts.project ?? process.cwd();
-      const { detectToolchain, listArtifacts, buildDeployPlan } = await import('@worm-tool/sdk');
-      const { loadAddressBook } = await import('@worm-tool/sdk');
-      const { parseManifest } = await import('@worm-tool/sdk');
+      const { detectToolchain, listArtifacts, buildDeployPlan } = await import('@wormcraft/sdk');
+      const { loadAddressBook } = await import('@wormcraft/sdk');
+      const { parseManifest } = await import('@wormcraft/sdk');
       const { readFile } = await import('fs/promises');
       const { join } = await import('path');
 
-      const manifestYaml = await readFile(join(root, 'worm-tool.deploy.yaml'), 'utf8');
+      const manifestYaml = await readFile(join(root, 'wormcraft.deploy.yaml'), 'utf8');
       const manifest = parseManifest(manifestYaml);
       const book = await loadAddressBook(root);
       const plan = buildDeployPlan(manifest, book);
@@ -1639,7 +1639,7 @@ deploy
 // ── deploy run ────────────────────────────────────────────────────────────
 deploy
   .command('run')
-  .description('Execute worm-tool.deploy.yaml — deploy all contracts to all target chains')
+  .description('Execute wormcraft.deploy.yaml — deploy all contracts to all target chains')
   .option('--project <dir>', 'Project root (default: cwd)')
   .option('--network <name>', 'Limit to one network defined in the manifest')
   .option('--only <contract>', 'Deploy only this contract (still loads prior addresses from book)')
@@ -1651,12 +1651,12 @@ deploy
       const {
         detectToolchain, listArtifacts, runDeployment, parseManifest,
         loadAddressBook, saveAddressBook, deployAcrossChains, getChainByName,
-      } = await import('@worm-tool/sdk');
+      } = await import('@wormcraft/sdk');
       const { readFile } = await import('fs/promises');
       const { join } = await import('path');
       const { keccak_256 } = await import('@noble/hashes/sha3');
 
-      const manifestYaml = await readFile(join(root, 'worm-tool.deploy.yaml'), 'utf8');
+      const manifestYaml = await readFile(join(root, 'wormcraft.deploy.yaml'), 'utf8');
       let manifest = parseManifest(manifestYaml);
       if (opts.only) manifest = { ...manifest, contracts: manifest.contracts.filter(c => c.name === opts.only) };
       if (opts.network) manifest = { ...manifest, deploy_targets: manifest.deploy_targets.map(t => ({ ...t, chains: t.chains.filter(c => c === opts.network) })) };
@@ -1679,7 +1679,7 @@ deploy
           const chainObjects = chains.map(n => createEvmChain(n, config));
           const entry = getChainByName(chains[0]!);
           const deployer = entry?.wormToolDeployer;
-          if (!deployer) throw new Error(`No WormToolDeployer for chain ${chains[0]}`);
+          if (!deployer) throw new Error(`No WormcraftDeployer for chain ${chains[0]}`);
 
           if (strategy === 'sequential') {
             const results = [];
@@ -1716,11 +1716,11 @@ deploy
   .action(async (opts: { project?: string }) => {
     try {
       const root = opts.project ?? process.cwd();
-      const { loadAddressBook, parseManifest, isDeployed } = await import('@worm-tool/sdk');
+      const { loadAddressBook, parseManifest, isDeployed } = await import('@wormcraft/sdk');
       const { readFile } = await import('fs/promises');
       const { join } = await import('path');
 
-      const manifestYaml = await readFile(join(root, 'worm-tool.deploy.yaml'), 'utf8');
+      const manifestYaml = await readFile(join(root, 'wormcraft.deploy.yaml'), 'utf8');
       const manifest = parseManifest(manifestYaml);
       const book = await loadAddressBook(root);
 
@@ -1759,7 +1759,7 @@ git commit -m "feat(engine): deployment orchestration engine with topological or
 
 ## Task 6: Verification Pipeline
 
-**Goal:** Verify deployed contracts on Etherscan using the compiler metadata already embedded in artifacts. Add `worm-tool deploy verify` subcommand.
+**Goal:** Verify deployed contracts on Etherscan using the compiler metadata already embedded in artifacts. Add `wormcraft deploy verify` subcommand.
 
 **Files:**
 - Create: `packages/sdk/src/deploy/verify.ts`
@@ -1831,11 +1831,11 @@ Expected: FAIL — module not found.
 // packages/sdk/src/deploy/verify.ts
 import { readFile } from 'fs/promises';
 import { join, dirname } from 'path';
-import { WormToolError } from '../error.js';
+import { WormcraftError } from '../error.js';
 import type { ContractMeta } from '../toolchain/types.js';
 import type { AddressBookEntry } from './address-book.js';
 
-export class VerificationError extends WormToolError {
+export class VerificationError extends WormcraftError {
   constructor(message: string, cause?: unknown) {
     super(`Verification error: ${message}`, cause);
   }
@@ -1955,12 +1955,12 @@ deploy
     try {
       const root = opts.project ?? process.cwd();
       const config = loadConfig();
-      const { detectToolchain, listArtifacts, loadAddressBook, verifyContract, getChainByName } = await import('@worm-tool/sdk');
-      const { parseManifest } = await import('@worm-tool/sdk');
+      const { detectToolchain, listArtifacts, loadAddressBook, verifyContract, getChainByName } = await import('@wormcraft/sdk');
+      const { parseManifest } = await import('@wormcraft/sdk');
       const { readFile } = await import('fs/promises');
       const { join } = await import('path');
 
-      const manifestYaml = await readFile(join(root, 'worm-tool.deploy.yaml'), 'utf8');
+      const manifestYaml = await readFile(join(root, 'wormcraft.deploy.yaml'), 'utf8');
       const manifest = parseManifest(manifestYaml);
       const book = await loadAddressBook(root);
       const toolchain = await detectToolchain(root);
@@ -2213,7 +2213,7 @@ deploy
     try {
       const root = opts.project ?? process.cwd();
       const config = loadConfig();
-      const { detectToolchain, listArtifacts, loadAddressBook, diffStorageLayouts, upgradeAcrossChains, getChainByName } = await import('@worm-tool/sdk');
+      const { detectToolchain, listArtifacts, loadAddressBook, diffStorageLayouts, upgradeAcrossChains, getChainByName } = await import('@wormcraft/sdk');
 
       const toolchain = await detectToolchain(root);
       const artifacts = await listArtifacts(toolchain);
@@ -2251,7 +2251,7 @@ deploy
       if (!newImpl) throw new Error('--new-impl <address> is required');
 
       const entry = getChainByName(chainNames[0]!);
-      if (!entry?.wormToolDeployer) throw new Error(`No WormToolDeployer for ${chainNames[0]}`);
+      if (!entry?.wormToolDeployer) throw new Error(`No WormcraftDeployer for ${chainNames[0]}`);
 
       const results = await upgradeAcrossChains({ chains, proxy: proxyAddrs[0], newImpl, wormToolDeployerAddress: entry.wormToolDeployer });
       printJson(results.map((r: { chain: string; receipt: { txHash: string; success: boolean } }) => ({ chain: r.chain, txHash: r.receipt.txHash, success: r.receipt.success })));
@@ -2302,8 +2302,8 @@ cat > out/Counter.sol/Counter.json << 'EOF'
 }
 EOF
 
-worm-tool contracts list --project .
-worm-tool contracts info Counter --project .
+wormcraft contracts list --project .
+wormcraft contracts info Counter --project .
 ```
 
 Expected output from `contracts list`:

@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { initiateTransfer } from '@worm-tool/sdk';
+import { initiateTransfer } from '@wormcraft/sdk';
 import { loadConfig } from '../config.js';
 import { createEvmChain } from '../providers/evm.js';
 import { printJson, printError } from '../output.js';

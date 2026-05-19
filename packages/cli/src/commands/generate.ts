@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { generateTestVaaHex } from '@worm-tool/sdk';
+import { generateTestVaaHex } from '@wormcraft/sdk';
 import { printJson, printError } from '../output.js';
 
 export function registerGenerateCommand(program: Command): void {

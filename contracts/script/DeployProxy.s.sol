@@ -13,16 +13,16 @@ import {CounterV1} from "../src/CounterV1.sol";
 ///   - initcode = no chain-specific inputs:
 ///       impl: CounterV1 has no constructor args
 ///       proxy: CounterV1 impl address (identical via CREATE2) + init calldata that
-///              embeds owner (same wallet) and WormToolDeployer (same address everywhere)
+///              embeds owner (same wallet) and WormcraftDeployer (same address everywhere)
 ///
 /// Usage:
 ///   forge script script/DeployProxy.s.sol \
 ///     --rpc-url $RPC_URL \
 ///     --broadcast \
-///     --sig "run(address)" $WORM_TOOL_DEPLOYER_ADDRESS
+///     --sig "run(address)" $WORMCRAFT_DEPLOYER_ADDRESS
 contract DeployProxy is Script {
-    bytes32 constant IMPL_SALT  = keccak256("worm-tool-counter-v1-impl");
-    bytes32 constant PROXY_SALT = keccak256("worm-tool-counter-v1-proxy");
+    bytes32 constant IMPL_SALT  = keccak256("wormcraft-counter-v1-impl");
+    bytes32 constant PROXY_SALT = keccak256("wormcraft-counter-v1-proxy");
 
     function run(address wormToolDeployer) external {
         uint256 deployerKey = vm.envUint("DEPLOYER_PRIVATE_KEY");

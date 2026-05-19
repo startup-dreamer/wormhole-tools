@@ -1,9 +1,9 @@
 import { keccak_256 } from '@noble/hashes/sha3';
-import { WormToolError } from '../error.js';
+import { WormcraftError } from '../error.js';
 
 function fromHex(h: string): Uint8Array {
   const clean = h.startsWith('0x') ? h.slice(2) : h;
-  if (clean.length % 2 !== 0) throw new WormToolError('odd-length hex');
+  if (clean.length % 2 !== 0) throw new WormcraftError('odd-length hex');
   const arr = new Uint8Array(clean.length / 2);
   for (let i = 0; i < arr.length; i++) arr[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
   return arr;
@@ -33,17 +33,17 @@ export function computeCreate2Address(
 ): `0x${string}` {
   const deployerBytes = fromHex(deployer);
   if (deployerBytes.length !== 20) {
-    throw new WormToolError(`deployer must be 20 bytes, got ${deployerBytes.length}`);
+    throw new WormcraftError(`deployer must be 20 bytes, got ${deployerBytes.length}`);
   }
 
   const saltBytes = fromHex(salt);
   if (saltBytes.length !== 32) {
-    throw new WormToolError(`salt must be 32 bytes, got ${saltBytes.length}`);
+    throw new WormcraftError(`salt must be 32 bytes, got ${saltBytes.length}`);
   }
 
   const hashBytes = fromHex(initCodeHash);
   if (hashBytes.length !== 32) {
-    throw new WormToolError(`initCodeHash must be 32 bytes, got ${hashBytes.length}`);
+    throw new WormcraftError(`initCodeHash must be 32 bytes, got ${hashBytes.length}`);
   }
 
   // EIP-1014: keccak256(0xff ++ deployer ++ salt ++ keccak256(initCode))

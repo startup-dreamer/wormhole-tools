@@ -1,23 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import {
-  WormToolError,
+  WormcraftError,
   RpcError,
   ChainNotSupportedError,
   VaaParseError,
   ContractCallError,
 } from '../src/error.js';
 
-describe('WormToolError', () => {
+describe('WormcraftError', () => {
   it('RpcError carries chain and message', () => {
     const err = new RpcError('ethereum', 'connection refused');
-    expect(err).toBeInstanceOf(WormToolError);
+    expect(err).toBeInstanceOf(WormcraftError);
     expect(err.chain).toBe('ethereum');
     expect(err.message).toContain('connection refused');
   });
 
   it('ChainNotSupportedError names the chain', () => {
     const err = new ChainNotSupportedError('cosmos');
-    expect(err).toBeInstanceOf(WormToolError);
+    expect(err).toBeInstanceOf(WormcraftError);
     expect(err.message).toContain('cosmos');
   });
 
@@ -40,7 +40,7 @@ describe('WormToolError', () => {
   it('instanceof works across error hierarchy', () => {
     const err = new ContractCallError('0x1', 'revert');
     expect(err).toBeInstanceOf(Error);
-    expect(err).toBeInstanceOf(WormToolError);
+    expect(err).toBeInstanceOf(WormcraftError);
     expect(err).toBeInstanceOf(ContractCallError);
   });
 });

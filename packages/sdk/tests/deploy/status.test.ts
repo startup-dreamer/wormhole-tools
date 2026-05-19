@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { checkContractDeployed } from '../../src/deploy/status.js';
-import type { WormToolChain } from '../../src/chain.js';
+import type { WormcraftChain } from '../../src/chain.js';
 
-function makeChain(code: `0x${string}`): WormToolChain {
+function makeChain(code: `0x${string}`): WormcraftChain {
   return {
     chainId: 2n,
     chainName: 'ethereum',

@@ -1,4 +1,4 @@
-# worm-tool
+# wormcraft
 
 TypeScript CLI and SDK for interacting with the [Wormhole](https://wormhole.com) cross-chain
 messaging protocol.
@@ -10,22 +10,22 @@ messaging protocol.
 
 | Package                            | Description                                      |
 | ---------------------------------- | ------------------------------------------------ |
-| [`worm-tool`](./packages/cli)      | Command-line interface (`worm-tool` binary)      |
-| [`@worm-tool/sdk`](./packages/sdk) | TypeScript SDK for Wormhole protocol interaction |
+| [`wormcraft`](./packages/cli)      | Command-line interface (`wormcraft` binary)      |
+| [`@wormcraft/sdk`](./packages/sdk) | TypeScript SDK for Wormhole protocol interaction |
 
 ## Install
 
 ```bash
-npm install -g worm-tool
+npm install -g wormcraft
 ```
 
 ## Configuration
 
-Create `~/.worm-tool/.env`:
+Create `~/.wormcraft/.env`:
 
 ```env
-WORM_TOOL_EVM_PRIVATE_KEY=0xYOUR_EVM_PRIVATE_KEY
-WORM_TOOL_SOLANA_PRIVATE_KEY=YOUR_BASE58_SOLANA_KEY
+WORMCRAFT_EVM_PRIVATE_KEY=0xYOUR_EVM_PRIVATE_KEY
+WORMCRAFT_SOLANA_PRIVATE_KEY=YOUR_BASE58_SOLANA_KEY
 ```
 
 ## Quick Examples
@@ -33,33 +33,33 @@ WORM_TOOL_SOLANA_PRIVATE_KEY=YOUR_BASE58_SOLANA_KEY
 **Track a Wormhole message:**
 
 ```bash
-worm-tool status 0xb789efdb02a76692efd7f2aabde73470ad63fc9571a93f28f6ec505b79f4de3b
+wormcraft status 0xb789efdb02a76692efd7f2aabde73470ad63fc9571a93f28f6ec505b79f4de3b
 ```
 
 **Measure guardian signing latency:**
 
 ```bash
-worm-tool latency solana
-worm-tool latency ethereum --count 50
+wormcraft latency solana
+wormcraft latency ethereum --count 50
 ```
 
 **Query chain info:**
 
 ```bash
-worm-tool info chain-id solana       # → 1
-worm-tool info contract-address mainnet ethereum core
+wormcraft info chain-id solana       # → 1
+wormcraft info contract-address mainnet ethereum core
 ```
 
 **Parse a VAA:**
 
 ```bash
-worm-tool parse 010000000001...
+wormcraft parse 010000000001...
 ```
 
 **Initiate a token bridge transfer:**
 
 ```bash
-worm-tool transfer \
+wormcraft transfer \
   --token 0x2D8BE6BF0baA74e0A907016679CaE9190e80dD0A \
   --amount 1000000000000000000 \
   --dst-chain 1 \
@@ -74,7 +74,7 @@ import {
   EvmChain,
   getMessageStatus,
   MessageStatus,
-} from "@worm-tool/sdk";
+} from "@wormcraft/sdk";
 
 // Parse a VAA
 const vaa = parseVaa("0x010000000001...");
@@ -96,7 +96,7 @@ if (result.status === MessageStatus.Signed) {
 ## Documentation
 
 - [CLI Reference](./docs/cli/README.md) — All commands, options, and examples
-- [SDK Reference](./docs/sdk/README.md) — API reference for `@worm-tool/sdk`
+- [SDK Reference](./docs/sdk/README.md) — API reference for `@wormcraft/sdk`
 
 ## Development
 

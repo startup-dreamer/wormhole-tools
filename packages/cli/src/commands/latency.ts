@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { getChainInfo, WORMHOLESCAN_MAINNET, WORMHOLESCAN_TESTNET } from '@worm-tool/sdk';
+import { getChainInfo, WORMHOLESCAN_MAINNET, WORMHOLESCAN_TESTNET } from '@wormcraft/sdk';
 import { printJson, printError } from '../output.js';
 
 export function registerLatencyCommand(program: Command): void {

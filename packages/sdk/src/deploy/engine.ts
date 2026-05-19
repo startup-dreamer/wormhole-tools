@@ -1,6 +1,6 @@
 import { encodeAbiParameters } from 'viem';
 import type { AbiParameter } from 'viem';
-import { WormToolError } from '../error.js';
+import { WormcraftError } from '../error.js';
 import type { DeployManifest } from './manifest.js';
 import type { AddressBook } from './address-book.js';
 import { isDeployed, setAddress } from './address-book.js';
@@ -8,7 +8,7 @@ import type { ContractMeta } from '../toolchain/types.js';
 import { computeCreate2Address, keccak256Hex } from './create2.js';
 
 /** Thrown when the deployment engine encounters an unrecoverable error. */
-export class EngineError extends WormToolError {
+export class EngineError extends WormcraftError {
   constructor(message: string, cause?: unknown) {
     super(message, cause);
   }

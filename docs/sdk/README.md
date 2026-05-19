@@ -1,4 +1,4 @@
-# @worm-tool/sdk
+# @wormcraft/sdk
 
 TypeScript SDK for interacting with the Wormhole cross-chain messaging protocol.
 
@@ -7,7 +7,7 @@ TypeScript SDK for interacting with the Wormhole cross-chain messaging protocol.
 ## Installation
 
 ```bash
-npm install @worm-tool/sdk
+npm install @wormcraft/sdk
 ```
 
 Requires Node.js >= 18 (native `fetch`, `atob`).
@@ -19,7 +19,7 @@ Requires Node.js >= 18 (native `fetch`, `atob`).
 ### VAA Parsing and Encoding
 
 ```typescript
-import { parseVaa, encodeVaaHex } from "@worm-tool/sdk";
+import { parseVaa, encodeVaaHex } from "@wormcraft/sdk";
 
 // Parse a VAA from hex or base64
 const vaa = parseVaa("0x010000000001...");
@@ -37,27 +37,27 @@ const hex = encodeVaaHex(vaa);
 ### Chain Adapters
 
 ```typescript
-import { EvmChain, SolanaChain } from "@worm-tool/sdk";
+import { EvmChain, SolanaChain } from "@wormcraft/sdk";
 
 const eth = new EvmChain({
   chainId: 2n,
   chainName: "ethereum",
   rpcUrl: "https://ethereum.publicnode.com",
-  privateKey: process.env.WORM_TOOL_EVM_PRIVATE_KEY,
+  privateKey: process.env.WORMCRAFT_EVM_PRIVATE_KEY,
 });
 
 const balance = await eth.getBalance("0xYourAddress");
 const receipt = await eth.sendTransaction("0xContractAddress", "0xCalldata");
 ```
 
-`EvmChain` — viem-backed adapter for EVM chains. Implements `WormToolChain`.
+`EvmChain` — viem-backed adapter for EVM chains. Implements `WormcraftChain`.
 
-`SolanaChain` — @solana/web3.js-backed adapter for Solana. Implements `WormToolChain`.
+`SolanaChain` — @solana/web3.js-backed adapter for Solana. Implements `WormcraftChain`.
 
-Both implement the `WormToolChain` interface:
+Both implement the `WormcraftChain` interface:
 
 ```typescript
-interface WormToolChain {
+interface WormcraftChain {
   readonly chainId: bigint;
   readonly chainName: string;
   getBalance(address: string): Promise<bigint>;
@@ -79,7 +79,7 @@ import {
   deployAcrossChains,
   callAcrossChains,
   upgradeAcrossChains,
-} from "@worm-tool/sdk";
+} from "@wormcraft/sdk";
 
 // Deploy the same bytecode to multiple chains in parallel
 const results = await deployAcrossChains({
@@ -109,7 +109,7 @@ await upgradeAcrossChains({
 ### Message Status
 
 ```typescript
-import { getMessageStatus, MessageStatus } from "@worm-tool/sdk";
+import { getMessageStatus, MessageStatus } from "@wormcraft/sdk";
 
 const result = await getMessageStatus({
   emitterChain: 2,
@@ -127,7 +127,7 @@ if (result.status === MessageStatus.Signed) {
 ### Chain Info
 
 ```typescript
-import { getChainInfo } from "@worm-tool/sdk";
+import { getChainInfo } from "@wormcraft/sdk";
 
 const info = getChainInfo("ethereum");
 // { name: 'ethereum', wormholeChainId: 2, evmChainId: 1, ... }
@@ -138,7 +138,7 @@ const info2 = getChainInfo(2); // lookup by Wormhole chain ID
 ### Test VAA Generation
 
 ```typescript
-import { generateTestVaaHex } from "@worm-tool/sdk";
+import { generateTestVaaHex } from "@wormcraft/sdk";
 
 // Generate a synthetic VAA for testing — do NOT use on mainnet
 const hex = generateTestVaaHex({
@@ -154,22 +154,22 @@ const hex = generateTestVaaHex({
 
 ## Error Classes
 
-All errors extend `WormToolError` and are importable from `@worm-tool/sdk`.
+All errors extend `WormcraftError` and are importable from `@wormcraft/sdk`.
 
 | Class                    | Thrown when                                         |
 | ------------------------ | --------------------------------------------------- |
-| `WormToolError`          | Base class for all worm-tool errors                 |
+| `WormcraftError`          | Base class for all wormcraft errors                 |
 | `RpcError`               | An RPC call to a chain endpoint fails               |
 | `ChainNotSupportedError` | A chain name or ID is not in the registry           |
 | `VaaParseError`          | A VAA cannot be parsed from hex or base64           |
 | `ContractCallError`      | An on-chain contract call reverts or errors         |
-| `PrivateKeyError`        | `WORM_TOOL_EVM_PRIVATE_KEY` is missing or invalid   |
+| `PrivateKeyError`        | `WORMCRAFT_EVM_PRIVATE_KEY` is missing or invalid   |
 | `ArtifactParseError`     | A Hardhat or Foundry artifact JSON cannot be parsed |
 
 **Example:**
 
 ```typescript
-import { parseVaa, VaaParseError, RpcError } from "@worm-tool/sdk";
+import { parseVaa, VaaParseError, RpcError } from "@wormcraft/sdk";
 
 try {
   const vaa = parseVaa(userInput);

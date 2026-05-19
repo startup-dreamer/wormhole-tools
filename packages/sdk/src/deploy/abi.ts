@@ -19,7 +19,7 @@ export interface UpgradeMessageParams {
   targetChains: number[];
 }
 
-/** Encode a MSG_DEPLOY (0x01) payload for WormToolDeployer. */
+/** Encode a MSG_DEPLOY (0x01) payload for WormcraftDeployer. */
 export function encodeDeployMessage(p: DeployMessageParams): `0x${string}` {
   return encodeAbiParameters(
     parseAbiParameters('uint8 msgType, bytes bytecode, bytes constructorArgs, bytes32 salt, uint16[] targetChains'),
@@ -27,7 +27,7 @@ export function encodeDeployMessage(p: DeployMessageParams): `0x${string}` {
   );
 }
 
-/** Encode a MSG_CALL (0x02) payload for WormToolDeployer. */
+/** Encode a MSG_CALL (0x02) payload for WormcraftDeployer. */
 export function encodeCallMessage(p: CallMessageParams): `0x${string}` {
   return encodeAbiParameters(
     parseAbiParameters('uint8 msgType, address target, bytes calldata_, uint16[] targetChains'),
@@ -35,7 +35,7 @@ export function encodeCallMessage(p: CallMessageParams): `0x${string}` {
   );
 }
 
-/** Encode a MSG_UPGRADE (0x03) payload for WormToolDeployer. */
+/** Encode a MSG_UPGRADE (0x03) payload for WormcraftDeployer. */
 export function encodeUpgradeMessage(p: UpgradeMessageParams): `0x${string}` {
   return encodeAbiParameters(
     parseAbiParameters('uint8 msgType, address proxy, address newImpl, uint16[] targetChains'),

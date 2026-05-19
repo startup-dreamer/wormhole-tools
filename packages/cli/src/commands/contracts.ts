@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
-import { detectToolchain, listArtifacts, ToolchainNotFoundError } from '@worm-tool/sdk';
-import type { ContractMeta } from '@worm-tool/sdk';
+import { detectToolchain, listArtifacts, ToolchainNotFoundError } from '@wormcraft/sdk';
+import type { ContractMeta } from '@wormcraft/sdk';
 import { printJson, printError, formatTable } from '../output.js';
 
 function resolveRoot(opts: { project?: string }): string {

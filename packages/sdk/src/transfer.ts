@@ -1,9 +1,9 @@
-import type { WormToolChain, TransactionReceipt } from './chain.js';
+import type { WormcraftChain, TransactionReceipt } from './chain.js';
 import { encodeAbiParameters, parseAbiParameters } from 'viem';
 
 export interface TransferParams {
   /** Source chain adapter (must have a private key set). */
-  sourceChain: WormToolChain;
+  sourceChain: WormcraftChain;
   /** Token Bridge contract address on the source chain. */
   tokenBridgeAddress: string;
   /** ERC-20 token address to transfer. */

@@ -55,20 +55,57 @@ npx wormcraft --help
 
 ## Configuration
 
-`wormcraft` loads environment variables from `~/.wormcraft/.env` at startup. All recognized
-variables use the `WORMCRAFT_` prefix.
+`wormcraft` loads environment variables from `~/.wormcraft/.env` at startup. All variables use
+the `WORMCRAFT_` prefix.
+
+### RPC URLs
+
+Set a custom RPC for any chain using the pattern:
+
+```
+WORMCRAFT_{CHAIN_TICKER}_RPC=<url>
+```
+
+`{CHAIN_TICKER}` is the chain name in uppercase. For chains with hyphens, use underscores:
+
+| Variable                         | Chain             |
+| -------------------------------- | ----------------- |
+| `WORMCRAFT_ETHEREUM_RPC`         | Ethereum mainnet  |
+| `WORMCRAFT_SOLANA_RPC`           | Solana mainnet    |
+| `WORMCRAFT_ARBITRUM_RPC`         | Arbitrum One      |
+| `WORMCRAFT_BASE_RPC`             | Base              |
+| `WORMCRAFT_OPTIMISM_RPC`         | Optimism          |
+| `WORMCRAFT_POLYGON_RPC`          | Polygon           |
+| `WORMCRAFT_BSC_RPC`              | BNB Smart Chain   |
+| `WORMCRAFT_AVALANCHE_RPC`        | Avalanche C-Chain |
+| `WORMCRAFT_APTOS_RPC`            | Aptos             |
+| `WORMCRAFT_SUI_RPC`              | Sui               |
+| `WORMCRAFT_NEAR_RPC`             | NEAR              |
+| `WORMCRAFT_SEPOLIA_RPC`          | Sepolia (testnet) |
+| `WORMCRAFT_ARBITRUM_SEPOLIA_RPC` | Arbitrum Sepolia  |
+| `WORMCRAFT_BASE_SEPOLIA_RPC`     | Base Sepolia      |
+
+**Example `~/.wormcraft/.env`:**
+
+```env
+WORMCRAFT_ETHEREUM_RPC=https://mainnet.infura.io/v3/YOUR_KEY
+WORMCRAFT_SOLANA_RPC=https://solana-mainnet.g.alchemy.com/v2/YOUR_KEY
+WORMCRAFT_ARBITRUM_RPC=https://arb-mainnet.g.alchemy.com/v2/YOUR_KEY
+WORMCRAFT_SEPOLIA_RPC=https://ethereum-sepolia.publicnode.com
+```
+
+### Keys & other settings
 
 | Variable                       | Description                                                                 |
 | ------------------------------ | --------------------------------------------------------------------------- |
-| `WORMCRAFT_EVM_PRIVATE_KEY`    | EVM private key (`0x`-prefixed hex) used by submit/transfer/deploy commands |
-| `WORMCRAFT_SOLANA_PRIVATE_KEY` | Solana keypair (base58, 64-byte)                                            |
-| `WORMCRAFT_EVM_RPC`            | Default EVM RPC URL (overridden per-command with `--rpc`)                   |
-| `WORMCRAFT_SOLANA_RPC`         | Default Solana RPC URL                                                      |
+| `WORMCRAFT_PRIVATE_KEY`        | Deployer private key (`0x`-prefixed hex) used by submit/transfer/deploy     |
+| `WORMCRAFT_ETHERSCAN_KEY`      | Etherscan API key for contract verification                                 |
+| `WORMCRAFT_NETWORK`            | `mainnet` or `testnet` (default: `mainnet`)                                 |
 
 You can also set variables inline:
 
 ```bash
-WORMCRAFT_EVM_PRIVATE_KEY=0xYOUR_KEY wormcraft transfer ...
+WORMCRAFT_PRIVATE_KEY=0xYOUR_KEY wormcraft transfer ...
 ```
 
 ---

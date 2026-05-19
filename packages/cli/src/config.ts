@@ -17,8 +17,11 @@ export function loadConfig(): WormcraftConfig {
 
   const rpcUrls: Record<string, string> = {};
   for (const [key, value] of Object.entries(process.env)) {
-    const match = /^WORMCRAFT_RPC_(.+)$/.exec(key);
-    if (match?.[1] && value) rpcUrls[match[1].toLowerCase()] = value;
+    const match = /^WORMCRAFT_(.+)_RPC$/.exec(key);
+    if (match?.[1] && value) {
+      // WORMCRAFT_ARBITRUM_SEPOLIA_RPC → "arbitrum-sepolia"
+      rpcUrls[match[1].toLowerCase().replace(/_/g, '-')] = value;
+    }
   }
 
   return {

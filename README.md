@@ -21,12 +21,22 @@ npm install -g wormcraft
 
 ## Configuration
 
-Create `~/.wormcraft/.env`:
+Create `~/.wormcraft/.env`. RPC URLs follow the pattern `WORMCRAFT_{CHAIN_TICKER}_RPC`:
 
 ```env
-WORMCRAFT_EVM_PRIVATE_KEY=0xYOUR_EVM_PRIVATE_KEY
-WORMCRAFT_SOLANA_PRIVATE_KEY=YOUR_BASE58_SOLANA_KEY
+# RPC endpoints — add whichever chains you need
+WORMCRAFT_ETHEREUM_RPC=https://mainnet.infura.io/v3/YOUR_KEY
+WORMCRAFT_SOLANA_RPC=https://api.mainnet-beta.solana.com
+WORMCRAFT_ARBITRUM_RPC=https://arb-mainnet.g.alchemy.com/v2/YOUR_KEY
+WORMCRAFT_BASE_RPC=https://mainnet.base.org
+WORMCRAFT_SEPOLIA_RPC=https://ethereum-sepolia.publicnode.com
+
+# Deployer key and optional settings
+WORMCRAFT_PRIVATE_KEY=0xYOUR_PRIVATE_KEY
+WORMCRAFT_NETWORK=mainnet
 ```
+
+See [docs/cli/README.md](docs/cli/README.md#configuration) for the full variable reference.
 
 ## Quick Examples
 

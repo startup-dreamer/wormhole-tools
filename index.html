@@ -309,8 +309,8 @@
     <pre><span class="cm"># Create config directory and .env</span>
 mkdir -p ~/.wormcraft
 cat &gt; ~/.wormcraft/.env &lt;&lt; EOF
-WORMCRAFT_ETH_RPC=https://mainnet.infura.io/v3/YOUR_KEY
-WORMCRAFT_SOL_RPC=https://api.mainnet-beta.solana.com
+WORMCRAFT_ETHEREUM_RPC=https://mainnet.infura.io/v3/YOUR_KEY
+WORMCRAFT_SOLANA_RPC=https://api.mainnet-beta.solana.com
 EOF
 
 <span class="cm"># Explore supported chains</span>
@@ -456,22 +456,26 @@ contracts:
   <section id="config">
     <h2>Configuration</h2>
     <p>
-      All config lives in <code>~/.wormcraft/.env</code>. Every variable is prefixed <code>WORMCRAFT_</code>.
+      All config lives in <code>~/.wormcraft/.env</code>. RPC endpoints follow a single consistent pattern:
     </p>
-    <table class="env-table">
+    <pre style="margin:0.75rem 0 1.25rem"><span class="cm"># Pattern: WORMCRAFT_{CHAIN_TICKER}_RPC</span>
+<span class="kw">WORMCRAFT_ETHEREUM_RPC</span>=https://mainnet.infura.io/v3/YOUR_KEY
+<span class="kw">WORMCRAFT_SOLANA_RPC</span>=https://api.mainnet-beta.solana.com
+<span class="kw">WORMCRAFT_ARBITRUM_RPC</span>=https://arb-mainnet.g.alchemy.com/v2/YOUR_KEY
+<span class="kw">WORMCRAFT_BASE_RPC</span>=https://mainnet.base.org
+<span class="kw">WORMCRAFT_OPTIMISM_RPC</span>=https://mainnet.optimism.io
+<span class="kw">WORMCRAFT_POLYGON_RPC</span>=https://polygon-rpc.com
+<span class="cm"># Testnets — use underscores for hyphenated chain names</span>
+<span class="kw">WORMCRAFT_SEPOLIA_RPC</span>=https://ethereum-sepolia.publicnode.com
+<span class="kw">WORMCRAFT_ARBITRUM_SEPOLIA_RPC</span>=https://sepolia-rollup.arbitrum.io/rpc
+<span class="kw">WORMCRAFT_BASE_SEPOLIA_RPC</span>=https://sepolia.base.org</pre>
+    <p>Add whichever chains you need — any <code>WORMCRAFT_*_RPC</code> variable is picked up automatically.</p>
+    <table class="env-table" style="margin-top:1rem">
       <tr><th>Variable</th><th>Description</th></tr>
-      <tr><td><code>WORMCRAFT_ETH_RPC</code></td><td>Ethereum JSON-RPC URL</td></tr>
-      <tr><td><code>WORMCRAFT_ARB_RPC</code></td><td>Arbitrum JSON-RPC URL</td></tr>
-      <tr><td><code>WORMCRAFT_BASE_RPC</code></td><td>Base JSON-RPC URL</td></tr>
-      <tr><td><code>WORMCRAFT_OPT_RPC</code></td><td>Optimism JSON-RPC URL</td></tr>
-      <tr><td><code>WORMCRAFT_SOL_RPC</code></td><td>Solana RPC URL</td></tr>
-      <tr><td><code>WORMCRAFT_PRIVATE_KEY</code></td><td>Deployer private key (hex, no 0x prefix)</td></tr>
+      <tr><td><code>WORMCRAFT_PRIVATE_KEY</code></td><td>Deployer private key (<code>0x</code>-prefixed hex)</td></tr>
       <tr><td><code>WORMCRAFT_ETHERSCAN_KEY</code></td><td>Etherscan API key for contract verification</td></tr>
-      <tr><td><code>WORMCRAFT_NETWORK</code></td><td><code>mainnet</code> or <code>testnet</code> (default: mainnet)</td></tr>
+      <tr><td><code>WORMCRAFT_NETWORK</code></td><td><code>mainnet</code> or <code>testnet</code> (default: <code>mainnet</code>)</td></tr>
     </table>
-    <p style="margin-top:1rem">
-      You can also pass <code>--testnet</code> to most commands to override the network for that invocation.
-    </p>
   </section>
 
   <!-- SDK -->

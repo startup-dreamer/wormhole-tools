@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>worm-tool — Wormhole CLI & SDK</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --accent2: #3fb950;
+      --warn: #d29922;
+      --code-bg: #1c2128;
+      --pill-bg: #21262d;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Nav */
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 0.85rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 100;
+    }
+    nav .logo { font-weight: 700; font-size: 1.05rem; color: var(--text); }
+    nav .logo span { color: var(--accent); }
+    nav ul { list-style: none; display: flex; gap: 1.5rem; }
+    nav ul a { color: var(--muted); font-size: 0.9rem; }
+    nav ul a:hover { color: var(--text); text-decoration: none; }
+    nav .gh-link {
+      margin-left: auto;
+      background: var(--pill-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.35rem 0.85rem;
+      font-size: 0.85rem;
+      color: var(--text);
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    nav .gh-link:hover { border-color: var(--accent); text-decoration: none; }
+
+    /* Hero */
+    .hero {
+      max-width: 860px;
+      margin: 5rem auto 4rem;
+      padding: 0 2rem;
+      text-align: center;
+    }
+    .badge-row {
+      display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    .badge {
+      background: var(--pill-bg);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.7rem;
+      color: var(--muted);
+    }
+    .badge.green { border-color: #238636; color: var(--accent2); }
+    .badge.blue  { border-color: #1f6feb; color: var(--accent); }
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 1rem;
+    }
+    h1 .hl { color: var(--accent); }
+    .tagline {
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 580px;
+      margin: 0 auto 2.5rem;
+    }
+    .cta-row { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.6rem 1.4rem;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    /* Install strip */
+    .install-strip {
+      background: var(--code-bg);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 2rem;
+      text-align: center;
+    }
+    .install-strip p { color: var(--muted); font-size: 0.85rem; margin-bottom: 0.6rem; }
+    .install-cmd {
+      display: inline-flex; align-items: center; gap: 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.6rem 1rem;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.95rem;
+    }
+    .install-cmd .dollar { color: var(--accent2); }
+    .copy-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 0.8rem; padding: 0;
+    }
+    .copy-btn:hover { color: var(--text); }
+
+    /* Main content */
+    .content {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 3.5rem 2rem;
+    }
+    section { margin-bottom: 4rem; }
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 1.5rem 0 0.5rem;
+    }
+    p { color: var(--muted); margin-bottom: 0.75rem; }
+
+    /* Code blocks */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      overflow-x: auto;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.875rem;
+      line-height: 1.6;
+      margin: 0.75rem 0 1rem;
+    }
+    .cm  { color: var(--muted); }      /* comment */
+    .kw  { color: #ff7b72; }           /* keyword/flag */
+    .str { color: #a5d6ff; }           /* string */
+    .cmd { color: var(--accent2); }    /* command verb */
+    .sub { color: var(--accent); }     /* subcommand */
+
+    /* Feature grid */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+    }
+    .feature-card .icon { font-size: 1.4rem; margin-bottom: 0.5rem; }
+    .feature-card h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.35rem; }
+    .feature-card p { font-size: 0.85rem; margin: 0; }
+
+    /* Command table */
+    .cmd-table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
+    .cmd-table th {
+      text-align: left; font-size: 0.78rem; font-weight: 600;
+      color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;
+      padding: 0 0.75rem 0.6rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .cmd-table td {
+      padding: 0.65rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.875rem;
+      vertical-align: top;
+    }
+    .cmd-table tr:last-child td { border-bottom: none; }
+    .cmd-table code {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.15rem 0.4rem;
+      font-size: 0.82rem;
+      color: var(--accent);
+    }
+    .cmd-table td:last-child { color: var(--muted); }
+
+    /* Config section */
+    .env-table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
+    .env-table th {
+      text-align: left; font-size: 0.78rem; font-weight: 600;
+      color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;
+      padding: 0 0.75rem 0.6rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .env-table td {
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.875rem;
+      vertical-align: top;
+    }
+    .env-table tr:last-child td { border-bottom: none; }
+    .env-table code {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.15rem 0.4rem;
+      font-size: 0.82rem;
+      color: var(--warn);
+    }
+    .env-table td:last-child { color: var(--muted); }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--text); }
+
+    @media (max-width: 600px) {
+      nav ul { display: none; }
+      .hero { margin: 3rem auto 2.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="logo"><span>worm</span>-tool</span>
+  <ul>
+    <li><a href="#install">Install</a></li>
+    <li><a href="#commands">Commands</a></li>
+    <li><a href="#deploy">Deploy</a></li>
+    <li><a href="#config">Config</a></li>
+  </ul>
+  <a class="gh-link" href="https://github.com/startup-dreamer/wormhole-tools" target="_blank">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    GitHub
+  </a>
+</nav>
+
+<div class="hero">
+  <div class="badge-row">
+    <span class="badge blue">TypeScript</span>
+    <span class="badge green">Wormhole Protocol</span>
+    <span class="badge">EVM · Solana · Aptos · NEAR · Sui</span>
+  </div>
+  <h1>The <span class="hl">worm-tool</span> CLI</h1>
+  <p class="tagline">
+    Query, parse, and interact with the Wormhole cross-chain protocol — plus a full deploy pipeline for cross-chain contracts.
+  </p>
+  <div class="cta-row">
+    <a class="btn btn-primary" href="#install">Get started</a>
+    <a class="btn btn-secondary" href="#commands">View commands</a>
+  </div>
+</div>
+
+<div class="install-strip" id="install">
+  <p>Requires Node.js 18+</p>
+  <div class="install-cmd">
+    <span class="dollar">$</span>
+    <span>npm install -g worm-tool</span>
+    <button class="copy-btn" onclick="navigator.clipboard.writeText('npm install -g worm-tool').then(()=>{this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- Quick start -->
+  <section id="quickstart">
+    <h2>Quick start</h2>
+    <p>After installing, create a config file and run your first command:</p>
+    <pre><span class="cm"># Create config directory and .env</span>
+mkdir -p ~/.worm-tool
+cat &gt; ~/.worm-tool/.env &lt;&lt; EOF
+WORM_TOOL_ETH_RPC=https://mainnet.infura.io/v3/YOUR_KEY
+WORM_TOOL_SOL_RPC=https://api.mainnet-beta.solana.com
+EOF
+
+<span class="cm"># Explore supported chains</span>
+<span class="cmd">worm-tool</span> <span class="sub">info chains</span>
+
+<span class="cm"># Look up a VAA by transaction hash</span>
+<span class="cmd">worm-tool</span> <span class="sub">status</span> <span class="kw">--chain</span> ethereum <span class="kw">--tx</span> 0xabc123...
+
+<span class="cm"># Parse a VAA hex string</span>
+<span class="cmd">worm-tool</span> <span class="sub">parse</span> 010000000001...</pre>
+  </section>
+
+  <!-- Features -->
+  <section id="features">
+    <h2>What's included</h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="icon">🔍</div>
+        <h4>VAA inspection</h4>
+        <p>Parse and decode any VAA hex string into human-readable fields.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">📡</div>
+        <h4>Live status</h4>
+        <p>Track message status across chains from a single command.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">⛓️</div>
+        <h4>Multi-chain info</h4>
+        <p>Look up chain IDs, core contract addresses, token bridge info.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🚀</div>
+        <h4>Cross-chain deploy</h4>
+        <p>Deploy the same contract to every chain with one manifest file.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🔒</div>
+        <h4>Upgradeable proxies</h4>
+        <p>First-class support for UUPS, Transparent, and Beacon proxies.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🩺</div>
+        <h4>Doctor checks</h4>
+        <p>Pre-flight env check — RPC connectivity, toolchain, balances.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Commands reference -->
+  <section id="commands">
+    <h2>Commands</h2>
+
+    <h3>Information</h3>
+    <table class="cmd-table">
+      <tr><th>Command</th><th>Description</th></tr>
+      <tr><td><code>info chains</code></td><td>List all supported Wormhole chains with IDs</td></tr>
+      <tr><td><code>info chain-id &lt;name&gt;</code></td><td>Get Wormhole chain ID for a chain name or EVM chain ID</td></tr>
+      <tr><td><code>info contract-address &lt;chain&gt;</code></td><td>Look up core/bridge contract addresses</td></tr>
+      <tr><td><code>info rpc &lt;chain&gt;</code></td><td>Show configured RPC URL for a chain</td></tr>
+    </table>
+
+    <h3>VAA parsing &amp; generation</h3>
+    <table class="cmd-table">
+      <tr><th>Command</th><th>Description</th></tr>
+      <tr><td><code>parse &lt;vaa-hex&gt;</code></td><td>Parse a VAA hex string and pretty-print all fields</td></tr>
+      <tr><td><code>generate test-vaa</code></td><td>Generate a signed test VAA (useful for testing)</td></tr>
+    </table>
+
+    <h3>Status &amp; submission</h3>
+    <table class="cmd-table">
+      <tr><th>Command</th><th>Description</th></tr>
+      <tr><td><code>status --chain &lt;c&gt; --tx &lt;hash&gt;</code></td><td>Check delivery status of a cross-chain message</td></tr>
+      <tr><td><code>submit &lt;vaa-hex&gt; --chain &lt;c&gt;</code></td><td>Submit a VAA to a chain's core contract</td></tr>
+      <tr><td><code>redeem &lt;vaa-hex&gt; --chain &lt;c&gt;</code></td><td>Redeem a token-bridge VAA on the destination chain</td></tr>
+    </table>
+
+    <h3>Contracts</h3>
+    <table class="cmd-table">
+      <tr><th>Command</th><th>Description</th></tr>
+      <tr><td><code>contracts list</code></td><td>List contracts from the address book</td></tr>
+      <tr><td><code>contracts info &lt;name&gt;</code></td><td>Show contract metadata and proxy pattern</td></tr>
+      <tr><td><code>contracts check</code></td><td>Verify on-chain bytecode matches local artifact</td></tr>
+    </table>
+
+    <h3>Utilities</h3>
+    <table class="cmd-table">
+      <tr><th>Command</th><th>Description</th></tr>
+      <tr><td><code>doctor</code></td><td>Run pre-deployment environment checks</td></tr>
+      <tr><td><code>latency --chain &lt;c&gt;</code></td><td>Measure guardian latency for a chain</td></tr>
+    </table>
+  </section>
+
+  <!-- Deploy pipeline -->
+  <section id="deploy">
+    <h2>Deploy pipeline</h2>
+    <p>
+      <code>worm-tool deploy</code> ships your contract to every chain from a single YAML manifest.
+      Deployments are deterministic — the same address on every chain — thanks to CREATE2 via
+      <code>WormToolDeployer</code>.
+    </p>
+
+    <h3>1. Initialize a manifest</h3>
+    <pre><span class="cmd">worm-tool</span> <span class="sub">deploy init</span>
+<span class="cm"># Creates worm-tool.deploy.yaml in the current directory</span></pre>
+
+    <h3>2. Edit the manifest</h3>
+    <pre><span class="cm"># worm-tool.deploy.yaml</span>
+version: "1"
+contracts:
+  MyToken:
+    artifact: <span class="str">out/MyToken.sol/MyToken.json</span>  <span class="cm"># Foundry</span>
+    salt: <span class="str">my-token-v1</span>
+    chains: [ethereum, arbitrum, base, optimism]
+    constructorArgs:
+      - <span class="str">"${DEPLOY_OWNER}"</span>          <span class="cm"># env-var interpolation</span></pre>
+
+    <h3>3. Check &amp; preview</h3>
+    <pre><span class="cm"># Run pre-deployment health checks</span>
+<span class="cmd">worm-tool</span> <span class="sub">doctor</span>
+
+<span class="cm"># Preview what will be deployed (no transactions)</span>
+<span class="cmd">worm-tool</span> <span class="sub">deploy plan</span>
+
+<span class="cm"># Diff storage layout vs previous version (upgrades)</span>
+<span class="cmd">worm-tool</span> <span class="sub">deploy diff</span> MyToken</pre>
+
+    <h3>4. Deploy</h3>
+    <pre><span class="cm"># Dry-run: simulate without sending transactions</span>
+<span class="cmd">worm-tool</span> <span class="sub">deploy run</span> <span class="kw">--dry-run</span>
+
+<span class="cm"># Live deploy to all chains in the manifest</span>
+<span class="cmd">worm-tool</span> <span class="sub">deploy run</span>
+
+<span class="cm"># Upgrade-safe: validates storage layout before upgrading</span>
+<span class="cmd">worm-tool</span> <span class="sub">deploy upgrade-safe</span> MyToken</pre>
+
+    <h3>5. Verify on Etherscan</h3>
+    <pre><span class="cmd">worm-tool</span> <span class="sub">deploy verify</span> MyToken <span class="kw">--chain</span> ethereum</pre>
+  </section>
+
+  <!-- Config -->
+  <section id="config">
+    <h2>Configuration</h2>
+    <p>
+      All config lives in <code>~/.worm-tool/.env</code>. Every variable is prefixed <code>WORM_TOOL_</code>.
+    </p>
+    <table class="env-table">
+      <tr><th>Variable</th><th>Description</th></tr>
+      <tr><td><code>WORM_TOOL_ETH_RPC</code></td><td>Ethereum JSON-RPC URL</td></tr>
+      <tr><td><code>WORM_TOOL_ARB_RPC</code></td><td>Arbitrum JSON-RPC URL</td></tr>
+      <tr><td><code>WORM_TOOL_BASE_RPC</code></td><td>Base JSON-RPC URL</td></tr>
+      <tr><td><code>WORM_TOOL_OPT_RPC</code></td><td>Optimism JSON-RPC URL</td></tr>
+      <tr><td><code>WORM_TOOL_SOL_RPC</code></td><td>Solana RPC URL</td></tr>
+      <tr><td><code>WORM_TOOL_PRIVATE_KEY</code></td><td>Deployer private key (hex, no 0x prefix)</td></tr>
+      <tr><td><code>WORM_TOOL_ETHERSCAN_KEY</code></td><td>Etherscan API key for contract verification</td></tr>
+      <tr><td><code>WORM_TOOL_NETWORK</code></td><td><code>mainnet</code> or <code>testnet</code> (default: mainnet)</td></tr>
+    </table>
+    <p style="margin-top:1rem">
+      You can also pass <code>--testnet</code> to most commands to override the network for that invocation.
+    </p>
+  </section>
+
+  <!-- SDK -->
+  <section id="sdk">
+    <h2>SDK</h2>
+    <p>All CLI functionality is also available as a TypeScript library:</p>
+    <pre><span class="cm"># Install the SDK</span>
+npm install @worm-tool/sdk</pre>
+    <pre><span class="kw">import</span> { getChainInfo, parseVaa, getMessageStatus } <span class="kw">from</span> <span class="str">"@worm-tool/sdk"</span>;
+
+<span class="cm">// Look up chain metadata</span>
+<span class="kw">const</span> chain = getChainInfo(<span class="str">"ethereum"</span>);
+console.log(chain.wormholeChainId); <span class="cm">// 2</span>
+
+<span class="cm">// Parse a VAA</span>
+<span class="kw">const</span> vaa = parseVaa(hexString);
+console.log(vaa.emitterChain, vaa.sequence);
+
+<span class="cm">// Check message delivery status</span>
+<span class="kw">const</span> status = <span class="kw">await</span> getMessageStatus({ chain: <span class="str">"ethereum"</span>, txHash });
+console.log(status.delivered); <span class="cm">// true | false | "pending"</span></pre>
+  </section>
+
+</div>
+
+<footer>
+  <p>
+    Built with the <a href="https://wormhole.com" target="_blank">Wormhole protocol</a> ·
+    <a href="https://github.com/startup-dreamer/wormhole-tools" target="_blank">View source on GitHub</a>
+  </p>
+</footer>
+
+</body>
+</html>

@@ -5,6 +5,7 @@ pragma solidity ^0.8.22;
 uint8 constant MSG_DEPLOY  = 0x01;
 uint8 constant MSG_CALL    = 0x02;
 uint8 constant MSG_UPGRADE = 0x03;
+uint8 constant MSG_MODULE  = 0x04;
 
 /// @title IWormcraftDeployer
 /// @notice Interface for the WormcraftDeployer cross-chain deployment and call hub.
@@ -82,8 +83,27 @@ interface IWormcraftDeployer {
     /// @notice Total ETH cost to upgrade proxies on `chains` (uses fixed UPGRADE_GAS_LIMIT).
     function getUpgradeCost(uint16[] calldata chains) external view returns (uint256);
 
+    /// @notice Total ETH cost to send a module execution to `chains`.
+    function getModuleCost(uint16[] calldata chains) external view returns (uint256);
+
     /// @notice Compute the CREATE2 address for a given salt and bytecode.
     function computeAddress(bytes32 salt, bytes calldata bytecode) external view returns (address);
+
+    // ── Write: module execution ───────────────────────────────────────────────
+
+    /// @notice Execute an arbitrary call on a target contract via WormcraftModule + Safe.execTransactionFromModule.
+    /// @param targetChains   Wormhole chain IDs of destination chains.
+    /// @param moduleAddress  WormcraftModule address (same on all chains via CREATE2).
+    /// @param safe           Safe multisig address on each target chain.
+    /// @param target         Contract to call inside the Safe transaction.
+    /// @param callData       ABI-encoded call to execute.
+    function executeViaModule(
+        uint16[] calldata targetChains,
+        address moduleAddress,
+        address safe,
+        address target,
+        bytes calldata callData
+    ) external payable;
 
     // ── Admin ─────────────────────────────────────────────────────────────────
 

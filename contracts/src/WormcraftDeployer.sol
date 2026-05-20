@@ -4,7 +4,7 @@ pragma solidity ^0.8.22;
 import {IWormholeRelayer, IWormholeReceiver} from "wormhole-solidity-sdk/interfaces/IWormholeRelayer.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IWormcraftDeployer, MSG_DEPLOY, MSG_CALL, MSG_UPGRADE} from "./interfaces/IWormcraftDeployer.sol";
+import {IWormcraftDeployer, MSG_DEPLOY, MSG_CALL, MSG_UPGRADE, MSG_MODULE} from "./interfaces/IWormcraftDeployer.sol";
 
 contract WormcraftDeployer is IWormcraftDeployer, IWormholeReceiver, Ownable {
 
@@ -171,6 +171,35 @@ contract WormcraftDeployer is IWormcraftDeployer, IWormholeReceiver, Ownable {
         }
     }
 
+    // ── Source-chain: Module execution ───────────────────────────────────────
+
+    /// @inheritdoc IWormcraftDeployer
+    function executeViaModule(
+        uint16[] calldata targetChains,
+        address moduleAddress,
+        address safe,
+        address target,
+        bytes calldata callData
+    ) external payable {
+        bytes memory payload = abi.encode(MSG_MODULE, safe, target, callData, msg.sender);
+        uint256 remaining = msg.value;
+
+        for (uint256 i = 0; i < targetChains.length; i++) {
+            (uint256 cost,) = relayer.quoteEVMDeliveryPrice(
+                targetChains[i], 0, DEPLOY_GAS_LIMIT
+            );
+            require(remaining >= cost, "WormcraftDeployer: insufficient fee");
+            remaining -= cost;
+            relayer.sendPayloadToEvm{value: cost}(
+                targetChains[i],
+                moduleAddress,
+                payload,
+                0,
+                DEPLOY_GAS_LIMIT
+            );
+        }
+    }
+
     // ── View: cost quotes ─────────────────────────────────────────────────────
 
     /// @inheritdoc IWormcraftDeployer
@@ -193,6 +222,14 @@ contract WormcraftDeployer is IWormcraftDeployer, IWormholeReceiver, Ownable {
     function getUpgradeCost(uint16[] calldata chains) external view returns (uint256 total) {
         for (uint256 i = 0; i < chains.length; i++) {
             (uint256 cost,) = relayer.quoteEVMDeliveryPrice(chains[i], 0, UPGRADE_GAS_LIMIT);
+            total += cost;
+        }
+    }
+
+    /// @inheritdoc IWormcraftDeployer
+    function getModuleCost(uint16[] calldata chains) external view returns (uint256 total) {
+        for (uint256 i = 0; i < chains.length; i++) {
+            (uint256 cost,) = relayer.quoteEVMDeliveryPrice(chains[i], 0, DEPLOY_GAS_LIMIT);
             total += cost;
         }
     }

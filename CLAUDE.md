@@ -66,6 +66,7 @@ Wormhole protocol reference: `reference/wormhole/clients/js/src/`
 - Package structure: `packages/cli` (binary `wormcraft`) and `packages/sdk` (`@wormcraft/sdk`)
 
 ## Architecture Rules
+
 - Commands go in packages/cli/src/commands/ — one file per command group
 - Chain-specific logic goes in packages/sdk/src/chains/ — one module per chain family
 - VAA encoding/decoding is isolated in packages/sdk/src/vaa/
@@ -73,10 +74,11 @@ Wormhole protocol reference: `reference/wormhole/clients/js/src/`
 - Errors use WormcraftError class hierarchy (see packages/sdk/src/error.ts), propagated in CLI layer
 
 ## Solidity Contracts (contracts/)
+
 Three upgrade governance models are implemented — choose based on protocol needs:
 
 | Contract | Path | Purpose |
-|----------|------|---------|
+| -------- | ---- | ------- |
 | `WormcraftDeployer` | `contracts/src/` | Hub contract; orchestrates cross-chain deploy/call/upgrade via Wormhole relayer |
 | `WormcraftProxy` | `contracts/src/` | Base for UUPS proxies that accept upgrades from WormcraftDeployer directly |
 | `WormcraftModule` | `contracts/src/` | Ownerless Gnosis Safe module; receives Wormhole messages and calls `Safe.execTransactionFromModule` |
@@ -84,7 +86,8 @@ Three upgrade governance models are implemented — choose based on protocol nee
 | `IWormcraftAdminModule` | `contracts/src/interfaces/` | Interface + `ProxyKind` enum + `ProxyConfig` struct for `WormcraftAdminModule` |
 
 ### WormcraftAdminModule upgrade flows
-```
+
+```text
 Direct mode (no timelock):
   WormcraftDeployer ──callAcrossChains──▶ adminModule.scheduleOrUpgrade()
                                                └──▶ proxy.upgradeToAndCall()
@@ -99,10 +102,11 @@ Timelock mode (Safe as canceller):
 ```
 
 ## SDK Deploy Module (packages/sdk/src/deploy/)
+
 Key exports from `@wormcraft/sdk`:
 
 | Function | Description |
-|----------|-------------|
+| -------- | ----------- |
 | `deployAcrossChains` | Deploy bytecode via WormcraftDeployer to one or more chains |
 | `callAcrossChains` | Send arbitrary calldata to a target contract cross-chain |
 | `upgradeAcrossChains` | Upgrade a WormcraftProxy-based UUPS proxy across chains |
@@ -115,6 +119,7 @@ Key exports from `@wormcraft/sdk`:
 ## CLI Commands Reference (packages/cli/)
 
 ### `wormcraft deploy upgrade`
+
 Supports three governance modes via flag combination:
 
 ```bash
@@ -131,6 +136,7 @@ wormcraft deploy upgrade --proxy $PROXY --new-impl $IMPL --chains sepolia \
 ```
 
 ### `wormcraft deploy execute`
+
 Execute a timelocked AdminModule upgrade after the TimelockController delay:
 
 ```bash
@@ -140,6 +146,7 @@ wormcraft deploy execute \
 ```
 
 ### `wormcraft module setup`
+
 Generate Safe Transaction Builder JSON for one-time WormcraftModule setup:
 
 ```bash
@@ -149,6 +156,7 @@ wormcraft module setup \
 ```
 
 ## Code Rules
+
 - All exported functions and classes must have JSDoc comments
 - No non-null assertions (`!`) in non-test code — use explicit checks or optional chaining
 - Private keys never logged, never in error messages
@@ -159,11 +167,13 @@ wormcraft module setup \
 - Solidity tests go in contracts/test/ (Foundry `.t.sol` pattern)
 
 ## Reference Usage
+
 - Study ccip-tools-ts for: command structure, multi-RPC patterns, chain module separation
 - Study reference/wormhole/clients/js/src/cmds/ for: exact VAA logic to port
 - Translate logic to idiomatic TypeScript — do not copy verbatim
 
 ## Git
+
 - Branch naming: feat/command-name, fix/issue-description
 - Commits: conventional commits format (feat:, fix:, chore:, docs:)
 - Never commit .env files or private keys

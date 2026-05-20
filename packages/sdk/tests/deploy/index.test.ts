@@ -1,5 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
-import { deployAcrossChains, callAcrossChains, upgradeAcrossChains, executeViaModule } from '../../src/deploy/index.js';
+import {
+  deployAcrossChains,
+  callAcrossChains,
+  upgradeAcrossChains,
+  executeViaModule,
+  scheduleUpgradeViaManagedAdmin,
+  executeUpgradeViaManagedAdmin,
+} from '../../src/deploy/index.js';
 import type { WormcraftChain, TransactionReceipt } from '../../src/chain.js';
 
 function makeMockChain(id: bigint, name: string): WormcraftChain {
@@ -114,5 +121,47 @@ describe('executeViaModule', () => {
       calldata: '0x' as `0x${string}`,
       wormToolDeployerAddress: DEPLOYER,
     })).rejects.toThrow();
+  });
+});
+
+const ADMIN_MODULE = `0x${'ad'.repeat(20)}` as `0x${string}`;
+const NEW_IMPL     = `0x${'bb'.repeat(20)}` as `0x${string}`;
+const UPGRADE_SALT = `0x${'ff'.repeat(32)}` as `0x${string}`;
+
+describe('scheduleUpgradeViaManagedAdmin', () => {
+  it('sends tx to WormcraftDeployer with AdminModule as callAcrossChains target', async () => {
+    const eth = makeMockChain(10002n, 'sepolia');
+    await scheduleUpgradeViaManagedAdmin({
+      chains: [eth],
+      adminModule: ADMIN_MODULE,
+      proxy: PROXY,
+      newImpl: NEW_IMPL,
+      salt: UPGRADE_SALT,
+      wormToolDeployerAddress: DEPLOYER,
+    });
+    expect(eth.sendTransaction).toHaveBeenCalledTimes(1);
+    const [toAddr] = (eth.sendTransaction as ReturnType<typeof vi.fn>).mock.calls[0] as [string, ...unknown[]];
+    expect(toAddr.toLowerCase()).toBe(DEPLOYER.toLowerCase());
+  });
+});
+
+describe('executeUpgradeViaManagedAdmin', () => {
+  it('sends a different calldata selector than schedule', async () => {
+    const eth1 = makeMockChain(10002n, 'sepolia');
+    const eth2 = makeMockChain(10002n, 'sepolia');
+
+    await scheduleUpgradeViaManagedAdmin({
+      chains: [eth1], adminModule: ADMIN_MODULE, proxy: PROXY,
+      newImpl: NEW_IMPL, salt: UPGRADE_SALT, wormToolDeployerAddress: DEPLOYER,
+    });
+    await executeUpgradeViaManagedAdmin({
+      chains: [eth2], adminModule: ADMIN_MODULE, proxy: PROXY,
+      newImpl: NEW_IMPL, salt: UPGRADE_SALT, wormToolDeployerAddress: DEPLOYER,
+    });
+
+    const scheduleData = (eth1.sendTransaction as ReturnType<typeof vi.fn>).mock.calls[0]![1] as string;
+    const executeData  = (eth2.sendTransaction as ReturnType<typeof vi.fn>).mock.calls[0]![1] as string;
+    // Both calls share the outer callAcrossChains selector but embed different inner calldata.
+    expect(scheduleData).not.toBe(executeData);
   });
 });

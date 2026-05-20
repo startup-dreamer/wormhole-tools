@@ -1,6 +1,7 @@
 import { encodeFunctionData } from 'viem';
 import type { WormcraftChain, TransactionReceipt } from '../chain.js';
 import { WormcraftError } from '../error.js';
+import { encodeScheduleUpgradeMessage, encodeExecuteUpgradeMessage } from './abi.js';
 
 export { extractBytecode } from './artifact.js';
 export { computeCreate2Address, keccak256Hex, bytesToHex } from './create2.js';
@@ -212,4 +213,44 @@ export async function executeViaModule(
 
   const receipt = await sourceChain.sendTransaction(wormToolDeployerAddress, data, value);
   return [{ chain: sourceChain.chainName, chainId: sourceChain.chainId, receipt }];
+}
+
+export interface ManagedUpgradeParams {
+  chains: WormcraftChain[];
+  /** WormcraftAdminModule address — same on all chains via deterministic CREATE2. */
+  adminModule: `0x${string}`;
+  proxy:   `0x${string}`;
+  newImpl: `0x${string}`;
+  /** Arbitrary bytes32 salt that identifies this upgrade operation. Used by TimelockController. */
+  salt:    `0x${string}`;
+  wormToolDeployerAddress: string;
+  value?: bigint;
+}
+
+/**
+ * Schedule (or directly execute, if no timelock is configured) a proxy upgrade
+ * via WormcraftAdminModule. No inheritance required in the proxy contract.
+ *
+ * Routes through callAcrossChains — WormcraftDeployer itself is unchanged.
+ * If the proxy is registered with a TimelockController, the upgrade is only
+ * scheduled here; call executeUpgradeViaManagedAdmin after the delay.
+ */
+export async function scheduleUpgradeViaManagedAdmin(
+  params: ManagedUpgradeParams,
+): Promise<ChainDeployResult[]> {
+  const { chains, adminModule, proxy, newImpl, salt, wormToolDeployerAddress, value = 0n } = params;
+  const calldata = encodeScheduleUpgradeMessage({ proxy, newImpl, salt });
+  return callAcrossChains({ chains, target: adminModule, calldata, wormToolDeployerAddress, value });
+}
+
+/**
+ * Execute a previously scheduled timelock upgrade via WormcraftAdminModule.
+ * Call this after the TimelockController's getMinDelay() has elapsed.
+ */
+export async function executeUpgradeViaManagedAdmin(
+  params: ManagedUpgradeParams,
+): Promise<ChainDeployResult[]> {
+  const { chains, adminModule, proxy, newImpl, salt, wormToolDeployerAddress, value = 0n } = params;
+  const calldata = encodeExecuteUpgradeMessage({ proxy, newImpl, salt });
+  return callAcrossChains({ chains, target: adminModule, calldata, wormToolDeployerAddress, value });
 }

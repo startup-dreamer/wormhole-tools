@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { deployAcrossChains, callAcrossChains, upgradeAcrossChains } from '../../src/deploy/index.js';
+import { deployAcrossChains, callAcrossChains, upgradeAcrossChains, executeViaModule } from '../../src/deploy/index.js';
 import type { WormcraftChain, TransactionReceipt } from '../../src/chain.js';
 
 function makeMockChain(id: bigint, name: string): WormcraftChain {
@@ -81,5 +81,38 @@ describe('upgradeAcrossChains', () => {
     });
     expect(results).toHaveLength(1);
     expect(eth.sendTransaction).toHaveBeenCalledOnce();
+  });
+});
+
+const MODULE = `0x${'ee'.repeat(20)}` as `0x${string}`;
+const SAFE   = `0x${'aa'.repeat(20)}` as `0x${string}`;
+const PROXY  = `0x${'cc'.repeat(20)}` as `0x${string}`;
+
+describe('executeViaModule', () => {
+  it('sends one tx to WormcraftDeployer encoding the module address', async () => {
+    const eth = makeMockChain(10002n, 'sepolia');
+    const results = await executeViaModule({
+      chains: [eth],
+      moduleAddress: MODULE,
+      safe: SAFE,
+      target: PROXY,
+      calldata: '0x12345678' as `0x${string}`,
+      wormToolDeployerAddress: DEPLOYER,
+    });
+    expect(results).toHaveLength(1);
+    expect(eth.sendTransaction).toHaveBeenCalledOnce();
+    const [toAddr] = (eth.sendTransaction as ReturnType<typeof vi.fn>).mock.calls[0] as [string, ...unknown[]];
+    expect(toAddr.toLowerCase()).toBe(DEPLOYER.toLowerCase());
+  });
+
+  it('throws when chains array is empty', async () => {
+    await expect(executeViaModule({
+      chains: [],
+      moduleAddress: MODULE,
+      safe: SAFE,
+      target: PROXY,
+      calldata: '0x' as `0x${string}`,
+      wormToolDeployerAddress: DEPLOYER,
+    })).rejects.toThrow();
   });
 });

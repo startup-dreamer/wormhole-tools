@@ -155,3 +155,61 @@ export async function upgradeAcrossChains(
   const receipt = await sourceChain.sendTransaction(wormToolDeployerAddress, data, value);
   return [{ chain: sourceChain.chainName, chainId: sourceChain.chainId, receipt }];
 }
+
+/** Minimal ABI fragment for WormcraftDeployer.executeViaModule. */
+const EXECUTE_VIA_MODULE_ABI = [{
+  name: 'executeViaModule',
+  type: 'function',
+  inputs: [
+    { name: 'targetChains',  type: 'uint16[]' },
+    { name: 'moduleAddress', type: 'address'  },
+    { name: 'safe',          type: 'address'  },
+    { name: 'target',        type: 'address'  },
+    { name: 'callData',      type: 'bytes'    },
+  ],
+  stateMutability: 'payable',
+}] as const;
+
+export interface ExecuteViaModuleParams {
+  chains: WormcraftChain[];
+  /** WormcraftModule address — same on all chains via CREATE2. */
+  moduleAddress: `0x${string}`;
+  /** Gnosis Safe address on each target chain. */
+  safe: `0x${string}`;
+  /** Contract to call inside the Safe transaction (e.g. the proxy). */
+  target: `0x${string}`;
+  /** ABI-encoded function call to execute (e.g. upgradeToAndCall calldata). */
+  calldata: `0x${string}`;
+  wormToolDeployerAddress: string;
+  value?: bigint;
+}
+
+/**
+ * Execute a call on a target contract via WormcraftModule + Safe.execTransactionFromModule.
+ *
+ * Requires one-time setup on each target chain:
+ *   1. Safe.enableModule(wormcraftModuleAddress)
+ *   2. WormcraftModule.authorize(sourceChainId, callerAddressBytes32)
+ *      — called as a Safe transaction so Safe owners govern the whitelist.
+ *
+ * After setup, this is the only function needed for all cross-chain upgrades.
+ * The Safe handles all governance (thresholds, timelocks, veto).
+ */
+export async function executeViaModule(
+  params: ExecuteViaModuleParams,
+): Promise<ChainDeployResult[]> {
+  const { chains, moduleAddress, safe, target, calldata, wormToolDeployerAddress, value = 0n } = params;
+  const [sourceChain, ...rest] = chains;
+  if (!sourceChain) throw new WormcraftError('executeViaModule: at least one chain required');
+
+  const targetChainIds = rest.map(c => Number(c.chainId));
+
+  const data = encodeFunctionData({
+    abi: EXECUTE_VIA_MODULE_ABI,
+    functionName: 'executeViaModule',
+    args: [targetChainIds, moduleAddress, safe, target, calldata],
+  });
+
+  const receipt = await sourceChain.sendTransaction(wormToolDeployerAddress, data, value);
+  return [{ chain: sourceChain.chainName, chainId: sourceChain.chainId, receipt }];
+}

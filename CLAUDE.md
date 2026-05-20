@@ -62,6 +62,7 @@ Wormhole protocol reference: `reference/wormhole/clients/js/src/`
 - Config: dotenv, loading from ~/.wormcraft/.env, env var prefix `WORMCRAFT_`
 - Build: tsup (esbuild)
 - Tests: vitest
+- Solidity: 0.8.28, OpenZeppelin Contracts 5.x / Contracts-Upgradeable 5.x, Foundry
 - Package structure: `packages/cli` (binary `wormcraft`) and `packages/sdk` (`@wormcraft/sdk`)
 
 ## Architecture Rules
@@ -71,6 +72,82 @@ Wormhole protocol reference: `reference/wormhole/clients/js/src/`
 - No business logic in packages/cli/src/index.ts — it is the entrypoint only
 - Errors use WormcraftError class hierarchy (see packages/sdk/src/error.ts), propagated in CLI layer
 
+## Solidity Contracts (contracts/)
+Three upgrade governance models are implemented — choose based on protocol needs:
+
+| Contract | Path | Purpose |
+|----------|------|---------|
+| `WormcraftDeployer` | `contracts/src/` | Hub contract; orchestrates cross-chain deploy/call/upgrade via Wormhole relayer |
+| `WormcraftProxy` | `contracts/src/` | Base for UUPS proxies that accept upgrades from WormcraftDeployer directly |
+| `WormcraftModule` | `contracts/src/` | Ownerless Gnosis Safe module; receives Wormhole messages and calls `Safe.execTransactionFromModule` |
+| `WormcraftAdminModule` | `contracts/src/` | Standalone proxy admin; supports direct upgrades + OZ TimelockController + Safe canceller; **no inheritance required in proxy** |
+| `IWormcraftAdminModule` | `contracts/src/interfaces/` | Interface + `ProxyKind` enum + `ProxyConfig` struct for `WormcraftAdminModule` |
+
+### WormcraftAdminModule upgrade flows
+```
+Direct mode (no timelock):
+  WormcraftDeployer ──callAcrossChains──▶ adminModule.scheduleOrUpgrade()
+                                               └──▶ proxy.upgradeToAndCall()
+
+Timelock mode (Safe as canceller):
+  WormcraftDeployer ──callAcrossChains──▶ adminModule.scheduleOrUpgrade()
+                                               └──▶ TimelockController.schedule()
+                                                    [delay — Safe can cancel]
+  anyone            ──────────────────▶ adminModule.executeTimelocked()
+                                               └──▶ TimelockController.execute()
+                                                         └──▶ proxy.upgradeToAndCall()
+```
+
+## SDK Deploy Module (packages/sdk/src/deploy/)
+Key exports from `@wormcraft/sdk`:
+
+| Function | Description |
+|----------|-------------|
+| `deployAcrossChains` | Deploy bytecode via WormcraftDeployer to one or more chains |
+| `callAcrossChains` | Send arbitrary calldata to a target contract cross-chain |
+| `upgradeAcrossChains` | Upgrade a WormcraftProxy-based UUPS proxy across chains |
+| `executeViaModule` | Upgrade via WormcraftModule + Gnosis Safe (Safe as upgrade authority) |
+| `scheduleUpgradeViaManagedAdmin` | Schedule (or direct-execute) upgrade via WormcraftAdminModule |
+| `executeUpgradeViaManagedAdmin` | Execute a timelocked upgrade via WormcraftAdminModule after delay |
+| `encodeScheduleUpgradeMessage` | ABI-encode calldata for `scheduleOrUpgrade(address,address,bytes32)` |
+| `encodeExecuteUpgradeMessage` | ABI-encode calldata for `executeTimelocked(address,address,bytes32)` |
+
+## CLI Commands Reference (packages/cli/)
+
+### `wormcraft deploy upgrade`
+Supports three governance modes via flag combination:
+
+```bash
+# 1. Direct (WormcraftProxy inheritance)
+wormcraft deploy upgrade --proxy $PROXY --new-impl $IMPL --chains sepolia
+
+# 2. Via Gnosis Safe module (WormcraftModule)
+wormcraft deploy upgrade --proxy $PROXY --new-impl $IMPL --chains sepolia \
+  --safe $SAFE --module $WORMCRAFT_MODULE
+
+# 3. Via WormcraftAdminModule (no inheritance, optional timelock)
+wormcraft deploy upgrade --proxy $PROXY --new-impl $IMPL --chains sepolia \
+  --admin-module $ADMIN_MODULE --salt my-upgrade-salt
+```
+
+### `wormcraft deploy execute`
+Execute a timelocked AdminModule upgrade after the TimelockController delay:
+
+```bash
+wormcraft deploy execute \
+  --proxy $PROXY --new-impl $IMPL --chains sepolia \
+  --admin-module $ADMIN_MODULE --salt my-upgrade-salt
+```
+
+### `wormcraft module setup`
+Generate Safe Transaction Builder JSON for one-time WormcraftModule setup:
+
+```bash
+wormcraft module setup \
+  --safe $SAFE --module $WORMCRAFT_MODULE \
+  --source-chain 10002 --authorized $WALLET
+```
+
 ## Code Rules
 - All exported functions and classes must have JSDoc comments
 - No non-null assertions (`!`) in non-test code — use explicit checks or optional chaining
@@ -79,6 +156,7 @@ Wormhole protocol reference: `reference/wormhole/clients/js/src/`
 - Build the cli in the pattern where it can be used as a library and as a standalone executable.
 - Tests go in the same file as the code they test (vitest `*.test.ts` co-located)
 - Integration tests go in tests/
+- Solidity tests go in contracts/test/ (Foundry `.t.sol` pattern)
 
 ## Reference Usage
 - Study ccip-tools-ts for: command structure, multi-RPC patterns, chain module separation

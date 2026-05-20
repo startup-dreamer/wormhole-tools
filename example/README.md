@@ -402,6 +402,130 @@ Guard contracts) apply normally — Wormcraft never bypasses them.
 
 ---
 
+## Part 4 — No-inheritance path with WormcraftAdminModule + Safe + Timelock (production governance)
+
+Use this path when your protocol already has its own admin system, or when you need
+a governance delay before upgrades take effect. Zero Wormcraft imports in your contract.
+
+### How it works
+
+```
+Your Gnosis Safe (N/M signers)
+  ├─ owner() of WormcraftAdminModule   ← registers proxies, can cancel upgrades
+  └─ CANCELLER_ROLE on TimelockController  ← vetoes malicious proposals during delay
+
+WormcraftAdminModule (standalone contract, deployed once per chain via CREATE2)
+  ├─ PROPOSER_ROLE on TimelockController  ← schedules upgrades cross-chain
+  └─ EXECUTOR_ROLE on TimelockController  ← executes upgrades after delay
+
+CounterNoInheritance (your contract — zero Wormcraft imports)
+  └─ _authorizeUpgrade allows: owner() OR adminModule
+```
+
+### Step 1 — Deploy WormcraftAdminModule (each chain)
+
+```bash
+# Deploy with the same deployer key used for WormcraftDeployer (deterministic address)
+forge create contracts/src/WormcraftAdminModule.sol:WormcraftAdminModule \
+  --constructor-args $OWNER_ADDRESS \
+  --rpc-url $WORMCRAFT_ETH_SEPOLIA_RPC \
+  --private-key $DEPLOYER_PRIVATE_KEY
+```
+
+Run on each chain. Use the same `--constructor-args` (owner address) so the CREATE2
+address is identical everywhere.
+
+### Step 2 — Configure TimelockController roles (Safe pattern)
+
+If your protocol uses Gnosis Safe → TimelockController:
+
+```bash
+TIMELOCK=0x<your_timelock>
+ADMIN_MODULE=0x<wormcraft_admin_module>
+
+# Grant WormcraftAdminModule proposer + executor roles
+cast send $TIMELOCK "grantRole(bytes32,address)" \
+  $(cast call $TIMELOCK "PROPOSER_ROLE()(bytes32)") $ADMIN_MODULE \
+  --rpc-url $WORMCRAFT_ETH_SEPOLIA_RPC --private-key $DEPLOYER_PRIVATE_KEY
+
+cast send $TIMELOCK "grantRole(bytes32,address)" \
+  $(cast call $TIMELOCK "EXECUTOR_ROLE()(bytes32)") $ADMIN_MODULE \
+  --rpc-url $WORMCRAFT_ETH_SEPOLIA_RPC --private-key $DEPLOYER_PRIVATE_KEY
+
+# Your Safe already holds CANCELLER_ROLE — verify:
+cast call $TIMELOCK "hasRole(bytes32,address)(bool)" \
+  $(cast call $TIMELOCK "CANCELLER_ROLE()(bytes32)") $SAFE_ADDRESS \
+  --rpc-url $WORMCRAFT_ETH_SEPOLIA_RPC
+```
+
+Repeat on every chain.
+
+### Step 3 — Deploy CounterNoInheritance proxy (each chain)
+
+```bash
+forge script script/DeployWithAdminModule.s.sol \
+  --rpc-url $WORMCRAFT_ETH_SEPOLIA_RPC \
+  --broadcast \
+  --sig "run(address)" $ADMIN_MODULE
+```
+
+### Step 4 — Register the proxy with WormcraftAdminModule
+
+```bash
+# ProxyKind enum: 0 = UUPS, 1 = TRANSPARENT
+# For UUPS + Timelock:
+cast send $ADMIN_MODULE \
+  "register(address,(uint8,address,address))" \
+  $PROXY "(0,$PROXY,$TIMELOCK)" \
+  --rpc-url $WORMCRAFT_ETH_SEPOLIA_RPC --private-key $DEPLOYER_PRIVATE_KEY
+```
+
+Repeat on every chain.
+
+### Step 5 — Schedule cross-chain upgrade (triggers timelock on each chain)
+
+```bash
+UPGRADE_SALT="counter-v2-upgrade-2026-05-20"
+
+wormcraft deploy upgrade \
+  --proxy        $PROXY \
+  --new-impl     $NEW_IMPL \
+  --chains       sepolia,base-sepolia,arbitrum-sepolia \
+  --admin-module $ADMIN_MODULE \
+  --salt         "$UPGRADE_SALT" \
+  --deployer     $WORMCRAFT_DEPLOYER \
+  --value        2000000000000000
+```
+
+This schedules the upgrade on the `TimelockController` on every target chain in one
+source transaction. Your Safe can cancel during the delay window if needed.
+
+### Step 6 — Execute after the timelock delay
+
+```bash
+# After TimelockController.getMinDelay() seconds have elapsed:
+
+wormcraft deploy execute \
+  --proxy        $PROXY \
+  --new-impl     $NEW_IMPL \
+  --chains       sepolia,base-sepolia,arbitrum-sepolia \
+  --admin-module $ADMIN_MODULE \
+  --salt         "$UPGRADE_SALT" \
+  --deployer     $WORMCRAFT_DEPLOYER \
+  --value        2000000000000000
+```
+
+### Compatibility matrix
+
+| Proxy standard | Governance model | Wormcraft imports in your contract |
+|----------------|------------------|------------------------------------|
+| UUPS + WormcraftProxy (Part 2) | WormcraftDeployer direct | Inherit `WormcraftProxy` |
+| UUPS + WormcraftModule (Part 3) | Gnosis Safe N/M threshold | None — Safe is upgrade authority |
+| UUPS + AdminModule (Part 4) | AdminModule + Timelock + Safe canceller | One address check in `_authorizeUpgrade` |
+| Transparent + AdminModule (Part 4) | AdminModule + Timelock + Safe canceller | None |
+
+---
+
 ## Contract overview
 
 | Contract | Purpose |
@@ -409,6 +533,7 @@ Guard contracts) apply normally — Wormcraft never bypasses them.
 | `Counter.sol` | Minimal non-upgradeable counter. Good starting point for simple deploys. |
 | `CounterV1.sol` | Upgradeable counter (v1) — inherits `WormcraftProxy`, supports `increment()`. |
 | `CounterV2.sol` | Upgradeable counter (v2) — adds `decrement()`. Storage-layout compatible with v1. |
+| `CounterNoInheritance.sol` | UUPS upgradeable counter with no Wormcraft imports. Upgrade authorized by owner or `adminModule` address. |
 
 | Script | Purpose |
 |--------|---------|
@@ -416,3 +541,4 @@ Guard contracts) apply normally — Wormcraft never bypasses them.
 | `BootstrapModule.s.sol` | Deploys `WormcraftModule` at a deterministic address (ownerless Safe module). |
 | `Wire.s.sol` | Registers peer `WormcraftDeployer` addresses as trusted Wormhole senders. |
 | `DeployProxy.s.sol` | Deploys `CounterV1` implementation + ERC1967 proxy at deterministic addresses. |
+| `DeployWithAdminModule.s.sol` | Deploys `CounterNoInheritance` implementation + ERC1967 proxy via CREATE2. |

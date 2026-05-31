@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import {WormcraftProxy} from "./WormcraftProxy.sol";
+import {WormcraftProxy} from "@wormcraft/WormcraftProxy.sol";
 
 /// @title CounterV1
 /// @notice Upgradeable counter — v1 supports only increment.

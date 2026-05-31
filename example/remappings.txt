@@ -1,0 +1,5 @@
+forge-std/=../contracts/lib/forge-std/src/
+wormhole-solidity-sdk/=../contracts/lib/wormhole-solidity-sdk/src/
+@openzeppelin/contracts/=../contracts/lib/openzeppelin-contracts/contracts/
+@openzeppelin/contracts-upgradeable/=../contracts/lib/openzeppelin-contracts-upgradeable/contracts/
+@wormcraft/=../contracts/src/

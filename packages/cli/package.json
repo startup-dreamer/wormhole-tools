@@ -1,7 +1,17 @@
 {
   "name": "wormcraft",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "CLI tool for Wormhole cross-chain protocol",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/startup-dreamer/wormhole-tools.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/startup-dreamer/wormhole-tools/tree/main/packages/cli#readme",
+  "bugs": {
+    "url": "https://github.com/startup-dreamer/wormhole-tools/issues"
+  },
   "type": "module",
   "bin": {
     "wormcraft": "./dist/cli.js"
@@ -16,7 +26,7 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
+  "files": ["dist", "README.md"],
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
@@ -26,7 +36,7 @@
   },
   "dependencies": {
     "@noble/hashes": "^1.4.0",
-    "@wormcraft/sdk": "*",
+    "@wormcraft/sdk": "^0.0.3",
     "commander": "^12.0.0",
     "dotenv": "^16.0.0"
   },

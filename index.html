@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>wormcraft — Wormhole CLI & SDK</title>
-  <!-- updated: 2026-06-01 -->
+  <!-- updated: 2026-06-02 -->
   <style>
     :root {
       --bg: #0d1117;
@@ -78,6 +78,19 @@
     }
     .badge.green { border-color: #238636; color: var(--accent2); }
     .badge.blue  { border-color: #1f6feb; color: var(--accent); }
+    .chain-tag {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      border-radius: 4px;
+      padding: 0.05rem 0.35rem;
+      margin-left: 0.3rem;
+      vertical-align: middle;
+    }
+    .chain-tag.soon     { background: #2d2a00; color: var(--warn); border: 1px solid #5a4a00; }
+    .chain-tag.upcoming { background: #1c2128; color: var(--muted); border: 1px solid var(--border); }
     h1 {
       font-size: clamp(2rem, 5vw, 3.2rem);
       font-weight: 800;
@@ -280,7 +293,9 @@
   <div class="badge-row">
     <span class="badge blue">TypeScript</span>
     <span class="badge green">Wormhole Protocol</span>
-    <span class="badge">EVM · Solana · Aptos · NEAR · Sui</span>
+    <span class="badge green">EVM</span>
+    <span class="badge">Solana<span class="chain-tag soon">soon</span></span>
+    <span class="badge">Aptos · NEAR · Sui<span class="chain-tag upcoming">upcoming</span></span>
   </div>
   <h1>The <span class="hl">wormcraft</span> CLI</h1>
   <p class="tagline">
@@ -311,7 +326,7 @@
 mkdir -p ~/.wormcraft
 cat &gt; ~/.wormcraft/.env &lt;&lt; EOF
 WORMCRAFT_ETHEREUM_RPC=https://mainnet.infura.io/v3/YOUR_KEY
-WORMCRAFT_SOLANA_RPC=https://api.mainnet-beta.solana.com
+WORMCRAFT_ARBITRUM_RPC=https://arb-mainnet.g.alchemy.com/v2/YOUR_KEY
 EOF
 
 <span class="cm"># Explore supported chains</span>
@@ -461,7 +476,6 @@ contracts:
     </p>
     <pre style="margin:0.75rem 0 1.25rem"><span class="cm"># Pattern: WORMCRAFT_{CHAIN_TICKER}_RPC</span>
 <span class="kw">WORMCRAFT_ETHEREUM_RPC</span>=https://mainnet.infura.io/v3/YOUR_KEY
-<span class="kw">WORMCRAFT_SOLANA_RPC</span>=https://api.mainnet-beta.solana.com
 <span class="kw">WORMCRAFT_ARBITRUM_RPC</span>=https://arb-mainnet.g.alchemy.com/v2/YOUR_KEY
 <span class="kw">WORMCRAFT_BASE_RPC</span>=https://mainnet.base.org
 <span class="kw">WORMCRAFT_OPTIMISM_RPC</span>=https://mainnet.optimism.io

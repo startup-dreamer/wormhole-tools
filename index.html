@@ -276,12 +276,13 @@
 <body>
 
 <nav>
-  <span class="logo"><span>worm</span>-tool</span>
+  <span class="logo"><span>worm</span>craft</span>
   <ul>
     <li><a href="#install">Install</a></li>
     <li><a href="#commands">Commands</a></li>
     <li><a href="#deploy">Deploy</a></li>
     <li><a href="#config">Config</a></li>
+    <li><a href="#sdk">SDK</a></li>
   </ul>
   <a class="gh-link" href="https://github.com/startup-dreamer/wormhole-tools" target="_blank">
     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
@@ -294,8 +295,7 @@
     <span class="badge blue">TypeScript</span>
     <span class="badge green">Wormhole Protocol</span>
     <span class="badge green">EVM</span>
-    <span class="badge">Solana<span class="chain-tag soon">soon</span></span>
-    <span class="badge">Aptos · NEAR · Sui<span class="chain-tag upcoming">upcoming</span></span>
+    <span class="badge">Node.js 20+</span>
   </div>
   <h1>The <span class="hl">wormcraft</span> CLI</h1>
   <p class="tagline">
@@ -424,48 +424,30 @@ EOF
   <section id="deploy">
     <h2>Deploy pipeline</h2>
     <p>
-      <code>wormcraft deploy</code> ships your contract to every chain from a single YAML manifest.
-      Deployments are deterministic — the same address on every chain — thanks to CREATE2 via
-      <code>WormToolDeployer</code>.
+      <code>wormcraft deploy</code> ships and upgrades contracts cross-chain via the
+      <code>WormcraftDeployer</code> hub contract. Three governance modes are supported.
     </p>
 
-    <h3>1. Initialize a manifest</h3>
-    <pre><span class="cmd">wormcraft</span> <span class="sub">deploy init</span>
-<span class="cm"># Creates wormcraft.deploy.yaml in the current directory</span></pre>
+    <h3>Upgrade — direct (WormcraftProxy inheritance)</h3>
+    <pre><span class="cmd">wormcraft</span> <span class="sub">deploy upgrade</span> <span class="kw">--proxy</span> $PROXY <span class="kw">--new-impl</span> $IMPL <span class="kw">--chains</span> sepolia</pre>
 
-    <h3>2. Edit the manifest</h3>
-    <pre><span class="cm"># wormcraft.deploy.yaml</span>
-version: "1"
-contracts:
-  MyToken:
-    artifact: <span class="str">out/MyToken.sol/MyToken.json</span>  <span class="cm"># Foundry</span>
-    salt: <span class="str">my-token-v1</span>
-    chains: [ethereum, arbitrum, base, optimism]
-    constructorArgs:
-      - <span class="str">"${DEPLOY_OWNER}"</span>          <span class="cm"># env-var interpolation</span></pre>
+    <h3>Upgrade — via Gnosis Safe module</h3>
+    <pre><span class="cmd">wormcraft</span> <span class="sub">deploy upgrade</span> <span class="kw">--proxy</span> $PROXY <span class="kw">--new-impl</span> $IMPL <span class="kw">--chains</span> sepolia \
+  <span class="kw">--safe</span> $SAFE <span class="kw">--module</span> $WORMCRAFT_MODULE</pre>
 
-    <h3>3. Check &amp; preview</h3>
-    <pre><span class="cm"># Run pre-deployment health checks</span>
-<span class="cmd">wormcraft</span> <span class="sub">doctor</span>
+    <h3>Upgrade — via WormcraftAdminModule (no inheritance, optional timelock)</h3>
+    <pre><span class="cmd">wormcraft</span> <span class="sub">deploy upgrade</span> <span class="kw">--proxy</span> $PROXY <span class="kw">--new-impl</span> $IMPL <span class="kw">--chains</span> sepolia \
+  <span class="kw">--admin-module</span> $ADMIN_MODULE <span class="kw">--salt</span> my-upgrade-salt</pre>
 
-<span class="cm"># Preview what will be deployed (no transactions)</span>
-<span class="cmd">wormcraft</span> <span class="sub">deploy plan</span>
+    <h3>Execute a timelocked upgrade after the delay</h3>
+    <pre><span class="cmd">wormcraft</span> <span class="sub">deploy execute</span> \
+  <span class="kw">--proxy</span> $PROXY <span class="kw">--new-impl</span> $IMPL <span class="kw">--chains</span> sepolia \
+  <span class="kw">--admin-module</span> $ADMIN_MODULE <span class="kw">--salt</span> my-upgrade-salt</pre>
 
-<span class="cm"># Diff storage layout vs previous version (upgrades)</span>
-<span class="cmd">wormcraft</span> <span class="sub">deploy diff</span> MyToken</pre>
-
-    <h3>4. Deploy</h3>
-    <pre><span class="cm"># Dry-run: simulate without sending transactions</span>
-<span class="cmd">wormcraft</span> <span class="sub">deploy run</span> <span class="kw">--dry-run</span>
-
-<span class="cm"># Live deploy to all chains in the manifest</span>
-<span class="cmd">wormcraft</span> <span class="sub">deploy run</span>
-
-<span class="cm"># Upgrade-safe: validates storage layout before upgrading</span>
-<span class="cmd">wormcraft</span> <span class="sub">deploy upgrade-safe</span> MyToken</pre>
-
-    <h3>5. Verify on Etherscan</h3>
-    <pre><span class="cmd">wormcraft</span> <span class="sub">deploy verify</span> MyToken <span class="kw">--chain</span> ethereum</pre>
+    <h3>Generate Safe Transaction Builder JSON for module setup</h3>
+    <pre><span class="cmd">wormcraft</span> <span class="sub">module setup</span> \
+  <span class="kw">--safe</span> $SAFE <span class="kw">--module</span> $WORMCRAFT_MODULE \
+  <span class="kw">--source-chain</span> 10002 <span class="kw">--authorized</span> $WALLET</pre>
   </section>
 
   <!-- Config -->
@@ -496,22 +478,35 @@ contracts:
   <!-- SDK -->
   <section id="sdk">
     <h2>SDK</h2>
-    <p>All CLI functionality is also available as a TypeScript library:</p>
+    <p>All CLI functionality is also available as a TypeScript library. Requires Node.js 20+.</p>
     <pre><span class="cm"># Install the SDK</span>
 npm install @wormcraft/sdk</pre>
-    <pre><span class="kw">import</span> { getChainInfo, parseVaa, getMessageStatus } <span class="kw">from</span> <span class="str">"@wormcraft/sdk"</span>;
+    <pre><span class="kw">import</span> {
+  parseVaa, getMessageStatus, MessageStatus,
+  EvmChain, deployAcrossChains, upgradeAcrossChains,
+} <span class="kw">from</span> <span class="str">"@wormcraft/sdk"</span>;
 
-<span class="cm">// Look up chain metadata</span>
-<span class="kw">const</span> chain = getChainInfo(<span class="str">"ethereum"</span>);
-console.log(chain.wormholeChainId); <span class="cm">// 2</span>
-
-<span class="cm">// Parse a VAA</span>
-<span class="kw">const</span> vaa = parseVaa(hexString);
+<span class="cm">// Parse a VAA (hex or base64)</span>
+<span class="kw">const</span> vaa = parseVaa(<span class="str">"0x010000000001..."</span>);
 console.log(vaa.emitterChain, vaa.sequence);
 
-<span class="cm">// Check message delivery status</span>
-<span class="kw">const</span> status = <span class="kw">await</span> getMessageStatus({ chain: <span class="str">"ethereum"</span>, txHash });
-console.log(status.delivered); <span class="cm">// true | false | "pending"</span></pre>
+<span class="cm">// Track message status</span>
+<span class="kw">const</span> result = <span class="kw">await</span> getMessageStatus({ emitterChain: 2, emitterAddress, sequence: 643990n });
+<span class="kw">if</span> (result.status === MessageStatus.Signed) console.log(<span class="str">"VAA ready"</span>, result.vaaBytes);
+
+<span class="cm">// EVM chain adapter (viem)</span>
+<span class="kw">const</span> eth = <span class="kw">new</span> EvmChain({ chainId: 2n, chainName: <span class="str">"ethereum"</span>, rpcUrl: process.env.WORMCRAFT_ETHEREUM_RPC });</pre>
+
+    <h3>Deploy module</h3>
+    <table class="cmd-table">
+      <tr><th>Function</th><th>Description</th></tr>
+      <tr><td><code>deployAcrossChains</code></td><td>Deploy bytecode via WormcraftDeployer to one or more chains</td></tr>
+      <tr><td><code>callAcrossChains</code></td><td>Send arbitrary calldata to a target contract cross-chain</td></tr>
+      <tr><td><code>upgradeAcrossChains</code></td><td>Upgrade a WormcraftProxy-based UUPS proxy across chains</td></tr>
+      <tr><td><code>executeViaModule</code></td><td>Upgrade via WormcraftModule + Gnosis Safe</td></tr>
+      <tr><td><code>scheduleUpgradeViaManagedAdmin</code></td><td>Schedule (or direct-execute) upgrade via WormcraftAdminModule</td></tr>
+      <tr><td><code>executeUpgradeViaManagedAdmin</code></td><td>Execute a timelocked upgrade after the delay</td></tr>
+    </table>
   </section>
 
 </div>

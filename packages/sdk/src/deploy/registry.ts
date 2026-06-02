@@ -22,7 +22,6 @@ export const CHAIN_REGISTRY: ChainEntry[] = [
   { wormholeChainId: 13, name: 'klaytn',        evmChainId: 8217 },
   { wormholeChainId: 14, name: 'celo',          evmChainId: 42220 },
   { wormholeChainId: 16, name: 'moonbeam',      evmChainId: 1284 },
-  { wormholeChainId: 22, name: 'aptos' },
   { wormholeChainId: 23, name: 'arbitrum',      evmChainId: 42161 },
   { wormholeChainId: 24, name: 'optimism',      evmChainId: 10 },
   { wormholeChainId: 30, name: 'base',          evmChainId: 8453 },

@@ -13,7 +13,7 @@ export function registerCompletionCommand(program: Command): void {
           console.log(`# Add to ~/.bashrc:\n# eval "$(${name} completion --shell bash)"\n_${name}_completions() { COMPREPLY=($(compgen -W "$(${name} --help 2>/dev/null | grep -oP '^  \\K\\S+')" -- "\${COMP_WORDS[COMP_CWORD]}")); }\ncomplete -F _${name}_completions ${name}`);
           break;
         case 'zsh':
-          console.log(`# Add to ~/.zshrc:\n# eval "$(${name} completion --shell zsh)"\ncompdef _${name} ${name}\n_${name}() { local -a cmds; cmds=(parse info generate status latency deploy transfer tokens submit redeem evm solana aptos near sui completion); _describe 'command' cmds }`);
+          console.log(`# Add to ~/.zshrc:\n# eval "$(${name} completion --shell zsh)"\ncompdef _${name} ${name}\n_${name}() { local -a cmds; cmds=(parse info generate status latency deploy transfer tokens submit redeem evm completion); _describe 'command' cmds }`);
           break;
         case 'fish':
           console.log(`# Add to ~/.config/fish/config.fish:\n# ${name} completion --shell fish | source\ncomplete -c ${name} -f -a "(${name} --help 2>/dev/null | grep -oP '^  \\K\\S+')"`);

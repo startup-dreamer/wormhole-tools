@@ -1,4 +1,4 @@
-import { encodeAbiParameters, parseAbiParameters } from 'viem';
+import { encodeAbiParameters, parseAbiParameters, encodeFunctionData } from 'viem';
 
 export interface DeployMessageParams {
   bytecode: `0x${string}`;
@@ -41,4 +41,48 @@ export function encodeUpgradeMessage(p: UpgradeMessageParams): `0x${string}` {
     parseAbiParameters('uint8 msgType, address proxy, address newImpl, uint16[] targetChains'),
     [3, p.proxy, p.newImpl, p.targetChains],
   );
+}
+
+export interface AdminModuleUpgradeParams {
+  proxy:   `0x${string}`;
+  newImpl: `0x${string}`;
+  salt:    `0x${string}`;
+}
+
+const SCHEDULE_ABI = [{
+  name: 'scheduleOrUpgrade',
+  type: 'function',
+  inputs: [
+    { name: 'proxy',   type: 'address' },
+    { name: 'newImpl', type: 'address' },
+    { name: 'salt',    type: 'bytes32' },
+  ],
+}] as const;
+
+const EXECUTE_ABI = [{
+  name: 'executeTimelocked',
+  type: 'function',
+  inputs: [
+    { name: 'proxy',   type: 'address' },
+    { name: 'newImpl', type: 'address' },
+    { name: 'salt',    type: 'bytes32' },
+  ],
+}] as const;
+
+/** Encode calldata for WormcraftAdminModule.scheduleOrUpgrade(). */
+export function encodeScheduleUpgradeMessage(p: AdminModuleUpgradeParams): `0x${string}` {
+  return encodeFunctionData({
+    abi: SCHEDULE_ABI,
+    functionName: 'scheduleOrUpgrade',
+    args: [p.proxy, p.newImpl, p.salt],
+  });
+}
+
+/** Encode calldata for WormcraftAdminModule.executeTimelocked(). */
+export function encodeExecuteUpgradeMessage(p: AdminModuleUpgradeParams): `0x${string}` {
+  return encodeFunctionData({
+    abi: EXECUTE_ABI,
+    functionName: 'executeTimelocked',
+    args: [p.proxy, p.newImpl, p.salt],
+  });
 }

@@ -9,6 +9,7 @@ import {
   deployAcrossChains,
   callAcrossChains,
   upgradeAcrossChains,
+  executeViaModule,
   checkContractDeployed,
   getChainByName,
   diffStorageLayouts,
@@ -224,27 +225,124 @@ export function registerDeployCommand(program: Command): void {
 
   deploy
     .command('upgrade')
-    .description('Upgrade a UUPS proxy to a new implementation across chains')
+    .description('Upgrade a proxy across chains — direct, via Gnosis Safe module, or via WormcraftAdminModule')
     .requiredOption('--proxy <address>', 'Proxy contract address')
     .requiredOption('--new-impl <address>', 'New implementation address')
     .requiredOption('--chains <chains>', 'Comma-separated chain names')
+    .option('--safe <address>', 'Route upgrade through a Gnosis Safe (requires WormcraftModule setup)')
+    .option('--module <address>', 'WormcraftModule address (required when --safe is used)')
+    .option('--admin-module <address>', 'Route through WormcraftAdminModule (no inheritance required)')
+    .option('--salt <salt>', 'Upgrade salt — required when --admin-module is used')
     .option('--deployer <address>', 'Override WormcraftDeployer address')
     .option('--value <wei>', 'ETH (in wei) to send for Wormhole relayer fees when using cross-chain targets')
-    .action(async (opts: { proxy: string; newImpl: string; chains: string; deployer?: string; value?: string }) => {
+    .action(async (opts: {
+      proxy: string; newImpl: string; chains: string;
+      safe?: string; module?: string;
+      adminModule?: string; salt?: string;
+      deployer?: string; value?: string;
+    }) => {
       try {
         const config = loadConfig();
         const chainNames = opts.chains.split(',').map(s => s.trim());
         const chains = chainNames.map(n => createEvmChain(n, config));
         const deployer = resolveDeployer(chainNames[0]!, opts.deployer);
-        const results = await upgradeAcrossChains({
+
+        if (opts.adminModule) {
+          if (!opts.salt) {
+            printError('--salt is required when using --admin-module');
+            process.exit(1);
+          }
+          const { scheduleUpgradeViaManagedAdmin } = await import('@wormcraft/sdk');
+          const results = await scheduleUpgradeViaManagedAdmin({
+            chains,
+            adminModule: opts.adminModule as `0x${string}`,
+            proxy:       opts.proxy    as `0x${string}`,
+            newImpl:     opts.newImpl  as `0x${string}`,
+            salt:        saltFromStr(opts.salt),
+            wormToolDeployerAddress: deployer,
+            ...(opts.value !== undefined && { value: BigInt(opts.value) }),
+          });
+          printJson(results.map((r: { chain: string; receipt: { txHash: string; success: boolean } }) => ({
+            chain: r.chain, txHash: r.receipt.txHash, success: r.receipt.success,
+          })));
+        } else if (opts.safe) {
+          if (!opts.module) {
+            printError('--module <WormcraftModule address> is required when using --safe');
+            process.exit(1);
+          }
+          const { encodeFunctionData } = await import('viem');
+          const calldata = encodeFunctionData({
+            abi: [{
+              name: 'upgradeToAndCall',
+              type: 'function',
+              inputs: [
+                { name: 'newImplementation', type: 'address' },
+                { name: 'data', type: 'bytes' },
+              ],
+            }] as const,
+            functionName: 'upgradeToAndCall',
+            args: [opts.newImpl as `0x${string}`, '0x'],
+          });
+          const results = await executeViaModule({
+            chains,
+            moduleAddress: opts.module as `0x${string}`,
+            safe: opts.safe as `0x${string}`,
+            target: opts.proxy as `0x${string}`,
+            calldata,
+            wormToolDeployerAddress: deployer,
+            ...(opts.value !== undefined && { value: BigInt(opts.value) }),
+          });
+          printJson(results.map((r: { chain: string; receipt: { txHash: string; success: boolean } }) => ({
+            chain: r.chain, txHash: r.receipt.txHash, success: r.receipt.success,
+          })));
+        } else {
+          const results = await upgradeAcrossChains({
+            chains,
+            proxy: opts.proxy as `0x${string}`,
+            newImpl: opts.newImpl as `0x${string}`,
+            wormToolDeployerAddress: deployer,
+            ...(opts.value !== undefined && { value: BigInt(opts.value) }),
+          });
+          printJson(results.map((r: { chain: string; receipt: { txHash: string; success: boolean } }) => ({
+            chain: r.chain, txHash: r.receipt.txHash, success: r.receipt.success,
+          })));
+        }
+      } catch (err) { printError('deploy upgrade failed', err); process.exit(1); }
+    });
+
+  deploy
+    .command('execute')
+    .description('Execute a timelocked upgrade after the TimelockController delay has passed')
+    .requiredOption('--proxy <address>',        'Proxy contract address')
+    .requiredOption('--new-impl <address>',     'New implementation address (same as used when scheduling)')
+    .requiredOption('--chains <chains>',        'Comma-separated chain names')
+    .requiredOption('--admin-module <address>', 'WormcraftAdminModule address')
+    .requiredOption('--salt <salt>',            'Salt used when scheduling the upgrade')
+    .option('--deployer <address>', 'Override WormcraftDeployer address')
+    .option('--value <wei>',        'ETH (in wei) to send for Wormhole relayer fees')
+    .action(async (opts: {
+      proxy: string; newImpl: string; chains: string;
+      adminModule: string; salt: string; deployer?: string; value?: string;
+    }) => {
+      try {
+        const config = loadConfig();
+        const chainNames = opts.chains.split(',').map(s => s.trim());
+        const chains = chainNames.map(n => createEvmChain(n, config));
+        const deployer = resolveDeployer(chainNames[0]!, opts.deployer);
+        const { executeUpgradeViaManagedAdmin } = await import('@wormcraft/sdk');
+        const results = await executeUpgradeViaManagedAdmin({
           chains,
-          proxy: opts.proxy as `0x${string}`,
-          newImpl: opts.newImpl as `0x${string}`,
+          adminModule: opts.adminModule as `0x${string}`,
+          proxy:       opts.proxy       as `0x${string}`,
+          newImpl:     opts.newImpl     as `0x${string}`,
+          salt:        saltFromStr(opts.salt),
           wormToolDeployerAddress: deployer,
           ...(opts.value !== undefined && { value: BigInt(opts.value) }),
         });
-        printJson(results.map((r: { chain: string; receipt: { txHash: string; success: boolean } }) => ({ chain: r.chain, txHash: r.receipt.txHash, success: r.receipt.success })));
-      } catch (err) { printError('deploy upgrade failed', err); process.exit(1); }
+        printJson(results.map((r: { chain: string; receipt: { txHash: string; success: boolean } }) => ({
+          chain: r.chain, txHash: r.receipt.txHash, success: r.receipt.success,
+        })));
+      } catch (err) { printError('deploy execute failed', err); process.exit(1); }
     });
 
   deploy
@@ -548,5 +646,66 @@ export function registerDeployCommand(program: Command): void {
           console.log(formatTable(['Contract', 'Chain', 'Status', 'Address'], tableRows));
         }
       } catch (err) { handleManifestMissing('deploy diff', err); }
+    });
+}
+
+export function registerModuleCommand(program: Command): void {
+  const moduleCmd = program
+    .command('module')
+    .description('Helpers for WormcraftModule setup with Gnosis Safe');
+
+  moduleCmd
+    .command('setup')
+    .description('Generate Safe Transaction Builder JSON for one-time WormcraftModule setup')
+    .requiredOption('--safe <address>', 'Safe address on this chain')
+    .requiredOption('--module <address>', 'WormcraftModule address on this chain')
+    .requiredOption('--source-chain <id>', 'Wormhole chain ID of the source chain where upgrades are initiated')
+    .requiredOption('--authorized <address>', 'Wallet/Safe address on the source chain that will initiate upgrades')
+    .action(async (opts: { safe: string; module: string; sourceChain: string; authorized: string }) => {
+      try {
+        const { encodeFunctionData } = await import('viem');
+
+        const enableModuleCalldata = encodeFunctionData({
+          abi: [{
+            name: 'enableModule',
+            type: 'function',
+            inputs: [{ name: 'module', type: 'address' }],
+          }] as const,
+          functionName: 'enableModule',
+          args: [opts.module as `0x${string}`],
+        });
+
+        const callerBytes32 = ('0x' + opts.authorized.toLowerCase().replace('0x', '').padStart(64, '0')) as `0x${string}`;
+        const authorizeCalldata = encodeFunctionData({
+          abi: [{
+            name: 'authorize',
+            type: 'function',
+            inputs: [
+              { name: 'sourceChainId', type: 'uint16' },
+              { name: 'caller', type: 'bytes32' },
+            ],
+          }] as const,
+          functionName: 'authorize',
+          args: [Number(opts.sourceChain), callerBytes32],
+        });
+
+        const batch = {
+          version: '1.0',
+          chainId: 'auto',
+          createdAt: Date.now(),
+          meta: {
+            name: 'WormcraftModule setup',
+            description: 'Enable WormcraftModule + authorize source caller',
+          },
+          transactions: [
+            { to: opts.safe,   value: '0', data: enableModuleCalldata,  contractMethod: null, contractInputsValues: null },
+            { to: opts.module, value: '0', data: authorizeCalldata,      contractMethod: null, contractInputsValues: null },
+          ],
+        };
+
+        process.stdout.write(JSON.stringify(batch, null, 2) + '\n');
+        process.stderr.write('\nImport this JSON into Safe > Transaction Builder > Load JSON\n');
+        process.stderr.write('Both transactions will execute atomically.\n');
+      } catch (err) { printError('module setup failed', err); process.exit(1); }
     });
 }

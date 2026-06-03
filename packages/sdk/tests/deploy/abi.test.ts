@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { encodeDeployMessage, encodeCallMessage, encodeUpgradeMessage } from '../../src/deploy/abi.js';
+import {
+  encodeDeployMessage,
+  encodeCallMessage,
+  encodeUpgradeMessage,
+  encodeScheduleUpgradeMessage,
+  encodeExecuteUpgradeMessage,
+} from '../../src/deploy/abi.js';
 
 describe('encodeDeployMessage', () => {
   it('produces a non-empty 0x-prefixed hex string', () => {
@@ -46,5 +52,34 @@ describe('encodeUpgradeMessage', () => {
     });
     expect(encoded.startsWith('0x')).toBe(true);
     expect(encoded.length).toBeGreaterThan(2);
+  });
+});
+
+describe('AdminModule ABI encoding', () => {
+  const proxy   = `0x${'11'.repeat(20)}` as `0x${string}`;
+  const newImpl = `0x${'22'.repeat(20)}` as `0x${string}`;
+  const salt    = `0x${'42'.repeat(32)}` as `0x${string}`;
+
+  it('encodeScheduleUpgradeMessage returns 0x-prefixed hex', () => {
+    const result = encodeScheduleUpgradeMessage({ proxy, newImpl, salt });
+    expect(result.startsWith('0x')).toBe(true);
+    expect(result.length).toBeGreaterThan(10);
+  });
+
+  it('encodeExecuteUpgradeMessage returns 0x-prefixed hex', () => {
+    const result = encodeExecuteUpgradeMessage({ proxy, newImpl, salt });
+    expect(result.startsWith('0x')).toBe(true);
+    expect(result.length).toBeGreaterThan(10);
+  });
+
+  it('schedule and execute produce different selectors', () => {
+    const schedule = encodeScheduleUpgradeMessage({ proxy, newImpl, salt });
+    const execute  = encodeExecuteUpgradeMessage({ proxy, newImpl, salt });
+    expect(schedule.slice(0, 10)).not.toBe(execute.slice(0, 10));
+  });
+
+  it('is deterministic', () => {
+    const p = { proxy, newImpl, salt };
+    expect(encodeScheduleUpgradeMessage(p)).toBe(encodeScheduleUpgradeMessage(p));
   });
 });
